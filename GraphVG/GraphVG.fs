@@ -51,6 +51,7 @@ module GraphVG =
             |> addPadding 0.1
 
     let drawAxis graph =
+        // TODO: Add tick marks and labels
         let domainRange: (float * float) * (float * float) = (graph.Domain, graph.Range)
         let domain, range = domainRange
         let left, right = domain
@@ -71,6 +72,7 @@ module GraphVG =
         let viewBox = ViewBox.create Point.origin viewBoxArea
         let style = Style.create (Color.ofName Colors.Black) (Color.ofName Colors.Black) (Length.ofInt 3) 1.0 1.0
 
+        // TODO: Use named style for points
         let points = graph.Series |> List.map (fun point -> point |> (toScaledSvgCoordinates graph) |> Point.ofFloats)
         let circles = points |> List.map (fun point -> Circle.create point (Length.ofInt 3) |> Element.createWithStyle style)
         let svg = (drawAxis graph) |> (circles |> List.append) |> Svg.ofList |> Svg.withViewBox viewBox
