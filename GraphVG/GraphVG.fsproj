@@ -6,6 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Graph.fs" />
+    <Compile Include="Axis.fs" />
     <Compile Include="GraphVG.fs" />
   </ItemGroup>
 

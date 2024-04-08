@@ -8,7 +8,7 @@ let seriesToString series =
             |> List.map (fun (x, y) -> (sprintf "(%A, %A), " x y))
             |> List.reduce (+)
 
-let graph = GraphVG.createWithSeries series
+let graph = Graph.createWithSeries series
 let html = GraphVG.drawSeries graph
 
 printfn "%A"  html
@@ -16,6 +16,6 @@ printfn "%A"  html
 printfn "Input: %A" (series |> seriesToString)
 printfn "Domain: %A" (graph.Domain)
 printfn "Range: %A" (graph.Domain)
-printfn "Size: %A" (GraphVG.getDomainRangeSize (graph.Domain, graph.Range))
-printfn "(0, 0) -> %A" (GraphVG.toScaledSvgCoordinates graph (0.0, 0.0))
-printfn "Output: %A" (series |> List.map (GraphVG.toScaledSvgCoordinates graph) |> seriesToString)
+printfn "Size: %A" (Graph.getDomainRangeSize (graph.Domain, graph.Range))
+printfn "(0, 0) -> %A" (Graph.toScaledSvgCoordinates graph (0.0, 0.0))
+printfn "Output: %A" (series |> List.map (Graph.toScaledSvgCoordinates graph) |> seriesToString)
