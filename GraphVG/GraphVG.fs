@@ -10,10 +10,8 @@ module GraphVG =
     }
 
     let canvasSize = 1000.0
-    let halfCanvasSize = canvasSize / 2.0
     let majorTickSize = canvasSize / 10.0
     let minorTickSize = majorTickSize / 2.0
-    let centerCanvas = halfCanvasSize, halfCanvasSize
 
     let getDomainRange series =
         let xValues, yValues = series |> List.unzip
@@ -38,12 +36,18 @@ module GraphVG =
 
         outputX, outputY
 
-    let create series domain range =
+    let create series domain range padPercent =
         { Series = series; Domain = domain; Range = range }
 
     let createWithSeries series =
         let domain, range = getDomainRange series
-        { Series = series; Domain = domain; Range = range }
+        { Series = series; Domain = domain; Range = range; }
+
+    let addPadding padPercent graph =
+        let domainMin, domainMax = graph.Domain
+        let rangeMin, rangeMax = graph.Range
+        let pad = 1.0 + padPercent
+        { graph with Domain = (domainMin * pad, domainMax * pad); Range = (rangeMin * pad, rangeMax * pad) }
 
     let drawAxis graph =
         let domainRange: (float * float) * (float * float) = (graph.Domain, graph.Range)
