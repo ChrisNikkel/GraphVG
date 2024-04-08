@@ -9,6 +9,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{3F
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Plot", "Examples\Plot\Plot.fsproj", "{35F95369-C8FD-44CC-A0AC-DF9C6BFCEF52}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tests", "Tests\Tests.fsproj", "{FDFC9845-8357-4B77-A464-106B0E1218DD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,6 +28,10 @@ Global
 		{35F95369-C8FD-44CC-A0AC-DF9C6BFCEF52}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{35F95369-C8FD-44CC-A0AC-DF9C6BFCEF52}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{35F95369-C8FD-44CC-A0AC-DF9C6BFCEF52}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FDFC9845-8357-4B77-A464-106B0E1218DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FDFC9845-8357-4B77-A464-106B0E1218DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FDFC9845-8357-4B77-A464-106B0E1218DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FDFC9845-8357-4B77-A464-106B0E1218DD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{35F95369-C8FD-44CC-A0AC-DF9C6BFCEF52} = {3F1FC5C3-E0FF-4364-AD6F-F5EE84CA663E}
