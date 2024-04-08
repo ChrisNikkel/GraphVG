@@ -1,7 +1,6 @@
 ﻿open GraphVG
 
 let series = [(-1.0, -1.0);(1.0, 1.0);(2.0, 2.0);(4.0, 4.0);(8.0, 8.0);(10.0, 10.0)]
-//let series = [(-1.0, -1.0);(9.0, 9.0)]
 
 let seriesToString series =
         series
