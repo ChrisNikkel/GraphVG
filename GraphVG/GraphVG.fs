@@ -3,76 +3,71 @@
 open SharpVG
 
 module GraphVG =
-    let canvasSize = 500
-    let halfCanvasSize = canvasSize / 2
-    let majorTickSize = canvasSize / 10
-    let minorTickSize = majorTickSize / 2
-    let centerOffset = -halfCanvasSize, halfCanvasSize
+    type Graph = {
+        Series: (float * float) list
+        Domain: float * float
+        Range: float * float
+    }
 
-    let toSvgCoordinates (x, y) =
-        x, -y
+    let canvasSize = 1000.0
+    let halfCanvasSize = canvasSize / 2.0
+    let majorTickSize = canvasSize / 10.0
+    let minorTickSize = majorTickSize / 2.0
+    let centerCanvas = halfCanvasSize, halfCanvasSize
 
-    let axis =
-        let leftCenter = (-halfCanvasSize, 0)
-        let rightCenter = (halfCanvasSize, 0)
-        let topCenter = (0, halfCanvasSize)
-        let bottomCenter = (0, -halfCanvasSize)
+    let getDomainRange series =
+        let xValues, yValues = series |> List.unzip
+        let domain = List.reduce min xValues, List.reduce max xValues
+        let range = List.reduce min yValues, List.reduce max yValues
+        domain, range
 
-        let leftEndTickTop = (-halfCanvasSize, majorTickSize)
-        let leftEndTickBottom = (-halfCanvasSize, -majorTickSize)
+    let getDomainRangeSize (domain, range) =
+        let left, right = domain
+        let bottom, top = range
+        (right - left, top - bottom)
 
-        let rightEndTickTop = (halfCanvasSize, majorTickSize)
-        let rightEndTickBottom = (halfCanvasSize, -majorTickSize)
+    let toScaledSvgCoordinates graph (x, y) =
+        let width, height = getDomainRangeSize (graph.Domain, graph.Range)
+        let scaleHorizontally w = canvasSize * w / width
+        let scaleVertically h = canvasSize * h / height
+        let left= scaleHorizontally (fst graph.Domain)
+        let top = scaleVertically (snd graph.Range)
 
-        let topEndTickRight = (-majorTickSize, halfCanvasSize)
-        let topEndTickLeft = (majorTickSize, halfCanvasSize)
+        let outputX = (scaleHorizontally x) - left
+        let outputY = -((scaleVertically y) - top)
 
-        let bottomEndTickRight = (-majorTickSize, -halfCanvasSize)
-        let bottomEndTickLeft = (majorTickSize, -halfCanvasSize)
+        outputX, outputY
+
+    let create series domain range =
+        { Series = series; Domain = domain; Range = range }
+
+    let createWithSeries series =
+        let domain, range = getDomainRange series
+        { Series = series; Domain = domain; Range = range }
+
+    let drawAxis graph =
+        let domainRange: (float * float) * (float * float) = (graph.Domain, graph.Range)
+        let domain, range = domainRange
+        let left, right = domain
+        let bottom, top = range
 
         let styleName = "axisStyle"
-        let axisStyle = Style.create (Color.ofName Colors.Black) (Color.ofName Colors.Black) (Length.ofInt 3) 1.0 1.0 |> Style.withName styleName |> Element.create
+        let axisStyle = Style.create (Color.ofName Colors.Black) (Color.ofName Colors.Blue) (Length.ofInt 3) 1.0 1.0 |> Style.withName styleName |> Element.create
+        let toPoint (x, y) = Point.ofFloats (toScaledSvgCoordinates graph (x, y))
+        let toLine point1 point2 = Line.create point1 point2 |> Element.create |> Element.withClass styleName
+        let xAxisLine = toLine (toPoint (left, 0)) (toPoint (right, 0))
+        let yAxisLine = toLine (toPoint (0, bottom)) (toPoint (0, top))
 
-        let leftCenterPoint = leftCenter |> toSvgCoordinates |> Point.ofInts
-        let rightCenterPoint = rightCenter |> toSvgCoordinates |> Point.ofInts
-        let topCenterPoint = topCenter |> toSvgCoordinates |> Point.ofInts
-        let bottomCenterPoint = bottomCenter |> toSvgCoordinates |> Point.ofInts
-
-
-        let leftEndTickTopPoint= leftEndTickTop |> toSvgCoordinates |> Point.ofInts
-        let leftEndTickBottomPoint = leftEndTickBottom |> toSvgCoordinates |> Point.ofInts
-
-        let rightEndTickTopPoint = rightEndTickTop |> toSvgCoordinates |> Point.ofInts
-        let rightEndTickBottomPoint = rightEndTickBottom |> toSvgCoordinates |> Point.ofInts
-
-        let topEndTickRightPoint = topEndTickRight |> toSvgCoordinates |> Point.ofInts
-        let topEndTickLeftPoint= topEndTickLeft |> toSvgCoordinates |> Point.ofInts
-
-        let bottomEndTickRightPoint = bottomEndTickRight |> toSvgCoordinates |> Point.ofInts
-        let bottomEndTickLeftPoint = bottomEndTickLeft |> toSvgCoordinates |> Point.ofInts
-
-        let leftCenterLine = Line.create leftEndTickTopPoint leftEndTickBottomPoint |> Element.create |> Element.withClass styleName
-        let rightCenterLine = Line.create rightEndTickTopPoint rightEndTickBottomPoint |> Element.create |> Element.withClass styleName
-        let topCenterLine = Line.create topEndTickRightPoint topEndTickLeftPoint |> Element.create |> Element.withClass styleName
-        let bottomCenterLine = Line.create bottomEndTickRightPoint bottomEndTickLeftPoint |> Element.create |> Element.withClass styleName
+        [ axisStyle; xAxisLine; yAxisLine; ]
 
 
-        let xAxisLine = Line.create topCenterPoint bottomCenterPoint |> Element.create |> Element.withClass styleName
-        let yAxisLine = Line.create leftCenterPoint rightCenterPoint |> Element.create |> Element.withClass styleName
-
-        let elements = [axisStyle; xAxisLine; yAxisLine; leftCenterLine; rightCenterLine; topCenterLine; bottomCenterLine]
-        let svg = elements
-
-        svg
-
-    let plot (x, y) =
-        let viewBoxPoint = centerOffset |> toSvgCoordinates |> Point.ofInts
-        let viewBoxArea = Area.ofInts (canvasSize, canvasSize)
-        let viewBox = ViewBox.create viewBoxPoint viewBoxArea
+    let drawSeries graph =
+        let viewBoxArea = Area.ofFloats (canvasSize, canvasSize)
+        let viewBox = ViewBox.create Point.origin viewBoxArea
         let style = Style.create (Color.ofName Colors.Black) (Color.ofName Colors.Black) (Length.ofInt 3) 1.0 1.0
 
-        let point = (x, y) |> toSvgCoordinates |> Point.ofInts
-        let circle = Circle.create point (Length.ofInt 3) |> Element.createWithStyle style
-        let svg = axis |> (List.singleton circle |> List.append) |> Svg.ofList |> Svg.withViewBox viewBox
+        let points = graph.Series |> List.map (fun point -> point |> (toScaledSvgCoordinates graph) |> Point.ofFloats)
+        let circles = points |> List.map (fun point -> Circle.create point (Length.ofInt 3) |> Element.createWithStyle style)
+        let svg = (drawAxis graph) |> (circles |> List.append) |> Svg.ofList |> Svg.withViewBox viewBox
         let html = svg |> Svg.toHtml "Test"
         html
