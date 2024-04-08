@@ -39,15 +39,16 @@ module GraphVG =
     let create series domain range padPercent =
         { Series = series; Domain = domain; Range = range }
 
-    let createWithSeries series =
-        let domain, range = getDomainRange series
-        { Series = series; Domain = domain; Range = range; }
-
     let addPadding padPercent graph =
         let domainMin, domainMax = graph.Domain
         let rangeMin, rangeMax = graph.Range
         let pad = 1.0 + padPercent
         { graph with Domain = (domainMin * pad, domainMax * pad); Range = (rangeMin * pad, rangeMax * pad) }
+
+    let createWithSeries series =
+        let domain, range = getDomainRange series
+        { Series = series; Domain = domain; Range = range; }
+            |> addPadding 0.1
 
     let drawAxis graph =
         let domainRange: (float * float) * (float * float) = (graph.Domain, graph.Range)

@@ -8,7 +8,7 @@ let seriesToString series =
             |> List.map (fun (x, y) -> (sprintf "(%A, %A), " x y))
             |> List.reduce (+)
 
-let graph = GraphVG.createWithSeries series |> (GraphVG.addPadding 0.1)
+let graph = GraphVG.createWithSeries series
 let html = GraphVG.drawSeries graph
 
 printfn "%A"  html
