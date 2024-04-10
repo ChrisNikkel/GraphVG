@@ -4,7 +4,7 @@ open SharpVG
 
 module Graph =
     type Graph = {
-        Series: (float * float) list
+        Series: (float * float) list list
         Domain: float * float
         Range: float * float
     }
@@ -44,17 +44,24 @@ module Graph =
         { graph with Domain = (domainMin * pad, domainMax * pad); Range = (rangeMin * pad, rangeMax * pad) }
 
     let withPadding padPercent graph =
-        let domain, range = getDomainRange graph.Series
+        let domain, range = getDomainRange (List.concat graph.Series)
         { graph with Domain = domain } |> addPadding padPercent
 
     let createWithSeries series =
         let domain, range = getDomainRange series
-        { Series = series; Domain = domain; Range = range; }
+        { Series = [ series ]; Domain = domain; Range = range; }
             |> addPadding 0.1
+
+    let addSeries series graph=
+        { graph with Series = graph.Series @ [ series ] }
 
     let drawSeries graph =
         let style = Style.create (Color.ofName Colors.Black) (Color.ofName Colors.Black) (Length.ofInt 3) 1.0 1.0
+        let seriesToLine series =
+            series
+                |> List.map (fun point ->  point |> (toScaledSvgCoordinates graph) |> Point.ofFloats)
+                |> List.map (fun point -> Circle.create point (Length.ofInt 3) |> Element.createWithStyle style)
 
         // TODO: Use named style for points
-        let points = graph.Series |> List.map (fun point -> point |> (toScaledSvgCoordinates graph) |> Point.ofFloats)
-        points |> List.map (fun point -> Circle.create point (Length.ofInt 3) |> Element.createWithStyle style)
+        graph.Series |> List.map seriesToLine |> List.concat
+

@@ -1,18 +1,15 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
-
   <ItemGroup>
+    <Compile Include="Theme.fs" />
     <Compile Include="Graph.fs" />
     <Compile Include="Axis.fs" />
     <Compile Include="GraphVG.fs" />
   </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="SharpVG" Version="0.0.18" />
   </ItemGroup>
-
 </Project>
