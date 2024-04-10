@@ -7,7 +7,7 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GraphVG", "GraphVG\GraphVG.
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{3F1FC5C3-E0FF-4364-AD6F-F5EE84CA663E}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Plot", "Examples\Plot\Plot.fsproj", "{35F95369-C8FD-44CC-A0AC-DF9C6BFCEF52}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Plot", "Examples\Example\Example.fsproj", "{35F95369-C8FD-44CC-A0AC-DF9C6BFCEF52}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tests", "Tests\Tests.fsproj", "{FDFC9845-8357-4B77-A464-106B0E1218DD}"
 EndProject
