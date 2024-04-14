@@ -4,6 +4,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Series.fs" />
     <Compile Include="Theme.fs" />
     <Compile Include="Graph.fs" />
     <Compile Include="Axis.fs" />

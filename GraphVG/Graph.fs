@@ -2,12 +2,13 @@ namespace GraphVG
 
 open SharpVG
 
+type Graph = {
+    Series: Series list
+    Domain: float * float
+    Range: float * float
+}
+
 module Graph =
-    type Graph = {
-        Series: (float * float) list list
-        Domain: float * float
-        Range: float * float
-    }
 
     let canvasSize = 1000.0
 
@@ -55,13 +56,18 @@ module Graph =
     let addSeries series graph=
         { graph with Series = graph.Series @ [ series ] }
 
+    let drawPoints series =
+        series
+//            |> List.map (fun point ->  point |> (toScaledSvgCoordinates graph) |> Point.ofFloats)
+//            |> List.map (fun point -> Circle.create point (Length.ofInt 3) |> Element.createWithStyle style)
+
     let drawSeries graph =
         let style = Style.create (Color.ofName Colors.Black) (Color.ofName Colors.Black) (Length.ofInt 3) 1.0 1.0
-        let seriesToLine series =
+        let seriesToDots series =
             series
                 |> List.map (fun point ->  point |> (toScaledSvgCoordinates graph) |> Point.ofFloats)
                 |> List.map (fun point -> Circle.create point (Length.ofInt 3) |> Element.createWithStyle style)
 
         // TODO: Use named style for points
-        graph.Series |> List.map seriesToLine |> List.concat
+        graph.Series |> List.map seriesToDots |> List.concat
 

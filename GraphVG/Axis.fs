@@ -4,7 +4,7 @@ open SharpVG
 
 module Axis =
 
-    let draw (graph : Graph.Graph) =
+    let draw (graph : Graph) =
         // TODO: Add tick marks and labels
         let left, right = graph.Domain
         let bottom, top = graph.Range
