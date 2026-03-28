@@ -25,6 +25,9 @@ module Axis =
     let withLabel label (axis : Axis) =
         { axis with Label = Some label }
 
+    /// Shorthand for suppressing both axes: pass to Graph.withAxes.
+    let none : Axis option * Axis option = None, None
+
     let private strokeStyle (pen : Pen) =
         Style.create pen.Color pen.Color pen.Width pen.Opacity pen.Opacity
 
@@ -54,12 +57,12 @@ module Axis =
             | None -> []
             | Some gpen ->
                 let px = Scale.apply axis.Scale v
-                if isHorizontal then [ mkLine gpen (Point.ofFloats (px, 0.0)) (Point.ofFloats (px, Graph.canvasSize)) ]
-                else                 [ mkLine gpen (Point.ofFloats (0.0, px)) (Point.ofFloats (Graph.canvasSize, px)) ]
+                if isHorizontal then [ mkLine gpen (Point.ofFloats (px, 0.0)) (Point.ofFloats (px, Canvas.canvasSize)) ]
+                else                 [ mkLine gpen (Point.ofFloats (0.0, px)) (Point.ofFloats (Canvas.canvasSize, px)) ]
 
         match axis.Position with
         | Bottom ->
-            let y        = Graph.canvasSize
+            let y        = Canvas.canvasSize
             let axisLine = mkLine pen (Point.ofFloats (startPx, y)) (Point.ofFloats (endPx, y))
             let ticks =
                 tickValues |> List.collect (fun v ->
@@ -104,7 +107,7 @@ module Axis =
             axisLine :: ticks @ labelEl
 
         | Right ->
-            let x        = Graph.canvasSize
+            let x        = Canvas.canvasSize
             let axisLine = mkLine pen (Point.ofFloats (x, startPx)) (Point.ofFloats (x, endPx))
             let ticks =
                 tickValues |> List.collect (fun v ->
@@ -134,7 +137,7 @@ module Axis =
 
         | VerticalAt x ->
             let axisLine  = mkLine pen (Point.ofFloats (x, startPx)) (Point.ofFloats (x, endPx))
-            let leftSide  = x <= Graph.canvasSize / 2.0
+            let leftSide  = x <= Canvas.canvasSize / 2.0
             let anchor    = if leftSide then Start else End
             let tickSign  = if leftSide then 1.0 else -1.0
             let ticks =
@@ -148,18 +151,3 @@ module Axis =
                 |> Option.map (mkLabel pen anchor CentralBaseline >> (|>) (Point.ofFloats (x + tickSign * (tickLength + fontSize + 4.0), midPx)))
                 |> Option.toList
             axisLine :: ticks @ labelEl
-
-    let private clamp lo hi v = max lo (min hi v)
-
-    /// Default crosshair axes positioned at the data origin,
-    /// derived automatically from graph.Domain and graph.Range.
-    let defaults (graph : Graph) =
-        let xScale = Scale.linear graph.Domain (0.0, Graph.canvasSize)
-        let yScale = Scale.linear graph.Range  (Graph.canvasSize, 0.0)
-        let xAxisY = Scale.apply yScale 0.0 |> clamp 0.0 Graph.canvasSize
-        let yAxisX = Scale.apply xScale 0.0 |> clamp 0.0 Graph.canvasSize
-        [ create (HorizontalAt xAxisY) xScale
-          create (VerticalAt   yAxisX) yScale ]
-
-    /// Pass to GraphVG.render to suppress all axes.
-    let none : Axis list option = Some []

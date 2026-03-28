@@ -26,10 +26,11 @@ let lissajous =
 
 let graph =
     Graph.create [ unitCircle; lissajous ] (-1.2, 1.2) (-1.2, 1.2)
+    |> Graph.withTheme Theme.light
 
 // ── Render ───────────────────────────────────────────────────────────────────
 
-let html = GraphVG.render graph Theme.light None None
+let html = GraphVG.toHtml graph
 
 let outPath =
     Path.Combine(AppContext.BaseDirectory, "example.html")

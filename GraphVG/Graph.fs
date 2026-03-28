@@ -3,55 +3,121 @@ namespace GraphVG
 open SharpVG
 
 type Graph = {
-    Series: Series list
-    Domain: float * float
-    Range: float * float
+    Series : Series list
+    XScale : Scale
+    YScale : Scale
+    XAxis  : Axis option
+    YAxis  : Axis option
+    Theme  : Theme
+    Title  : string option
 }
 
 module Graph =
 
-    let canvasSize = 1000.0
+    // ── Internal helpers ────────────────────────────────────────────────────────
 
-    let private getDomainRange points =
-        let xValues, yValues = points |> List.unzip
-        let domain = List.reduce min xValues, List.reduce max xValues
-        let range = List.reduce min yValues, List.reduce max yValues
-        domain, range
+    let private clamp lo hi v = max lo (min hi v)
+
+    let private pixelRangeOf (scale : Scale) =
+        match scale with
+        | Scale.Linear(_, r) -> r
+        | Scale.Log(_, r, _) -> r
+
+    let private withScaleDomain newDomain (scale : Scale) : Scale =
+        match scale with
+        | Scale.Linear(_, r) -> Scale.Linear(newDomain, r)
+        | Scale.Log(_, r, b) -> Scale.Log(newDomain, r, b)
+
+    let private defaultAxes xScale yScale =
+        let xAxisY = Scale.apply yScale 0.0 |> clamp 0.0 Canvas.canvasSize
+        let yAxisX = Scale.apply xScale 0.0 |> clamp 0.0 Canvas.canvasSize
+        Some (Axis.create (HorizontalAt xAxisY) xScale),
+        Some (Axis.create (VerticalAt   yAxisX) yScale)
+
+    let private pointBounds (series : Series list) =
+        let allPoints = series |> List.collect (fun s -> s.Points)
+        let xs, ys    = allPoints |> List.unzip
+        (List.reduce min xs, List.reduce max xs),
+        (List.reduce min ys, List.reduce max ys)
+
+    let private buildScales domain range =
+        Scale.linear domain (0.0, Canvas.canvasSize),
+        Scale.linear range  (Canvas.canvasSize, 0.0)
+
+    // ── Coordinate transform ────────────────────────────────────────────────────
 
     let toScaledSvgCoordinates graph (x, y) =
-        let xScale = Scale.linear graph.Domain (0.0, canvasSize)
-        let yScale = Scale.linear graph.Range (canvasSize, 0.0)
-        Scale.apply xScale x, Scale.apply yScale y
+        Scale.apply graph.XScale x, Scale.apply graph.YScale y
 
-    let create series domain range =
-        { Series = series; Domain = domain; Range = range }
+    // ── Constructors ────────────────────────────────────────────────────────────
 
-    let addPadding padPercent graph =
-        let domainMin, domainMax = graph.Domain
-        let rangeMin, rangeMax = graph.Range
-        let domainPad = (domainMax - domainMin) * padPercent
-        let rangePad  = (rangeMax - rangeMin)  * padPercent
-        { graph with
-            Domain = domainMin - domainPad, domainMax + domainPad
-            Range  = rangeMin  - rangePad,  rangeMax  + rangePad }
-
-    let withPadding padPercent graph =
-        let allPoints = graph.Series |> List.collect (fun s -> s.Points)
-        let domain, range = getDomainRange allPoints
-        { graph with Domain = domain; Range = range } |> addPadding padPercent
+    let create (series : Series list) domain range =
+        let xScale, yScale = buildScales domain range
+        let xAxis, yAxis   = defaultAxes xScale yScale
+        { Series = series
+          XScale = xScale
+          YScale = yScale
+          XAxis  = xAxis
+          YAxis  = yAxis
+          Theme  = Theme.empty
+          Title  = None }
 
     let createWithSeries (series : Series) =
-        let domain, range = getDomainRange series.Points
-        { Series = [ series ]; Domain = domain; Range = range }
-            |> addPadding 0.1
+        let domain, range = pointBounds [ series ]
+        let span (lo, hi) = hi - lo
+        let pad (lo, hi) p = lo - (span (lo, hi)) * p, hi + (span (lo, hi)) * p
+        let xScale, yScale = buildScales (pad domain 0.1) (pad range 0.1)
+        let xAxis, yAxis   = defaultAxes xScale yScale
+        { Series = [ series ]
+          XScale = xScale
+          YScale = yScale
+          XAxis  = xAxis
+          YAxis  = yAxis
+          Theme  = Theme.empty
+          Title  = None }
+
+    // ── Bounds helpers ──────────────────────────────────────────────────────────
+
+    let addPadding padPercent graph =
+        let domainMin, domainMax = Scale.domain graph.XScale
+        let rangeMin,  rangeMax  = Scale.domain graph.YScale
+        let dp = (domainMax - domainMin) * padPercent
+        let rp = (rangeMax  - rangeMin)  * padPercent
+        { graph with
+            XScale = withScaleDomain (domainMin - dp, domainMax + dp) graph.XScale
+            YScale = withScaleDomain (rangeMin  - rp, rangeMax  + rp) graph.YScale }
+
+    let private recalcBounds padPercent graph =
+        let domain, range = pointBounds graph.Series
+        let span (lo, hi) = hi - lo
+        let pad (lo, hi) p = lo - (span (lo, hi)) * p, hi + (span (lo, hi)) * p
+        let newXScale = Scale.linear (pad domain padPercent) (pixelRangeOf graph.XScale)
+        let newYScale = Scale.linear (pad range  padPercent) (pixelRangeOf graph.YScale)
+        let xAxis, yAxis = defaultAxes newXScale newYScale
+        { graph with XScale = newXScale; YScale = newYScale; XAxis = xAxis; YAxis = yAxis }
+
+    // ── Builders ────────────────────────────────────────────────────────────────
 
     let addSeries series graph =
-        { graph with Series = graph.Series @ [ series ] } |> withPadding 0.1
+        { graph with Series = graph.Series @ [ series ] } |> recalcBounds 0.1
 
-    let drawSeries theme graph =
+    let withXScale xScale graph = { graph with XScale = xScale }
+    let withYScale yScale graph = { graph with YScale = yScale }
+
+    let withXAxis xAxis graph = { graph with XAxis = xAxis }
+    let withYAxis yAxis graph = { graph with YAxis = yAxis }
+
+    let withAxes (xAxis, yAxis) graph = { graph with XAxis = xAxis; YAxis = yAxis }
+
+    let withTheme theme graph = { graph with Theme = theme }
+    let withTitle title (graph : Graph) = { graph with Title = Some title }
+
+    // ── Rendering ───────────────────────────────────────────────────────────────
+
+    let drawSeries graph =
         let toSvgPoint pt = pt |> toScaledSvgCoordinates graph |> Point.ofFloats
         let seriesToElements i (series : Series) =
-            let pen = Theme.penForSeries i theme
+            let pen = Theme.penForSeries i graph.Theme
             match series.Kind with
             | Scatter ->
                 let style = Style.empty |> Style.withFillPen pen

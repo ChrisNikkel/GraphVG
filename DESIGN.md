@@ -86,21 +86,30 @@ module Graph =
 
 ### Default axis behaviour
 
-When `create` or `createWithSeries` builds a `Graph`, it auto-populates `XAxis` and `YAxis` with crosshair axes positioned at the data origin (same logic as current `Axis.defaults`). The user can override or suppress:
+When `create` or `createWithSeries` builds a `Graph`, it auto-populates `XAxis` and `YAxis` with crosshair axes positioned at the data origin (same logic as current `Axis.defaults`). The user can override individually or as a pair:
 
 ```fsharp
 // default: crosshair axes at origin
 Graph.createWithSeries s
 
-// suppress all axes
-|> Graph.withXAxis None
-|> Graph.withYAxis None
+// suppress both axes at once
+|> Graph.withAxes Axis.none
 
-// explicit bottom axis with label
+// set both axes at once (e.g. conventional bottom/left framing)
+|> Graph.withAxes (
+    Some (Axis.create Bottom xScale |> Axis.withLabel "X"),
+    Some (Axis.create Left   yScale |> Axis.withLabel "Y"))
+
+// override just one
 |> Graph.withXAxis (Some (Axis.create Bottom xScale |> Axis.withLabel "time"))
+|> Graph.withYAxis None   // suppress y-axis only
 ```
 
-`Axis.defaults` is no longer called from `GraphVG.render` — instead it's called inside `Graph.create`/`createWithSeries` to set the initial axis values.
+`Axis.none` is defined as `(None, None)` — a typed shorthand for the suppressed-both case.
+
+`Graph.withAxes` takes `(Axis option * Axis option)` and sets both fields at once.
+
+`Axis.defaults` is no longer called from `GraphVG.render` — instead it is called inside `Graph.create`/`createWithSeries` to set the initial axis values.
 
 ### Render API
 

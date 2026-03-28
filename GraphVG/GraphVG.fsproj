@@ -4,11 +4,12 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Canvas.fs" />
     <Compile Include="Scale.fs" />
     <Compile Include="Series.fs" />
     <Compile Include="Theme.fs" />
-    <Compile Include="Graph.fs" />
     <Compile Include="Axis.fs" />
+    <Compile Include="Graph.fs" />
     <Compile Include="GraphVG.fs" />
   </ItemGroup>
   <ItemGroup>
