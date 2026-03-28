@@ -189,3 +189,16 @@ Current test file is a placeholder. Each module above should have unit tests cov
 - Pie / donut / bar charts
 - Responsive/dynamic sizing (canvas is fixed 1000×1000 for now)
 - Interactivity / JavaScript output
+
+---
+
+## REQ-10: Adaptive Canvas Resolution (deferred)
+
+The internal canvas size (currently fixed at 1000×1000) should adapt to the magnitude of the data being plotted. When data values are very large or very small, fixed-size annotation constants (tick lengths, font sizes, margins) become proportionally wrong — either invisible or dominating the plot area.
+
+**Acceptance criteria:**
+
+- Annotation constants (tick length, font size, margin) are expressed as fractions of canvas size rather than absolute pixel values.
+- Canvas resolution scales up for large-magnitude data (e.g., domain spans 1e9) and down for small-magnitude data (e.g., domain spans 1e-6) to maintain adequate floating-point precision in SVG coordinates.
+- Existing tests continue to pass (canvasSize = 1000 remains the default).
+- The displayed chart is unaffected — only internal coordinate precision changes.
