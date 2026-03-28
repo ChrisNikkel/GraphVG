@@ -180,3 +180,55 @@ module ThemeTests =
         let modified = original |> Theme.withAxisPen Pen.red |> Theme.withGridPen Pen.blue
         Assert.Equal(Pen.gray, original.AxisPen)
         Assert.Equal(Pen.red,  modified.AxisPen)
+
+module AxisTests =
+
+    let private xScale = Scale.linear (0.0, 10.0) (0.0, 1000.0)
+    let private yScale = Scale.linear (0.0, 10.0) (1000.0, 0.0)
+
+    // Builders
+
+    [<Fact>]
+    let ``create defaults to 5 ticks and no label`` () =
+        let a = Axis.create Bottom xScale
+        Assert.Equal(5, a.TickCount)
+        Assert.Equal(None, a.Label)
+
+    [<Fact>]
+    let ``withTicks sets tick count`` () =
+        let a = Axis.create Bottom xScale |> Axis.withTicks 10
+        Assert.Equal(10, a.TickCount)
+
+    [<Fact>]
+    let ``withLabel sets label`` () =
+        let a = Axis.create Bottom xScale |> Axis.withLabel "X axis"
+        Assert.Equal(Some "X axis", a.Label)
+
+    // toElements – element counts
+
+    [<Fact>]
+    let ``bottom axis produces axis line plus 2 elements per tick`` () =
+        let a     = Axis.create Bottom xScale |> Axis.withTicks 5
+        let elems = Axis.toElements Theme.empty a
+        // 1 axis line + 5 ticks × (1 tick mark + 1 label) = 11
+        Assert.Equal(11, elems.Length)
+
+    [<Fact>]
+    let ``bottom axis with label produces one extra element`` () =
+        let a     = Axis.create Bottom xScale |> Axis.withTicks 5 |> Axis.withLabel "X"
+        let elems = Axis.toElements Theme.empty a
+        Assert.Equal(12, elems.Length)
+
+    [<Fact>]
+    let ``left axis produces same structure as bottom`` () =
+        let a     = Axis.create Left yScale |> Axis.withTicks 5
+        let elems = Axis.toElements Theme.empty a
+        Assert.Equal(11, elems.Length)
+
+    [<Fact>]
+    let ``top and right axes produce same element count`` () =
+        let top   = Axis.create Top   xScale |> Axis.withTicks 3 |> Axis.toElements Theme.empty
+        let right = Axis.create Right yScale |> Axis.withTicks 3 |> Axis.toElements Theme.empty
+        // 1 + 3×2 = 7 each
+        Assert.Equal(7, top.Length)
+        Assert.Equal(7, right.Length)

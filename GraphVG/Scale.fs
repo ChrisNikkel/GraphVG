@@ -31,6 +31,11 @@ module Scale =
             let t = (value - rangeMin) / (rangeMax - rangeMin)
             domainMin * Math.Pow(base', t * (logBase domainMax - logBase domainMin))
 
+    let domain scale =
+        match scale with
+        | Linear((d1, d2), _)    -> d1, d2
+        | Log((d1, d2), _, _)    -> d1, d2
+
     let ticks scale count =
         match scale with
         | Linear((domainMin, domainMax), _) ->
@@ -40,7 +45,7 @@ module Scale =
                 let step = (domainMax - domainMin) / float (count - 1)
                 [ for i in 0 .. count - 1 -> domainMin + float i * step ]
         | Log((domainMin, domainMax), _, base') ->
-            let logBase x = Math.Log(x) / Math.Log(base')
+            let logBase x = Math.Log x / Math.Log base'
             let eps = 1e-10
             let lo = int (Math.Ceiling(logBase domainMin - eps))
             let hi = int (Math.Floor(logBase domainMax + eps))

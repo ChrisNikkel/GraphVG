@@ -2,18 +2,111 @@ namespace GraphVG
 
 open SharpVG
 
+type AxisPosition = Bottom | Top | Left | Right
+
+type Axis = {
+    Position  : AxisPosition
+    Scale     : Scale
+    TickCount : int
+    Label     : string option
+}
+
 module Axis =
 
-    let draw (graph : Graph) =
-        // TODO: Add tick marks and labels
-        let left, right = graph.Domain
-        let bottom, top = graph.Range
+    let private tickLength  = 6.0
+    let private fontSize    = 12.0
 
-        let styleName = "axisStyle"
-        let axisStyle = Style.create (Color.ofName Colors.Black) (Color.ofName Colors.Blue) (Length.ofInt 3) 1.0 1.0 |> Style.withName styleName |> Element.create
-        let toPoint (x, y) = Point.ofFloats (Graph.toScaledSvgCoordinates graph (x, y))
-        let toLine point1 point2 = Line.create point1 point2 |> Element.create |> Element.withClass styleName
-        let xAxisLine = toLine (toPoint (left, 0)) (toPoint (right, 0))
-        let yAxisLine = toLine (toPoint (0, bottom)) (toPoint (0, top))
+    let create position scale : Axis =
+        { Position = position; Scale = scale; TickCount = 5; Label = None }
 
-        [ axisStyle; xAxisLine; yAxisLine; ]
+    let withTicks count axis =
+        { axis with TickCount = count }
+
+    let withLabel label (axis : Axis) =
+        { axis with Label = Some label }
+
+    let private strokeStyle (pen : Pen) =
+        Style.create pen.Color pen.Color pen.Width pen.Opacity pen.Opacity
+
+    let private fillStyle (pen : Pen) =
+        Style.create pen.Color pen.Color (Length.ofInt 1) pen.Opacity pen.Opacity
+
+    let private mkLine pen p1 p2 =
+        Line.create p1 p2 |> Element.createWithStyle (strokeStyle pen)
+
+    let private mkLabel pen anchor baseline body position =
+        Text.create position body
+        |> Text.withFontSize fontSize
+        |> Text.withAnchor anchor
+        |> Text.withBaseline baseline
+        |> Element.createWithStyle (fillStyle pen)
+
+    let toElements theme (axis : Axis) =
+        let pen       = theme.AxisPen
+        let domainMin, domainMax = Scale.domain axis.Scale
+        let startPx   = Scale.apply axis.Scale domainMin
+        let endPx     = Scale.apply axis.Scale domainMax
+        let midPx     = (startPx + endPx) / 2.0
+        let tickValues = Scale.ticks axis.Scale axis.TickCount
+        let fmt v     = sprintf "%.4g" v
+
+        match axis.Position with
+        | Bottom ->
+            let y        = Graph.canvasSize
+            let axisLine = mkLine pen (Point.ofFloats (startPx, y)) (Point.ofFloats (endPx, y))
+            let ticks =
+                tickValues |> List.collect (fun v ->
+                    let x    = Scale.apply axis.Scale v
+                    let tick = mkLine pen (Point.ofFloats (x, y)) (Point.ofFloats (x, y + tickLength))
+                    let lbl  = mkLabel pen Middle HangingBaseline (fmt v) (Point.ofFloats (x, y + tickLength + 2.0))
+                    [ tick; lbl ])
+            let labelEl =
+                axis.Label
+                |> Option.map (mkLabel pen Middle HangingBaseline >> (|>) (Point.ofFloats (midPx, y + tickLength + fontSize + 6.0)))
+                |> Option.toList
+            axisLine :: ticks @ labelEl
+
+        | Top ->
+            let y        = 0.0
+            let axisLine = mkLine pen (Point.ofFloats (startPx, y)) (Point.ofFloats (endPx, y))
+            let ticks =
+                tickValues |> List.collect (fun v ->
+                    let x    = Scale.apply axis.Scale v
+                    let tick = mkLine pen (Point.ofFloats (x, y)) (Point.ofFloats (x, y - tickLength))
+                    let lbl  = mkLabel pen Middle AlphabeticBaseline (fmt v) (Point.ofFloats (x, y - tickLength - 3.0))
+                    [ tick; lbl ])
+            let labelEl =
+                axis.Label
+                |> Option.map (mkLabel pen Middle AlphabeticBaseline >> (|>) (Point.ofFloats (midPx, y - tickLength - fontSize - 4.0)))
+                |> Option.toList
+            axisLine :: ticks @ labelEl
+
+        | Left ->
+            let x        = 0.0
+            let axisLine = mkLine pen (Point.ofFloats (x, startPx)) (Point.ofFloats (x, endPx))
+            let ticks =
+                tickValues |> List.collect (fun v ->
+                    let y    = Scale.apply axis.Scale v
+                    let tick = mkLine pen (Point.ofFloats (x, y)) (Point.ofFloats (x - tickLength, y))
+                    let lbl  = mkLabel pen End CentralBaseline (fmt v) (Point.ofFloats (x - tickLength - 4.0, y))
+                    [ tick; lbl ])
+            let labelEl =
+                axis.Label
+                |> Option.map (mkLabel pen Middle CentralBaseline >> (|>) (Point.ofFloats (x - tickLength - fontSize - 4.0, midPx)))
+                |> Option.toList
+            axisLine :: ticks @ labelEl
+
+        | Right ->
+            let x        = Graph.canvasSize
+            let axisLine = mkLine pen (Point.ofFloats (x, startPx)) (Point.ofFloats (x, endPx))
+            let ticks =
+                tickValues |> List.collect (fun v ->
+                    let y    = Scale.apply axis.Scale v
+                    let tick = mkLine pen (Point.ofFloats (x, y)) (Point.ofFloats (x + tickLength, y))
+                    let lbl  = mkLabel pen Start CentralBaseline (fmt v) (Point.ofFloats (x + tickLength + 4.0, y))
+                    [ tick; lbl ])
+            let labelEl =
+                axis.Label
+                |> Option.map (mkLabel pen Start CentralBaseline >> (|>) (Point.ofFloats (x + tickLength + fontSize + 4.0, midPx)))
+                |> Option.toList
+            axisLine :: ticks @ labelEl

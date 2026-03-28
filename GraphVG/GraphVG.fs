@@ -1,16 +1,18 @@
-﻿namespace GraphVG
+namespace GraphVG
 
 open SharpVG
 
 module GraphVG =
-    let canvasSize = 1000.0
 
     let drawSeries graph =
-        let viewBoxArea = Area.ofFloats (canvasSize, canvasSize)
-        let viewBox = ViewBox.create Point.origin viewBoxArea
+        let viewBox = ViewBox.create Point.origin (Area.ofFloats (Graph.canvasSize, Graph.canvasSize))
 
-        let graphElements = Graph.drawSeries graph
+        let xAxis = Axis.create Bottom (Scale.linear graph.Domain (0.0, Graph.canvasSize))
+        let yAxis = Axis.create Left   (Scale.linear graph.Range  (Graph.canvasSize, 0.0))
 
-        let svg = (Axis.draw graph) |> (List.append graphElements) |> Svg.ofList |> Svg.withViewBox viewBox
-        let html = svg |> Svg.toHtml "Test"
-        html
+        let elements =
+            Graph.drawSeries graph
+            @ Axis.toElements Theme.empty xAxis
+            @ Axis.toElements Theme.empty yAxis
+
+        elements |> Svg.ofList |> Svg.withViewBox viewBox |> Svg.toHtml "Test"
