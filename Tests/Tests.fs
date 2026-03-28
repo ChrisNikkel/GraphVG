@@ -127,3 +127,56 @@ module SeriesTests =
         let pts = [ 1.0, 2.0; 3.0, 4.0 ]
         let s = Series.line pts
         Assert.Equal<(float * float) list>(pts, s.Points)
+
+module ThemeTests =
+
+    open SharpVG
+
+    [<Fact>]
+    let ``empty has no grid pen`` () =
+        Assert.Equal(None, Theme.empty.GridPen)
+
+    [<Fact>]
+    let ``light has grid pen`` () =
+        Assert.True Theme.light.GridPen.IsSome
+
+    [<Fact>]
+    let ``dark has grid pen`` () =
+        Assert.True Theme.dark.GridPen.IsSome
+
+    [<Fact>]
+    let ``withBackground replaces background`` () =
+        let t = Theme.empty |> Theme.withBackground (Color.ofName Black)
+        Assert.Equal(Color.ofName Black, t.Background)
+
+    [<Fact>]
+    let ``withPens replaces pens`` () =
+        let pens = [ Pen.red; Pen.blue ]
+        let t = Theme.empty |> Theme.withPens pens
+        Assert.Equal<Pen list>(pens, t.Pens)
+
+    [<Fact>]
+    let ``withAxisPen replaces axis pen`` () =
+        let t = Theme.empty |> Theme.withAxisPen Pen.red
+        Assert.Equal(Pen.red, t.AxisPen)
+
+    [<Fact>]
+    let ``withGridPen sets grid pen to Some`` () =
+        let t = Theme.empty |> Theme.withGridPen Pen.lightGray
+        Assert.Equal(Some Pen.lightGray, t.GridPen)
+
+    [<Fact>]
+    let ``penForSeries 0 returns first pen`` () =
+        Assert.Equal(Theme.empty.Pens.[0], Theme.penForSeries 0 Theme.empty)
+
+    [<Fact>]
+    let ``penForSeries cycles when index exceeds pen count`` () =
+        let count = Theme.empty.Pens.Length
+        Assert.Equal(Theme.penForSeries 0 Theme.empty, Theme.penForSeries count Theme.empty)
+
+    [<Fact>]
+    let ``builders chain without mutating original`` () =
+        let original = Theme.empty
+        let modified = original |> Theme.withAxisPen Pen.red |> Theme.withGridPen Pen.blue
+        Assert.Equal(Pen.gray, original.AxisPen)
+        Assert.Equal(Pen.red,  modified.AxisPen)
