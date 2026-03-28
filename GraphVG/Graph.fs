@@ -12,8 +12,8 @@ module Graph =
 
     let canvasSize = 1000.0
 
-    let getDomainRange series =
-        let xValues, yValues = series |> List.unzip
+    let private getDomainRange points =
+        let xValues, yValues = points |> List.unzip
         let domain = List.reduce min xValues, List.reduce max xValues
         let range = List.reduce min yValues, List.reduce max yValues
         domain, range
@@ -23,7 +23,7 @@ module Graph =
         let yScale = Scale.linear graph.Range (canvasSize, 0.0)
         Scale.apply xScale x, Scale.apply yScale y
 
-    let create series domain range padPercent =
+    let create series domain range =
         { Series = series; Domain = domain; Range = range }
 
     let addPadding padPercent graph =
@@ -33,29 +33,22 @@ module Graph =
         { graph with Domain = (domainMin * pad, domainMax * pad); Range = (rangeMin * pad, rangeMax * pad) }
 
     let withPadding padPercent graph =
-        let domain, range = getDomainRange (List.concat graph.Series)
-        { graph with Domain = domain } |> addPadding padPercent
+        let allPoints = graph.Series |> List.collect (fun s -> s.Points)
+        let domain, range = getDomainRange allPoints
+        { graph with Domain = domain; Range = range } |> addPadding padPercent
 
-    let createWithSeries series =
-        let domain, range = getDomainRange series
-        { Series = [ series ]; Domain = domain; Range = range; }
+    let createWithSeries (series : Series) =
+        let domain, range = getDomainRange series.Points
+        { Series = [ series ]; Domain = domain; Range = range }
             |> addPadding 0.1
 
-    let addSeries series graph=
-        { graph with Series = graph.Series @ [ series ] }
-
-    let drawPoints series =
-        series
-//            |> List.map (fun point ->  point |> (toScaledSvgCoordinates graph) |> Point.ofFloats)
-//            |> List.map (fun point -> Circle.create point (Length.ofInt 3) |> Element.createWithStyle style)
+    let addSeries series graph =
+        { graph with Series = graph.Series @ [ series ] } |> withPadding 0.1
 
     let drawSeries graph =
         let style = Style.create (Color.ofName Colors.Black) (Color.ofName Colors.Black) (Length.ofInt 3) 1.0 1.0
-        let seriesToDots series =
-            series
-                |> List.map (fun point ->  point |> (toScaledSvgCoordinates graph) |> Point.ofFloats)
+        let seriesToElements (series : Series) =
+            series.Points
+                |> List.map (fun point -> point |> toScaledSvgCoordinates graph |> Point.ofFloats)
                 |> List.map (fun point -> Circle.create point (Length.ofInt 3) |> Element.createWithStyle style)
-
-        // TODO: Use named style for points
-        graph.Series |> List.map seriesToDots |> List.concat
-
+        graph.Series |> List.collect seriesToElements

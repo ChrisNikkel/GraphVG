@@ -1,7 +1,8 @@
 module Tests
 
-open Xunit
 open GraphVG
+
+open Xunit
 
 module ScaleTests =
 
@@ -93,3 +94,36 @@ module ScaleTests =
     let ``log ticks base 2 returns correct powers`` () =
         let s = Scale.log (1.0, 8.0) (0.0, 100.0) 2.0
         Assert.Equal<float list>([ 1.0; 2.0; 4.0; 8.0 ], Scale.ticks s 0)
+
+module SeriesTests =
+
+    [<Fact>]
+    let ``scatter sets kind to Scatter`` () =
+        let s = Series.scatter [ 0.0, 0.0; 1.0, 1.0 ]
+        Assert.Equal(Scatter, s.Kind)
+
+    [<Fact>]
+    let ``line sets kind to Line`` () =
+        let s = Series.line [ 0.0, 0.0; 1.0, 1.0 ]
+        Assert.Equal(Line, s.Kind)
+
+    [<Fact>]
+    let ``area sets kind to Area`` () =
+        let s = Series.area [ 0.0, 0.0; 1.0, 1.0 ]
+        Assert.Equal(Area, s.Kind)
+
+    [<Fact>]
+    let ``create has no label by default`` () =
+        let s = Series.scatter [ 0.0, 0.0 ]
+        Assert.Equal(None, s.Label)
+
+    [<Fact>]
+    let ``withLabel sets label`` () =
+        let s = Series.scatter [ 0.0, 0.0 ] |> Series.withLabel "my series"
+        Assert.Equal(Some "my series", s.Label)
+
+    [<Fact>]
+    let ``points are preserved`` () =
+        let pts = [ 1.0, 2.0; 3.0, 4.0 ]
+        let s = Series.line pts
+        Assert.Equal<(float * float) list>(pts, s.Points)
