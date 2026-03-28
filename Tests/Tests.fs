@@ -232,3 +232,131 @@ module AxisTests =
         // 1 + 3×2 = 7 each
         Assert.Equal(7, top.Length)
         Assert.Equal(7, right.Length)
+
+module GraphTests =
+
+    let private pts = [ 0.0, 0.0; 2.0, 4.0; 4.0, 2.0 ]
+    let private s   = Series.scatter pts
+
+    // create
+
+    [<Fact>]
+    let ``create stores series, domain, and range exactly`` () =
+        let g = Graph.create [ s ] (0.0, 10.0) (-5.0, 5.0)
+        Assert.Equal<Series list>([ s ], g.Series)
+        Assert.Equal((0.0, 10.0), g.Domain)
+        Assert.Equal((-5.0, 5.0), g.Range)
+
+    // addPadding
+
+    [<Fact>]
+    let ``addPadding expands domain and range symmetrically`` () =
+        let g  = Graph.create [ s ] (0.0, 10.0) (0.0, 10.0)
+        let g' = Graph.addPadding 0.1 g
+        let dMin, dMax = g'.Domain
+        let rMin, rMax = g'.Range
+        Assert.Equal(-1.0, dMin, 10)
+        Assert.Equal(11.0, dMax, 10)
+        Assert.Equal(-1.0, rMin, 10)
+        Assert.Equal(11.0, rMax, 10)
+
+    [<Fact>]
+    let ``addPadding 0 leaves bounds unchanged`` () =
+        let g  = Graph.create [ s ] (0.0, 10.0) (0.0, 10.0)
+        let g' = Graph.addPadding 0.0 g
+        Assert.Equal(g.Domain, g'.Domain)
+        Assert.Equal(g.Range,  g'.Range)
+
+    // createWithSeries
+
+    [<Fact>]
+    let ``createWithSeries infers domain from points with 10 pct padding`` () =
+        let g = Graph.createWithSeries s
+        let dMin, dMax = g.Domain
+        // raw x: 0..4, pad = 0.4
+        Assert.Equal(-0.4, dMin, 10)
+        Assert.Equal( 4.4, dMax, 10)
+
+    [<Fact>]
+    let ``createWithSeries infers range from points with 10 pct padding`` () =
+        let g = Graph.createWithSeries s
+        let rMin, rMax = g.Range
+        // raw y: 0..4, pad = 0.4
+        Assert.Equal(-0.4, rMin, 10)
+        Assert.Equal( 4.4, rMax, 10)
+
+    [<Fact>]
+    let ``createWithSeries stores exactly one series`` () =
+        let g = Graph.createWithSeries s
+        Assert.Equal(1, g.Series.Length)
+
+    // addSeries
+
+    [<Fact>]
+    let ``addSeries appends series and recalculates bounds`` () =
+        let s2 = Series.scatter [ -2.0, -2.0; 6.0, 6.0 ]
+        let g  = Graph.createWithSeries s |> Graph.addSeries s2
+        Assert.Equal(2, g.Series.Length)
+        let dMin, dMax = g.Domain
+        let rMin, rMax = g.Range
+        // raw x: -2..6, pad = 0.8
+        Assert.Equal(-2.8, dMin, 10)
+        Assert.Equal( 6.8, dMax, 10)
+        // raw y: -2..6, pad = 0.8
+        Assert.Equal(-2.8, rMin, 10)
+        Assert.Equal( 6.8, rMax, 10)
+
+    // toScaledSvgCoordinates
+
+    [<Fact>]
+    let ``toScaledSvgCoordinates maps domain min to left edge`` () =
+        let g = Graph.create [ s ] (0.0, 4.0) (0.0, 4.0)
+        let x, _ = Graph.toScaledSvgCoordinates g (0.0, 0.0)
+        Assert.Equal(0.0, x, 10)
+
+    [<Fact>]
+    let ``toScaledSvgCoordinates maps domain max to right edge`` () =
+        let g = Graph.create [ s ] (0.0, 4.0) (0.0, 4.0)
+        let x, _ = Graph.toScaledSvgCoordinates g (4.0, 0.0)
+        Assert.Equal(Graph.canvasSize, x, 10)
+
+    [<Fact>]
+    let ``toScaledSvgCoordinates inverts y axis (range min maps to canvas bottom)`` () =
+        let g = Graph.create [ s ] (0.0, 4.0) (0.0, 4.0)
+        let _, y = Graph.toScaledSvgCoordinates g (0.0, 0.0)
+        Assert.Equal(Graph.canvasSize, y, 10)
+
+    [<Fact>]
+    let ``toScaledSvgCoordinates inverts y axis (range max maps to canvas top)`` () =
+        let g = Graph.create [ s ] (0.0, 4.0) (0.0, 4.0)
+        let _, y = Graph.toScaledSvgCoordinates g (0.0, 4.0)
+        Assert.Equal(0.0, y, 10)
+
+    // drawSeries – smoke tests (non-empty element lists per SeriesKind)
+
+    [<Fact>]
+    let ``drawSeries scatter produces one element per point`` () =
+        let g    = Graph.create [ Series.scatter pts ] (0.0, 4.0) (0.0, 4.0)
+        let elms = Graph.drawSeries Theme.empty g
+        Assert.Equal(pts.Length, elms.Length)
+
+    [<Fact>]
+    let ``drawSeries line produces exactly one polyline element`` () =
+        let g    = Graph.create [ Series.line pts ] (0.0, 4.0) (0.0, 4.0)
+        let elms = Graph.drawSeries Theme.empty g
+        Assert.Equal(1, elms.Length)
+
+    [<Fact>]
+    let ``drawSeries area produces exactly one polygon element`` () =
+        let g    = Graph.create [ Series.area pts ] (0.0, 4.0) (0.0, 4.0)
+        let elms = Graph.drawSeries Theme.empty g
+        Assert.Equal(1, elms.Length)
+
+    [<Fact>]
+    let ``drawSeries two series produces elements for both`` () =
+        let g =
+            Graph.create
+                [ Series.scatter pts; Series.scatter pts ]
+                (0.0, 4.0) (0.0, 4.0)
+        let elms = Graph.drawSeries Theme.empty g
+        Assert.Equal(pts.Length * 2, elms.Length)
