@@ -5,7 +5,8 @@ open SharpVG
 module GraphVG =
 
     let drawSeries graph =
-        let viewBox = ViewBox.create Point.origin (Area.ofFloats (Graph.canvasSize, Graph.canvasSize))
+        let margin  = 20.0
+        let viewBox = ViewBox.create (Point.ofFloats (-margin, -margin)) (Area.ofFloats (Graph.canvasSize + 2.0 * margin, Graph.canvasSize + 2.0 * margin))
 
         let xScale = Scale.linear graph.Domain (0.0, Graph.canvasSize)
         let yScale = Scale.linear graph.Range  (Graph.canvasSize, 0.0)
