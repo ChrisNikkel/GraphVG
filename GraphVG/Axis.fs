@@ -148,3 +148,18 @@ module Axis =
                 |> Option.map (mkLabel pen anchor CentralBaseline >> (|>) (Point.ofFloats (x + tickSign * (tickLength + fontSize + 4.0), midPx)))
                 |> Option.toList
             axisLine :: ticks @ labelEl
+
+    let private clamp lo hi v = max lo (min hi v)
+
+    /// Default crosshair axes positioned at the data origin,
+    /// derived automatically from graph.Domain and graph.Range.
+    let defaults (graph : Graph) =
+        let xScale = Scale.linear graph.Domain (0.0, Graph.canvasSize)
+        let yScale = Scale.linear graph.Range  (Graph.canvasSize, 0.0)
+        let xAxisY = Scale.apply yScale 0.0 |> clamp 0.0 Graph.canvasSize
+        let yAxisX = Scale.apply xScale 0.0 |> clamp 0.0 Graph.canvasSize
+        [ create (HorizontalAt xAxisY) xScale
+          create (VerticalAt   yAxisX) yScale ]
+
+    /// Pass to GraphVG.render to suppress all axes.
+    let none : Axis list option = Some []
