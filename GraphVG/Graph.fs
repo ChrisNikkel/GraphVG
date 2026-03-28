@@ -18,22 +18,10 @@ module Graph =
         let range = List.reduce min yValues, List.reduce max yValues
         domain, range
 
-    let getDomainRangeSize (domain, range) =
-        let left, right = domain
-        let bottom, top = range
-        (right - left, top - bottom)
-
     let toScaledSvgCoordinates graph (x, y) =
-        let width, height = getDomainRangeSize (graph.Domain, graph.Range)
-        let scaleHorizontally w = canvasSize * w / width
-        let scaleVertically h = canvasSize * h / height
-        let left= scaleHorizontally (fst graph.Domain)
-        let top = scaleVertically (snd graph.Range)
-
-        let outputX = (scaleHorizontally x) - left
-        let outputY = -((scaleVertically y) - top)
-
-        outputX, outputY
+        let xScale = Scale.linear graph.Domain (0.0, canvasSize)
+        let yScale = Scale.linear graph.Range (canvasSize, 0.0)
+        Scale.apply xScale x, Scale.apply yScale y
 
     let create series domain range padPercent =
         { Series = series; Domain = domain; Range = range }
