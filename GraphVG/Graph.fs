@@ -48,10 +48,19 @@ module Graph =
     let addSeries series graph =
         { graph with Series = graph.Series @ [ series ] } |> withPadding 0.1
 
-    let drawSeries graph =
-        let style = Style.create (Color.ofName Colors.Black) (Color.ofName Colors.Black) (Length.ofInt 3) 1.0 1.0
-        let seriesToElements (series : Series) =
-            series.Points
-                |> List.map (fun point -> point |> toScaledSvgCoordinates graph |> Point.ofFloats)
-                |> List.map (fun point -> Circle.create point (Length.ofInt 3) |> Element.createWithStyle style)
-        graph.Series |> List.collect seriesToElements
+    let drawSeries theme graph =
+        let toSvgPoint pt = pt |> toScaledSvgCoordinates graph |> Point.ofFloats
+        let seriesToElements i (series : Series) =
+            let pen = Theme.penForSeries i theme
+            match series.Kind with
+            | Scatter ->
+                let style = Style.empty |> Style.withFillPen pen
+                series.Points
+                |> List.map (fun pt -> Circle.create (toSvgPoint pt) (Length.ofInt 3) |> Element.createWithStyle style)
+            | SeriesKind.Line ->
+                let style = Style.createWithPen pen |> Style.withFillOpacity 0.0
+                [ Polyline.ofList (series.Points |> List.map toSvgPoint) |> Element.createWithStyle style ]
+            | Area ->
+                let style = Style.createWithPen pen |> Style.withFillPen pen
+                [ Polygon.ofList (series.Points |> List.map toSvgPoint) |> Element.createWithStyle style ]
+        graph.Series |> List.mapi seriesToElements |> List.concat
