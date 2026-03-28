@@ -41,6 +41,7 @@ module Scale =
                 [ for i in 0 .. count - 1 -> domainMin + float i * step ]
         | Log((domainMin, domainMax), _, base') ->
             let logBase x = Math.Log(x) / Math.Log(base')
-            let lo = int (Math.Ceiling(logBase domainMin))
-            let hi = int (Math.Floor(logBase domainMax))
+            let eps = 1e-10
+            let lo = int (Math.Ceiling(logBase domainMin - eps))
+            let hi = int (Math.Floor(logBase domainMax + eps))
             [ for i in lo .. hi -> Math.Pow(base', float i) ]

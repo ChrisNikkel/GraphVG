@@ -54,7 +54,7 @@ module ScaleTests =
     [<Fact>]
     let ``linear ticks count 1 returns domain min`` () =
         let s = Scale.linear (2.0, 8.0) (0.0, 100.0)
-        Assert.Equal([ 2.0 ], Scale.ticks s 1)
+        Assert.Equal<float list>([ 2.0 ], Scale.ticks s 1)
 
     // Log – apply
 
@@ -87,9 +87,9 @@ module ScaleTests =
     [<Fact>]
     let ``log ticks returns powers of base within domain`` () =
         let s = Scale.log (1.0, 1000.0) (0.0, 100.0) 10.0
-        Assert.Equal([ 1.0; 10.0; 100.0; 1000.0 ], Scale.ticks s 0)
+        Assert.Equal<float list>([ 1.0; 10.0; 100.0; 1000.0 ], Scale.ticks s 0)
 
     [<Fact>]
     let ``log ticks base 2 returns correct powers`` () =
         let s = Scale.log (1.0, 8.0) (0.0, 100.0) 2.0
-        Assert.Equal([ 1.0; 2.0; 4.0; 8.0 ], Scale.ticks s 0)
+        Assert.Equal<float list>([ 1.0; 2.0; 4.0; 8.0 ], Scale.ticks s 0)
