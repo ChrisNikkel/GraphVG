@@ -29,8 +29,11 @@ module Graph =
     let addPadding padPercent graph =
         let domainMin, domainMax = graph.Domain
         let rangeMin, rangeMax = graph.Range
-        let pad = 1.0 + padPercent
-        { graph with Domain = (domainMin * pad, domainMax * pad); Range = (rangeMin * pad, rangeMax * pad) }
+        let domainPad = (domainMax - domainMin) * padPercent
+        let rangePad  = (rangeMax - rangeMin)  * padPercent
+        { graph with
+            Domain = domainMin - domainPad, domainMax + domainPad
+            Range  = rangeMin  - rangePad,  rangeMax  + rangePad }
 
     let withPadding padPercent graph =
         let allPoints = graph.Series |> List.collect (fun s -> s.Points)

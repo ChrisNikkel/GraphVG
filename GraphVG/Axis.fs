@@ -2,7 +2,7 @@ namespace GraphVG
 
 open SharpVG
 
-type AxisPosition = Bottom | Top | Left | Right
+type AxisPosition = Bottom | Top | Left | Right | HorizontalAt of float | VerticalAt of float
 
 type Axis = {
     Position  : AxisPosition
@@ -108,5 +108,36 @@ module Axis =
             let labelEl =
                 axis.Label
                 |> Option.map (mkLabel pen Start CentralBaseline >> (|>) (Point.ofFloats (x + tickLength + fontSize + 4.0, midPx)))
+                |> Option.toList
+            axisLine :: ticks @ labelEl
+
+        | HorizontalAt y ->
+            let axisLine = mkLine pen (Point.ofFloats (startPx, y)) (Point.ofFloats (endPx, y))
+            let ticks =
+                tickValues |> List.collect (fun v ->
+                    let x    = Scale.apply axis.Scale v
+                    let tick = mkLine pen (Point.ofFloats (x, y)) (Point.ofFloats (x, y + tickLength))
+                    let lbl  = mkLabel pen Middle HangingBaseline (fmt v) (Point.ofFloats (x, y + tickLength + 2.0))
+                    [ tick; lbl ])
+            let labelEl =
+                axis.Label
+                |> Option.map (mkLabel pen Middle HangingBaseline >> (|>) (Point.ofFloats (midPx, y + tickLength + fontSize + 6.0)))
+                |> Option.toList
+            axisLine :: ticks @ labelEl
+
+        | VerticalAt x ->
+            let axisLine  = mkLine pen (Point.ofFloats (x, startPx)) (Point.ofFloats (x, endPx))
+            let leftSide  = x <= Graph.canvasSize / 2.0
+            let anchor    = if leftSide then Start else End
+            let tickSign  = if leftSide then 1.0 else -1.0
+            let ticks =
+                tickValues |> List.collect (fun v ->
+                    let y    = Scale.apply axis.Scale v
+                    let tick = mkLine pen (Point.ofFloats (x, y)) (Point.ofFloats (x + tickSign * tickLength, y))
+                    let lbl  = mkLabel pen anchor CentralBaseline (fmt v) (Point.ofFloats (x + tickSign * (tickLength + 4.0), y))
+                    [ tick; lbl ])
+            let labelEl =
+                axis.Label
+                |> Option.map (mkLabel pen anchor CentralBaseline >> (|>) (Point.ofFloats (x + tickSign * (tickLength + fontSize + 4.0), midPx)))
                 |> Option.toList
             axisLine :: ticks @ labelEl

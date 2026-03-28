@@ -4,80 +4,36 @@ open GraphVG
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 
-// A sine wave sampled at 40 points
-let sinWave =
-    [ for i in 0 .. 39 ->
-        let x = float i * Math.PI / 10.0
-        x, Math.Sin x ]
+// Unit circle: x = cos(t), y = sin(t) — both axes span [-1, 1]
+let unitCircle =
+    [ for i in 0 .. 99 ->
+        let t = float i * 2.0 * Math.PI / 100.0
+        Math.Cos t, Math.Sin t ]
     |> Series.line
-    |> Series.withLabel "sin(x)"
+    |> Series.withLabel "unit circle"
 
-// A cosine wave
-let cosWave =
-    [ for i in 0 .. 39 ->
-        let x = float i * Math.PI / 10.0
-        x, Math.Cos x ]
+// Lissajous figure scaled to fit inside the unit circle.
+// Unscaled max radius is √2, so dividing by √2 keeps every point within radius 1.
+let lissajous =
+    let s = 1.0 / Math.Sqrt 2.0
+    [ for i in 0 .. 199 ->
+        let t = float i * 2.0 * Math.PI / 200.0
+        s * Math.Sin(3.0 * t), s * Math.Sin(2.0 * t + Math.PI / 4.0) - 0.05 ]
     |> Series.line
-    |> Series.withLabel "cos(x)"
-
-// A few highlighted scatter points at peaks/troughs
-let peaks =
-    [ Math.PI / 2.0, 1.0
-      3.0 * Math.PI / 2.0, -1.0
-      5.0 * Math.PI / 2.0, 1.0
-      7.0 * Math.PI / 2.0, -1.0 ]
-    |> Series.scatter
-    |> Series.withLabel "peaks"
-
-// ── Scales ───────────────────────────────────────────────────────────────────
-
-let xDomain = 0.0, 4.0 * Math.PI          // one full period shown
-let yDomain = -1.2, 1.2                    // a little padding above/below ±1
-
-let xScale = Scale.linear xDomain (0.0, Graph.canvasSize)
-let yScale = Scale.linear yDomain (Graph.canvasSize, 0.0)   // y inverted for SVG
-
-printfn "X ticks: %A" (Scale.ticks xScale 5)
-printfn "Y ticks: %A" (Scale.ticks yScale 5)
-
-// ── Axes ─────────────────────────────────────────────────────────────────────
-
-let xAxis =
-    Axis.create Bottom xScale
-    |> Axis.withTicks 5
-    |> Axis.withLabel "x (radians)"
-
-let yAxis =
-    Axis.create Left yScale
-    |> Axis.withTicks 5
-    |> Axis.withLabel "amplitude"
-
-// ── Theme ────────────────────────────────────────────────────────────────────
-
-// Available presets: Theme.empty  Theme.light  Theme.dark  Theme.turtle
-// Custom builder:
-//   Theme.empty
-//   |> Theme.withBackground (Color.ofName White)
-//   |> Theme.withAxisPen Pen.dimGray
-//   |> Theme.withGridPen Pen.lightGray
-
-let theme = Theme.light
+    |> Series.withLabel "lissajous"
 
 // ── Graph ────────────────────────────────────────────────────────────────────
-// Note: Graph.createWithSeries/addSeries auto-computes bounds from data.
-// REQ-5 will wire custom scales, axes, and theme directly into the Graph record.
 
 let graph =
-    Graph.createWithSeries sinWave
-    |> Graph.addSeries cosWave
-    |> Graph.addSeries peaks
+    Graph.createWithSeries unitCircle
+    |> Graph.addSeries lissajous
 
 // ── Render ───────────────────────────────────────────────────────────────────
 
 let html = GraphVG.drawSeries graph
 
 let outPath =
-    Path.Combine(AppContext.BaseDirectory, "output.html")
+    Path.Combine(AppContext.BaseDirectory, "example.html")
 
 File.WriteAllText(outPath, html)
 printfn "\nOutput written to:\n  %s" outPath
