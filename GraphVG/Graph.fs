@@ -37,7 +37,7 @@ module Graph =
 
     let private pointBounds (series : Series list) =
         let allPoints = series |> List.collect (fun s -> s.Points)
-        let xs, ys    = allPoints |> List.unzip
+        let xs, ys = allPoints |> List.unzip
         (List.reduce min xs, List.reduce max xs),
         (List.reduce min ys, List.reduce max ys)
 
@@ -54,48 +54,58 @@ module Graph =
 
     let create (series : Series list) domain range =
         let xScale, yScale = buildScales domain range
-        let xAxis, yAxis   = defaultAxes xScale yScale
-        { Series = series
-          XScale = xScale
-          YScale = yScale
-          XAxis  = xAxis
-          YAxis  = yAxis
-          Theme  = Theme.empty
-          Title  = None }
+        let xAxis, yAxis = defaultAxes xScale yScale
+        {
+            Series = series
+            XScale = xScale
+            YScale = yScale
+            XAxis = xAxis
+            YAxis = yAxis
+            Theme = Theme.empty
+            Title = None
+        }
 
     let createWithSeries (series : Series) =
         let domain, range = pointBounds [ series ]
         let span (lo, hi) = hi - lo
         let pad (lo, hi) p = lo - (span (lo, hi)) * p, hi + (span (lo, hi)) * p
         let xScale, yScale = buildScales (pad domain 0.1) (pad range 0.1)
-        let xAxis, yAxis   = defaultAxes xScale yScale
-        { Series = [ series ]
-          XScale = xScale
-          YScale = yScale
-          XAxis  = xAxis
-          YAxis  = yAxis
-          Theme  = Theme.empty
-          Title  = None }
+        let xAxis, yAxis = defaultAxes xScale yScale
+        {
+            Series = [ series ]
+            XScale = xScale
+            YScale = yScale
+            XAxis = xAxis
+            YAxis = yAxis
+            Theme = Theme.empty
+            Title = None
+        }
 
     // ── Bounds helpers ──────────────────────────────────────────────────────────
 
     let addPadding padPercent graph =
         let domainMin, domainMax = Scale.domain graph.XScale
-        let rangeMin,  rangeMax  = Scale.domain graph.YScale
+        let rangeMin, rangeMax = Scale.domain graph.YScale
         let dp = (domainMax - domainMin) * padPercent
-        let rp = (rangeMax  - rangeMin)  * padPercent
+        let rp = (rangeMax - rangeMin) * padPercent
         { graph with
             XScale = withScaleDomain (domainMin - dp, domainMax + dp) graph.XScale
-            YScale = withScaleDomain (rangeMin  - rp, rangeMax  + rp) graph.YScale }
+            YScale = withScaleDomain (rangeMin - rp, rangeMax + rp) graph.YScale }
 
     let private recalcBounds padPercent graph =
         let domain, range = pointBounds graph.Series
         let span (lo, hi) = hi - lo
         let pad (lo, hi) p = lo - (span (lo, hi)) * p, hi + (span (lo, hi)) * p
         let newXScale = Scale.linear (pad domain padPercent) (pixelRangeOf graph.XScale)
-        let newYScale = Scale.linear (pad range  padPercent) (pixelRangeOf graph.YScale)
+        let newYScale = Scale.linear (pad range padPercent) (pixelRangeOf graph.YScale)
         let xAxis, yAxis = defaultAxes newXScale newYScale
-        { graph with XScale = newXScale; YScale = newYScale; XAxis = xAxis; YAxis = yAxis }
+        {
+            graph with
+                XScale = newXScale
+                YScale = newYScale
+                XAxis = xAxis
+                YAxis = yAxis
+        }
 
     // ── Builders ────────────────────────────────────────────────────────────────
 
@@ -108,7 +118,12 @@ module Graph =
     let withXAxis xAxis graph = { graph with XAxis = xAxis }
     let withYAxis yAxis graph = { graph with YAxis = yAxis }
 
-    let withAxes (xAxis, yAxis) graph = { graph with XAxis = xAxis; YAxis = yAxis }
+    let withAxes (xAxis, yAxis) graph =
+        {
+            graph with
+                XAxis = xAxis
+                YAxis = yAxis
+        }
 
     let withTheme theme graph = { graph with Theme = theme }
     let withTitle title (graph : Graph) = { graph with Title = Some title }

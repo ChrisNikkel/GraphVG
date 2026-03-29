@@ -15,13 +15,13 @@ module GraphVG =
             Rect.create (Point.ofFloats (-margin, -margin)) (Area.ofFloats (Canvas.canvasSize + 2.0 * margin, Canvas.canvasSize + 2.0 * margin))
             |> Element.createWithStyle (Style.empty |> Style.withFill graph.Theme.Background)
         let axes = [ graph.XAxis; graph.YAxis ] |> List.choose id
-        let gridElements  = axes |> List.collect (Axis.toGridElements graph.Theme)
-        let axisElements  = axes |> List.collect (Axis.toElements graph.Theme)
+        let gridElements = axes |> List.collect (Axis.toGridElements graph.Theme)
+        let axisElements = axes |> List.collect (Axis.toElements graph.Theme)
         let titleElements =
             graph.Title
             |> Option.map (fun t ->
                 let style = Style.empty |> Style.withFillPen Pen.black
-                let pos   = Point.ofFloats (Canvas.canvasSize / 2.0, -margin / 2.0)
+                let pos = Point.ofFloats (Canvas.canvasSize / 2.0, -margin / 2.0)
                 Text.create pos t
                 |> Text.withFontSize 16.0
                 |> Text.withAnchor Middle

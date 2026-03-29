@@ -152,7 +152,7 @@ module SeriesTests =
         let sampleCount = samples.Get
         let series = Series.ofFunction Line (fun t -> t, 0.0) 0.0 1.0 sampleCount
         let first = fst (List.head series.Points)
-        let last  = fst (List.last series.Points)
+        let last = fst (List.last series.Points)
         let isNear expected actual = abs (actual - expected) < 1e-10
         if sampleCount = 1 then isNear 0.0 first
         else isNear 0.0 first && isNear 1.0 last
@@ -239,7 +239,7 @@ module ThemeTests =
         let original = Theme.empty
         let modified = original |> Theme.withAxisPen Pen.red |> Theme.withGridPen Pen.blue
         Assert.Equal(Pen.gray, original.AxisPen)
-        Assert.Equal(Pen.red,  modified.AxisPen)
+        Assert.Equal(Pen.red, modified.AxisPen)
 
 module AxisTests =
 
@@ -273,26 +273,26 @@ module AxisTests =
 
     [<Fact>]
     let ``bottom axis produces axis line plus 2 elements per tick`` () =
-        let axis     = Axis.create Bottom xScale |> Axis.withTicks 5
+        let axis = Axis.create Bottom xScale |> Axis.withTicks 5
         let elements = Axis.toElements Theme.empty axis
         // 1 axis line + 5 ticks × (1 tick mark + 1 label) = 11
         Assert.Equal(11, elements.Length)
 
     [<Fact>]
     let ``bottom axis with label produces one extra element`` () =
-        let axis     = Axis.create Bottom xScale |> Axis.withTicks 5 |> Axis.withLabel "X"
+        let axis = Axis.create Bottom xScale |> Axis.withTicks 5 |> Axis.withLabel "X"
         let elements = Axis.toElements Theme.empty axis
         Assert.Equal(12, elements.Length)
 
     [<Fact>]
     let ``left axis produces same structure as bottom`` () =
-        let axis     = Axis.create Left yScale |> Axis.withTicks 5
+        let axis = Axis.create Left yScale |> Axis.withTicks 5
         let elements = Axis.toElements Theme.empty axis
         Assert.Equal(11, elements.Length)
 
     [<Fact>]
     let ``top and right axes produce same element count`` () =
-        let top   = Axis.create Top   xScale |> Axis.withTicks 3 |> Axis.toElements Theme.empty
+        let top = Axis.create Top xScale |> Axis.withTicks 3 |> Axis.toElements Theme.empty
         let right = Axis.create Right yScale |> Axis.withTicks 3 |> Axis.toElements Theme.empty
         // 1 + 3×2 = 7 each
         Assert.Equal(7, top.Length)
@@ -340,7 +340,7 @@ module GraphTests =
         let domainMinimum, domainMaximum = Scale.domain graph.XScale
         // raw x: 0..4, pad = 0.4
         Assert.Equal(-0.4, domainMinimum, 10)
-        Assert.Equal( 4.4, domainMaximum, 10)
+        Assert.Equal(4.4, domainMaximum, 10)
 
     [<Fact>]
     let ``createWithSeries infers range from points with 10 pct padding`` () =
@@ -348,7 +348,7 @@ module GraphTests =
         let rangeMinimum, rangeMaximum = Scale.domain graph.YScale
         // raw y: 0..4, pad = 0.4
         Assert.Equal(-0.4, rangeMinimum, 10)
-        Assert.Equal( 4.4, rangeMaximum, 10)
+        Assert.Equal(4.4, rangeMaximum, 10)
 
     [<Fact>]
     let ``createWithSeries stores exactly one series`` () =
@@ -366,10 +366,10 @@ module GraphTests =
         let rangeMinimum, rangeMaximum = Scale.domain graph.YScale
         // raw x: -2..6, pad = 0.8
         Assert.Equal(-2.8, domainMinimum, 10)
-        Assert.Equal( 6.8, domainMaximum, 10)
+        Assert.Equal(6.8, domainMaximum, 10)
         // raw y: -2..6, pad = 0.8
         Assert.Equal(-2.8, rangeMinimum, 10)
-        Assert.Equal( 6.8, rangeMaximum, 10)
+        Assert.Equal(6.8, rangeMaximum, 10)
 
     // toScaledSvgCoordinates
 
@@ -401,19 +401,19 @@ module GraphTests =
 
     [<Fact>]
     let ``drawSeries scatter produces one element per point`` () =
-        let graph    = Graph.create [ Series.scatter points ] (0.0, 4.0) (0.0, 4.0)
+        let graph = Graph.create [ Series.scatter points ] (0.0, 4.0) (0.0, 4.0)
         let elements = Graph.drawSeries graph
         Assert.Equal(points.Length, elements.Length)
 
     [<Fact>]
     let ``drawSeries line produces exactly one polyline element`` () =
-        let graph    = Graph.create [ Series.line points ] (0.0, 4.0) (0.0, 4.0)
+        let graph = Graph.create [ Series.line points ] (0.0, 4.0) (0.0, 4.0)
         let elements = Graph.drawSeries graph
         Assert.Equal(1, elements.Length)
 
     [<Fact>]
     let ``drawSeries area produces exactly one polygon element`` () =
-        let graph    = Graph.create [ Series.area points ] (0.0, 4.0) (0.0, 4.0)
+        let graph = Graph.create [ Series.area points ] (0.0, 4.0) (0.0, 4.0)
         let elements = Graph.drawSeries graph
         Assert.Equal(1, elements.Length)
 
@@ -441,13 +441,13 @@ module GraphTests =
     [<Fact>]
     let ``drawSeries scatter custom radius produces different SVG than default`` () =
         let defaultSvg = Graph.create [ Series.scatter points ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
-        let customSvg  = Graph.create [ Series.scatter points |> Series.withPointRadius (SharpVG.Length.ofFloat 9.0) ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
+        let customSvg = Graph.create [ Series.scatter points |> Series.withPointRadius (SharpVG.Length.ofFloat 9.0) ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
         Assert.True(defaultSvg <> customSvg)
 
     [<Fact>]
     let ``drawSeries line custom stroke width produces different SVG than default`` () =
         let defaultSvg = Graph.create [ Series.line points ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
-        let customSvg  = Graph.create [ Series.line points |> Series.withStrokeWidth (SharpVG.Length.ofFloat 4.0) ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
+        let customSvg = Graph.create [ Series.line points |> Series.withStrokeWidth (SharpVG.Length.ofFloat 4.0) ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
         Assert.True(defaultSvg <> customSvg)
 
     // withTheme
@@ -531,7 +531,7 @@ module GraphVGTests =
     [<Fact>]
     let ``toHtml with axes suppressed produces shorter output than with default axes`` () =
         let graph = Graph.create [ series ] (0.0, 4.0) (0.0, 4.0)
-        let withAxes    = graph |> GraphVG.render
+        let withAxes = graph |> GraphVG.render
         let withoutAxes = graph |> Graph.withAxes Axis.none |> GraphVG.render
         Assert.True(withoutAxes.Length < withAxes.Length)
 
@@ -542,7 +542,7 @@ module GraphVGTests =
 
     [<Fact>]
     let ``render background color reflects theme`` () =
-        let svgDark  = Graph.create [ series ] (0.0, 4.0) (0.0, 4.0) |> Graph.withTheme Theme.dark  |> GraphVG.render
+        let svgDark = Graph.create [ series ] (0.0, 4.0) (0.0, 4.0) |> Graph.withTheme Theme.dark |> GraphVG.render
         let svgLight = Graph.create [ series ] (0.0, 4.0) (0.0, 4.0) |> Graph.withTheme Theme.light |> GraphVG.render
         Assert.True(svgDark <> svgLight)
 
@@ -583,25 +583,55 @@ module AxisHideTests =
 
     [<Fact>]
     let ``hideOriginTick removes tick element at origin`` () =
-        let full   = Axis.create Bottom scale |> Axis.withTicks 5 |> Axis.toElements Theme.empty
+        let full = Axis.create Bottom scale |> Axis.withTicks 5 |> Axis.toElements Theme.empty
         let hidden = Axis.create Bottom scale |> Axis.withTicks 5 |> Axis.hideOriginTick |> Axis.toElements Theme.empty
         Assert.Equal(full.Length - 1, hidden.Length)
 
     [<Fact>]
     let ``hideOriginLabel removes label element at origin`` () =
-        let full   = Axis.create Bottom scale |> Axis.withTicks 5 |> Axis.toElements Theme.empty
+        let full = Axis.create Bottom scale |> Axis.withTicks 5 |> Axis.toElements Theme.empty
         let hidden = Axis.create Bottom scale |> Axis.withTicks 5 |> Axis.hideOriginLabel |> Axis.toElements Theme.empty
         Assert.Equal(full.Length - 1, hidden.Length)
 
     [<Fact>]
     let ``hideOrigin removes both tick and label at origin`` () =
-        let full   = Axis.create Bottom scale |> Axis.withTicks 5 |> Axis.toElements Theme.empty
+        let full = Axis.create Bottom scale |> Axis.withTicks 5 |> Axis.toElements Theme.empty
         let hidden = Axis.create Bottom scale |> Axis.withTicks 5 |> Axis.hideOrigin |> Axis.toElements Theme.empty
         Assert.Equal(full.Length - 2, hidden.Length)
 
     [<Fact>]
     let ``hideOrigin on axis with no tick at origin leaves count unchanged`` () =
         let noZeroScale = Scale.linear (1.0, 10.0) (0.0, 1000.0)
-        let full   = Axis.create Bottom noZeroScale |> Axis.withTicks 5 |> Axis.toElements Theme.empty
+        let full = Axis.create Bottom noZeroScale |> Axis.withTicks 5 |> Axis.toElements Theme.empty
         let hidden = Axis.create Bottom noZeroScale |> Axis.withTicks 5 |> Axis.hideOrigin |> Axis.toElements Theme.empty
         Assert.Equal(full.Length, hidden.Length)
+
+module AxisStyleTests =
+
+    let private scale = Scale.linear (0.0, 10.0) (0.0, 1000.0)
+
+    [<Fact>]
+    let ``create defaults to TickLength 6 and FontSize 12`` () =
+        let axis = Axis.create Bottom scale
+        Assert.Equal(6.0,  axis.TickLength)
+        Assert.Equal(12.0, axis.FontSize)
+
+    [<Fact>]
+    let ``withTickLength sets TickLength`` () =
+        let axis = Axis.create Bottom scale |> Axis.withTickLength 15.0
+        Assert.Equal(15.0, axis.TickLength)
+
+    [<Fact>]
+    let ``withFontSize sets FontSize`` () =
+        let axis = Axis.create Bottom scale |> Axis.withFontSize 20.0
+        Assert.Equal(20.0, axis.FontSize)
+
+    [<Fact>]
+    let ``withTickLength custom value produces different output than default`` () =
+        let base' = Axis.create Bottom scale |> Axis.withTicks 3
+        Assert.True(Axis.toElements Theme.empty base' <> Axis.toElements Theme.empty (base' |> Axis.withTickLength 20.0))
+
+    [<Fact>]
+    let ``withFontSize custom value produces different output than default`` () =
+        let base' = Axis.create Bottom scale |> Axis.withTicks 3
+        Assert.True(Axis.toElements Theme.empty base' <> Axis.toElements Theme.empty (base' |> Axis.withFontSize 24.0))

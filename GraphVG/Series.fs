@@ -19,7 +19,13 @@ type Series =
 module Series =
 
     let create kind points =
-        { Points = points; Kind = kind; Label = None; StrokeWidth = None; PointRadius = None }
+        {
+            Points = points
+            Kind = kind
+            Label = None
+            StrokeWidth = None
+            PointRadius = None
+        }
 
     let scatter points =
         create Scatter points

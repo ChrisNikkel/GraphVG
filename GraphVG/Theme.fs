@@ -29,28 +29,28 @@ module Theme =
 
     let empty = {
         Background = Color.ofName White
-        Pens       = [ Pen.steelBlue; Pen.orange; Pen.green; Pen.red; Pen.purple ]
-        AxisPen    = Pen.gray
-        GridPen    = None
+        Pens = [ Pen.steelBlue; Pen.orange; Pen.green; Pen.red; Pen.purple ]
+        AxisPen = Pen.gray
+        GridPen = None
     }
 
     let light = {
         Background = Color.ofName White
-        Pens       = [ Pen.steelBlue; Pen.coral; Pen.seaGreen; Pen.tomato; Pen.mediumPurple; Pen.goldenRod ]
-        AxisPen    = Pen.dimGray
-        GridPen    = Some Pen.lightGray
+        Pens = [ Pen.steelBlue; Pen.coral; Pen.seaGreen; Pen.tomato; Pen.mediumPurple; Pen.goldenRod ]
+        AxisPen = Pen.dimGray
+        GridPen = Some Pen.lightGray
     }
 
     let dark = {
         Background = Color.ofName DarkSlateGray
-        Pens       = [ Pen.cornflowerBlue; Pen.coral; Pen.limeGreen; Pen.tomato; Pen.violet; Pen.gold ]
-        AxisPen    = Pen.lightGray
-        GridPen    = Some (Pen.dimGray |> Pen.withOpacity 0.5)
+        Pens = [ Pen.cornflowerBlue; Pen.coral; Pen.limeGreen; Pen.tomato; Pen.violet; Pen.gold ]
+        AxisPen = Pen.lightGray
+        GridPen = Some (Pen.dimGray |> Pen.withOpacity 0.5)
     }
 
     let turtle = {
         Background = Color.ofName Black
-        Pens       = [ Pen.green ]
-        AxisPen    = Pen.green
-        GridPen    = None
+        Pens = [ Pen.green ]
+        AxisPen = Pen.green
+        GridPen = None
     }
