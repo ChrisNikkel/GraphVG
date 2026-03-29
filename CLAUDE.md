@@ -7,6 +7,7 @@ F# library for generating SVG-based graphs using SharpVG.
 ```fsharp
 REQUIREMENTS.md    # Track requirements/bugs we plan to build.  Once implemented, remove.
 DESIGN.md          # Track the overall architecture / design of the project both current and future.
+CHANGELOG.md       # Human-readable history; update when a requirement is implemented.
 GraphVG/           # Main library (net8.0)
   CommonMath.fs    # canvasSize, GraphPadding type, estimatedTextWidth, pure float math
   Scale.fs         # Data-to-pixel mapping (Linear, Log)
@@ -25,6 +26,15 @@ Tests/             # xUnit test suite
 ## Git
 
 Do not commit changes automatically. Always wait for the user to review and explicitly request a commit.
+
+## Changelog
+
+`CHANGELOG.md` is the human-readable history of the project. Keep it current:
+
+- When a requirement from `REQUIREMENTS.md` is fully implemented, add a bullet under `## [Unreleased]` in the appropriate section (`Added`, `Changed`, `Fixed`, `Removed`).
+- Use the same brief, plain-English style as the existing entries — one line per feature.
+- Do **not** add a changelog entry for refactors, test additions, or internal cleanups unless they affect observable behaviour.
+- When a version is released (user explicitly bumps the version), move `[Unreleased]` items into a new dated section and reset `[Unreleased]` to empty.
 
 ## Build & Test
 
