@@ -209,6 +209,43 @@ module SeriesTests =
         let series = Series.scatter [ 0.0, 0.0 ] |> Series.withPointRadius (SharpVG.Length.ofFloat 7.0)
         Assert.Equal(Some (SharpVG.Length.ofFloat 7.0), series.PointRadius)
 
+    // Visibility and opacity – REQ-21
+
+    [<Fact>]
+    let ``create is visible by default`` () =
+        let series = Series.scatter [ 0.0, 0.0 ]
+        Assert.Equal(true, series.Visible)
+
+    [<Fact>]
+    let ``create has full opacity by default`` () =
+        let series = Series.scatter [ 0.0, 0.0 ]
+        Assert.Equal(1.0, series.Opacity)
+
+    [<Fact>]
+    let ``withVisible false marks series hidden`` () =
+        let series = Series.scatter [ 0.0, 0.0 ] |> Series.withVisible false
+        Assert.Equal(false, series.Visible)
+
+    [<Fact>]
+    let ``withVisible true restores visibility`` () =
+        let series = Series.scatter [ 0.0, 0.0 ] |> Series.withVisible false |> Series.withVisible true
+        Assert.Equal(true, series.Visible)
+
+    [<Fact>]
+    let ``withOpacity sets opacity`` () =
+        let series = Series.line [ 0.0, 0.0 ] |> Series.withOpacity 0.5
+        Assert.Equal(0.5, series.Opacity)
+
+    [<Fact>]
+    let ``withOpacity clamps below zero to zero`` () =
+        let series = Series.line [ 0.0, 0.0 ] |> Series.withOpacity -0.2
+        Assert.Equal(0.0, series.Opacity)
+
+    [<Fact>]
+    let ``withOpacity clamps above one to one`` () =
+        let series = Series.line [ 0.0, 0.0 ] |> Series.withOpacity 1.4
+        Assert.Equal(1.0, series.Opacity)
+
 module ThemeTests =
 
     open SharpVG
@@ -481,6 +518,51 @@ module GraphTests =
         let defaultSvg = Graph.create [ Series.line points ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
         let customSvg = Graph.create [ Series.line points |> Series.withStrokeWidth (SharpVG.Length.ofFloat 4.0) ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
         Assert.True(defaultSvg <> customSvg)
+
+    // Visibility – REQ-21
+
+    [<Fact>]
+    let ``drawSeries hidden scatter produces no elements`` () =
+        let graph = Graph.create [ Series.scatter points |> Series.withVisible false ] (0.0, 4.0) (0.0, 4.0)
+        Assert.Empty(Graph.drawSeries graph)
+
+    [<Fact>]
+    let ``drawSeries hidden line produces no elements`` () =
+        let graph = Graph.create [ Series.line points |> Series.withVisible false ] (0.0, 4.0) (0.0, 4.0)
+        Assert.Empty(Graph.drawSeries graph)
+
+    [<Fact>]
+    let ``drawSeries hidden area produces no elements`` () =
+        let graph = Graph.create [ Series.area points |> Series.withVisible false ] (0.0, 4.0) (0.0, 4.0)
+        Assert.Empty(Graph.drawSeries graph)
+
+    [<Fact>]
+    let ``drawSeries one hidden one visible yields only visible elements`` () =
+        let graph =
+            Graph.create
+                [ Series.scatter points |> Series.withVisible false; Series.scatter points ]
+                (0.0, 4.0) (0.0, 4.0)
+        Assert.Equal(points.Length, Graph.drawSeries graph |> List.length)
+
+    // Opacity – REQ-21
+
+    [<Fact>]
+    let ``drawSeries scatter with reduced opacity produces different SVG than full opacity`` () =
+        let fullSvg = Graph.create [ Series.scatter points ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
+        let dimSvg = Graph.create [ Series.scatter points |> Series.withOpacity 0.3 ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
+        Assert.True(fullSvg <> dimSvg)
+
+    [<Fact>]
+    let ``drawSeries line with reduced opacity produces different SVG than full opacity`` () =
+        let fullSvg = Graph.create [ Series.line points ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
+        let dimSvg = Graph.create [ Series.line points |> Series.withOpacity 0.3 ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
+        Assert.True(fullSvg <> dimSvg)
+
+    [<Fact>]
+    let ``drawSeries area with reduced opacity produces different SVG than full opacity`` () =
+        let fullSvg = Graph.create [ Series.area points ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
+        let dimSvg = Graph.create [ Series.area points |> Series.withOpacity 0.3 ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
+        Assert.True(fullSvg <> dimSvg)
 
     // withTheme
 

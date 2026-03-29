@@ -155,25 +155,27 @@ module Graph =
     let drawSeries graph =
         let toSvgPoint pt = pt |> toScaledSvgCoordinates graph |> Point.ofFloats
         let seriesToElements i (series : Series) =
-            let seriesPen = Theme.penForSeries i graph.Theme
-            match series.Kind with
-            | Scatter ->
-                let radius = series.PointRadius |> Option.defaultValue (Length.ofFloat 3.0)
-                let style = Style.empty |> Style.withFillPen seriesPen
-                series.Points
-                |> List.map (fun pt -> Circle.create (toSvgPoint pt) radius |> Element.createWithStyle style)
-            | SeriesKind.Line ->
-                let strokePen = series.StrokeWidth |> Option.map (fun w -> seriesPen |> Pen.withWidth w) |> Option.defaultValue seriesPen
-                let style =
-                    Style.createWithPen strokePen
-                    |> Style.withFillOpacity 0.0
-                    |> applyDash series.StrokeDash
-                [ Polyline.ofList (series.Points |> List.map toSvgPoint) |> Element.createWithStyle style ]
-            | Area ->
-                let strokePen = series.StrokeWidth |> Option.map (fun w -> seriesPen |> Pen.withWidth w) |> Option.defaultValue seriesPen
-                let style =
-                    Style.createWithPen strokePen
-                    |> Style.withFillPen strokePen
-                    |> applyDash series.StrokeDash
-                [ Polygon.ofList (series.Points |> List.map toSvgPoint) |> Element.createWithStyle style ]
+            if series.Visible then
+                let seriesPen = Theme.penForSeries i graph.Theme |> Pen.withOpacity series.Opacity
+                match series.Kind with
+                | Scatter ->
+                    let radius = series.PointRadius |> Option.defaultValue (Length.ofFloat 3.0)
+                    let style = Style.empty |> Style.withFillPen seriesPen
+                    series.Points
+                    |> List.map (fun pt -> Circle.create (toSvgPoint pt) radius |> Element.createWithStyle style)
+                | SeriesKind.Line ->
+                    let strokePen = series.StrokeWidth |> Option.map (fun w -> seriesPen |> Pen.withWidth w) |> Option.defaultValue seriesPen
+                    let style =
+                        Style.createWithPen strokePen
+                        |> Style.withFillOpacity 0.0
+                        |> applyDash series.StrokeDash
+                    [ Polyline.ofList (series.Points |> List.map toSvgPoint) |> Element.createWithStyle style ]
+                | Area ->
+                    let strokePen = series.StrokeWidth |> Option.map (fun w -> seriesPen |> Pen.withWidth w) |> Option.defaultValue seriesPen
+                    let style =
+                        Style.createWithPen strokePen
+                        |> Style.withFillPen strokePen
+                        |> applyDash series.StrokeDash
+                    [ Polygon.ofList (series.Points |> List.map toSvgPoint) |> Element.createWithStyle style ]
+            else []
         graph.Series |> List.mapi seriesToElements |> List.concat

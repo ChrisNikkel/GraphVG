@@ -15,12 +15,14 @@ type StrokeDash =
 
 type Series =
     {
-        Points      : (float * float) list
-        Kind        : SeriesKind
-        Label       : string option
+        Points : (float * float) list
+        Kind : SeriesKind
+        Label : string option
         StrokeWidth : Length option
         PointRadius : Length option
-        StrokeDash  : StrokeDash
+        StrokeDash : StrokeDash
+        Visible : bool
+        Opacity : float
     }
 
 module Series =
@@ -33,6 +35,8 @@ module Series =
             StrokeWidth = None
             PointRadius = None
             StrokeDash = Solid
+            Visible = true
+            Opacity = 1.0
         }
 
     let scatter points =
@@ -55,6 +59,12 @@ module Series =
 
     let withStrokeDash dash (series : Series) =
         { series with StrokeDash = dash }
+
+    let withVisible visible (series : Series) =
+        { series with Visible = visible }
+
+    let withOpacity opacity (series : Series) =
+        { series with Opacity = max 0.0 (min 1.0 opacity) }
 
     let ofFunction kind (f: float -> float * float) tMin tMax samples =
         let points =
