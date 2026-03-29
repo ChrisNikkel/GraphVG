@@ -1,6 +1,6 @@
 # GraphVG
 
-F# library for generating SVG-based 2D scatter plots and line graphs using SharpVG.
+F# library for generating SVG-based graphs using SharpVG.
 
 ## Project Structure
 
@@ -30,10 +30,14 @@ type Series = (float * float) list          // (x, y) data points
 
 type Graph = {
     Series: Series list
-    Domain: float * float                   // (min_x, max_x)
-    Range:  float * float                   // (min_y, max_y)
+    Domain: float * float                   // (minimumX, maximumX)
+    Range:  float * float                   // (minimumY, maximumY)
 }
 ```
+
+## Code standards
+
+**Standard names** (use consistently; always prefer full words over abbreviations — `minimumX` not `min_x` `duration` not `dur`, `position` not `pos`, `width` not `w`):
 
 ## Typical Usage
 
