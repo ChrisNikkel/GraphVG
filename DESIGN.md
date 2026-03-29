@@ -53,72 +53,75 @@ Each layer only depends on layers below it. `CommonMath` and `Canvas` are the sh
 
 ## Coordinate system
 
-Data coordinates are transformed to SVG coordinates in two stages:
+Data coordinates live in a conventional mathematical space (Y up). SVG coordinates have Y pointing down. The transform pipeline applies a linear scale to each axis and inverts Y:
 
 ```
-data (x, y)  →  Scale.apply  →  SVG pixel (px, py)
+  Data space              SVG pixel space
+
+  y                       x →
+  ▲  · (xMax, yMax)       0 ──────────── 1000
+  │                       │
+  │  · (x, y)        →    │  · (px, py)
+  │                       │
+  │  · (xMin, yMin)       1000
+  └──────────────── x →   y ↓
 ```
 
-The Y axis is **inverted**: SVG origin is top-left, so `Scale.apply yScale` maps the data minimum to `canvasSize` and the data maximum to `0`. This means increasing data values move upward visually, matching conventional chart orientation.
+The X and Y scales map independently:
 
-The canvas is a fixed `1000×1000` internal unit square. The SVG `viewBox` extends this outward by the computed padding margin to accommodate axes, labels, and titles.
-
-```mermaid
-flowchart LR
-    A["data (x, y)"]
-    B["scale + invert Y"]
-    C["SVG pixel (px, py)"]
-    A --> B --> C
 ```
+  data x:  xMin ──────────────── xMax
+                  Scale.apply (linear)
+  SVG px:     0 ──────────────── 1000
+
+  data y:  yMin ──────────────── yMax
+                  Scale.apply (inverted)
+  SVG py:  1000 ──────────────────── 0
+```
+
+Y inversion is built into the Y scale at construction time — the pixel range is `(canvasSize, 0.0)` rather than `(0.0, canvasSize)`. No special-casing is needed at the point of use.
 
 ---
 
-## Layout padding model
+## Canvas and ViewBox
 
-`GraphVG.fs` computes how much space each side of the canvas needs before building the SVG. This is a two-stage process:
+The inner canvas is always `1000×1000` in SVG user units. `GraphVG.fs` computes a padding margin for each side based on axis labels, ticks, and title, then expands the `viewBox` outward to fit:
 
-```mermaid
-flowchart TD
-    A[Graph]
-    B[Per-axis padding]
-    C[Title extent]
-    D[GraphPadding\nfour-sided inset record]
-    E[ViewBox + background Rect]
-
-    A --> B
-    A --> C
-    B --> D
-    C --> D
-    D --> E
+```
+  ┌──────────────────────────────────────────┐
+  │               padding.Top                │
+  │        ┌──────────────────────┐          │
+  │        │                      │          │
+  │ pad.   │  canvas              │  pad.    │
+  │ Left   │  (0, 0) → (1000,1000)│  Right   │
+  │        │                      │          │
+  │        └──────────────────────┘          │
+  │              padding.Bottom              │
+  └──────────────────────────────────────────┘
+    ViewBox origin = (-padding.Left, -padding.Top)
 ```
 
-`GraphPadding` is a private four-sided record (`Top`, `Right`, `Bottom`, `Left`). It is intentionally separate from SharpVG's `Area` type, which only models width and height. Independent sides are needed because title, top-axis labels, bottom-axis labels, and left/right-axis labels each reserve different amounts of space.
-
-SharpVG primitives (`Point`, `Area`, `ViewBox`, `Rect`) are only created at the final boundary where geometry is emitted — not during the padding calculation itself.
+`GraphPadding` is a private four-sided record (`Top`, `Right`, `Bottom`, `Left`). It is intentionally separate from SharpVG's `Area` type, which only models width and height — independent sides are needed because each edge reserves a different amount of space. SharpVG primitives (`Point`, `Area`, `ViewBox`, `Rect`) are only constructed at the final step where geometry is emitted.
 
 ---
 
-## CommonMath
+## CommonMath — unit-shape pattern
 
-`CommonMath.fs` is the single location for pure coordinate math — functions that operate only on plain `float` or `(float * float)` values with no dependency on SharpVG types.
+Shapes are defined as **unit offsets**: vertices relative to a center at the origin with a radius of 1. `centerPolygon` / `centerLines` place any unit shape at a real center and scale by multiplying each offset by `r` and translating by `(cx, cy)`:
 
-### Unit-shape pattern
+```
+  Unit diamond (r = 1)           At center (cx, cy), radius r
 
-Shapes are expressed as **unit offsets**: vertices relative to a center at the origin with a radius of 1. A single generic transform (`scaleAndTranslate`) places any such shape at a real center and scale:
-
-```mermaid
-flowchart LR
-    A["unit shape\n(list of offsets)"]
-    B["centerPolygon / centerLines"]
-    C["real coordinates\n(float * float) list"]
-    A --> B --> C
+         (0, -1)                       (cx, cy-r)
+            ·                              ·
+           / \                            / \
+  (-1, 0) ·   · (1, 0)    →   (cx-r, cy) ·   · (cx+r, cy)
+           \ /                            \ /
+            ·                              ·
+         (0, +1)                       (cx, cy+r)
 ```
 
-Adding a new scatter point shape requires only a new list constant — no new arithmetic. Do not inline offset arithmetic into rendering code.
-
-### Future reorganization
-
-As CommonMath grows it should be split into focused sub-modules (e.g. `Geometry`, `Numeric`). For now, all pure math lives here and must not depend on SharpVG or any other GraphVG module.
+The same transform works for any shape. Adding a new scatter point shape is a new list of unit offsets — no new arithmetic function needed.
 
 ---
 
