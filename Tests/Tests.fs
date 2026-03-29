@@ -153,8 +153,9 @@ module SeriesTests =
         let series = Series.ofFunction Line (fun t -> t, 0.0) 0.0 1.0 sampleCount
         let first = fst (List.head series.Points)
         let last  = fst (List.last series.Points)
-        if sampleCount = 1 then first = 0.0
-        else first = 0.0 && last = 1.0
+        let isNear expected actual = abs (actual - expected) < 1e-10
+        if sampleCount = 1 then isNear 0.0 first
+        else isNear 0.0 first && isNear 1.0 last
 
     [<Property>]
     let ``ofFunction preserves function values at each t`` (samples: FsCheck.PositiveInt) =
