@@ -2,8 +2,8 @@ module Tests
 
 open GraphVG
 
-
 open Xunit
+open FsCheck.Xunit
 
 
     // Linear – apply
@@ -130,6 +130,47 @@ module SeriesTests =
         let pts = [ 1.0, 2.0; 3.0, 4.0 ]
         let s = Series.line pts
         Assert.Equal<(float * float) list>(pts, s.Points)
+
+    [<Fact>]
+    let ``ofFunction with samples=1 returns single point at tMin`` () =
+        let s = Series.ofFunction Scatter (fun t -> t, t) 2.0 5.0 1
+        Assert.Equal<(float * float) list>([ 2.0, 2.0 ], s.Points)
+
+    [<Fact>]
+    let ``lineOfFunction sets kind to Line`` () =
+        let s = Series.lineOfFunction (fun t -> cos t, sin t) 0.0 1.0 10
+        Assert.Equal(Line, s.Kind)
+
+    [<Fact>]
+    let ``scatterOfFunction sets kind to Scatter`` () =
+        let s = Series.scatterOfFunction (fun t -> t, t) 0.0 1.0 10
+        Assert.Equal(Scatter, s.Kind)
+
+    [<Property>]
+    let ``ofFunction produces exactly samples points`` (samples: FsCheck.PositiveInt) =
+        let n = samples.Get
+        let s = Series.ofFunction Line (fun t -> t, t) 0.0 1.0 n
+        s.Points.Length = n
+
+    [<Property>]
+    let ``ofFunction first point maps tMin, last maps tMax`` (samples: FsCheck.PositiveInt) =
+        let n = samples.Get
+        let s = Series.ofFunction Line (fun t -> t, 0.0) 0.0 1.0 n
+        let first = fst (List.head s.Points)
+        let last  = fst (List.last s.Points)
+        if n = 1 then first = 0.0
+        else first = 0.0 && last = 1.0
+
+    [<Property>]
+    let ``ofFunction preserves function values at each t`` (samples: FsCheck.PositiveInt) =
+        let n = samples.Get
+        let s = Series.ofFunction Line (fun t -> t, t * t) 0.0 1.0 n
+        s.Points |> List.forall (fun (x, y) -> abs (y - x * x) < 1e-10)
+
+    [<Property>]
+    let ``ofFunction label is always None`` (samples: FsCheck.PositiveInt) =
+        let s = Series.ofFunction Scatter (fun t -> t, t) 0.0 1.0 samples.Get
+        s.Label = None
 
 module ThemeTests =
 
