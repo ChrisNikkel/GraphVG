@@ -57,6 +57,8 @@ GraphVG builds on SharpVG — match its style throughout so the two feel like on
 - **DU serialisation**: `override this.ToString()` on the type itself, not in the module.
 - **Module `to*` wrappers**: thin delegations to static type members (`let toString = MyType.ToString`).
 
+- **Do not shadow SharpVG types**: Always resolve type name conflicts (e.g., use fully qualified names for `Point` if needed).
+
 ### No new dependencies
 
 Do not add NuGet packages without explicit approval. The only allowed dependency is SharpVG. Prefer stdlib (`List`, `String`, `Math`) over pulling in utility libraries.
@@ -85,7 +87,6 @@ Prefer full words over abbreviations: `position` not `pos`, `minimum` not `min` 
 
 ### Architecture Notes
 
-- All data coordinates transform to a fixed 1000×1000 SVG canvas via `Graph.toScaledSvgCoordinates`. The constant lives in `Canvas.canvasSize`.
 - `Graph.createWithSeries` auto-calculates domain/range with 10% padding.
 - `Graph.addSeries` recalculates bounds across all series.
 - Y-axis is inverted during coordinate transform (SVG origin is top-left).
