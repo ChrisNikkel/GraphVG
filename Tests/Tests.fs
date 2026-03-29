@@ -360,3 +360,110 @@ module GraphTests =
                 (0.0, 4.0) (0.0, 4.0)
         let elms = Graph.drawSeries g
         Assert.Equal(pts.Length * 2, elms.Length)
+
+    // withTheme
+
+    [<Fact>]
+    let ``withTheme replaces theme on graph`` () =
+        let g = Graph.create [ s ] (0.0, 4.0) (0.0, 4.0)
+        Assert.Equal(Theme.empty, g.Theme)
+        let g' = g |> Graph.withTheme Theme.light
+        Assert.Equal(Theme.light, g'.Theme)
+
+    // withAxes / axis suppression
+
+    [<Fact>]
+    let ``default graph has both axes set`` () =
+        let g = Graph.create [ s ] (0.0, 4.0) (0.0, 4.0)
+        Assert.True(g.XAxis.IsSome)
+        Assert.True(g.YAxis.IsSome)
+
+    [<Fact>]
+    let ``withAxes Axis.none suppresses both axes`` () =
+        let g = Graph.create [ s ] (0.0, 4.0) (0.0, 4.0) |> Graph.withAxes Axis.none
+        Assert.Equal(None, g.XAxis)
+        Assert.Equal(None, g.YAxis)
+
+    [<Fact>]
+    let ``withXAxis None suppresses only x axis`` () =
+        let g = Graph.create [ s ] (0.0, 4.0) (0.0, 4.0) |> Graph.withXAxis None
+        Assert.Equal(None, g.XAxis)
+        Assert.True(g.YAxis.IsSome)
+
+    // withTitle
+
+    [<Fact>]
+    let ``withTitle sets title`` () =
+        let g = Graph.create [ s ] (0.0, 4.0) (0.0, 4.0) |> Graph.withTitle "My Chart"
+        Assert.Equal(Some "My Chart", g.Title)
+
+    [<Fact>]
+    let ``default graph has no title`` () =
+        let g = Graph.create [ s ] (0.0, 4.0) (0.0, 4.0)
+        Assert.Equal(None, g.Title)
+
+module GraphVGTests =
+
+    let private pts = [ 0.0, 0.0; 2.0, 4.0; 4.0, 2.0 ]
+    let private s   = Series.line pts
+
+    [<Fact>]
+    let ``toHtml returns non-empty string`` () =
+        let html = Graph.create [ s ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toHtml
+        Assert.True(html.Length > 0)
+
+    [<Fact>]
+    let ``toHtml output contains svg tag`` () =
+        let html = Graph.create [ s ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toHtml
+        Assert.Contains("<svg", html)
+
+    [<Fact>]
+    let ``render returns svg string without html wrapper`` () =
+        let svg = Graph.create [ s ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
+        Assert.Contains("<svg", svg)
+        Assert.DoesNotContain("<!DOCTYPE", svg)
+
+    [<Fact>]
+    let ``toHtml with title contains title text`` () =
+        let html =
+            Graph.create [ s ] (0.0, 4.0) (0.0, 4.0)
+            |> Graph.withTitle "Test Title"
+            |> GraphVG.toHtml
+        Assert.Contains("Test Title", html)
+
+    [<Fact>]
+    let ``toHtml with Theme.light produces more elements than Theme.empty (grid lines)`` () =
+        let g = Graph.create [ s ] (0.0, 4.0) (0.0, 4.0)
+        // Theme.light has GridPen; Theme.empty does not — light should produce a longer SVG
+        let svgLight = g |> Graph.withTheme Theme.light |> GraphVG.render
+        let svgEmpty = g |> GraphVG.render
+        Assert.True(svgLight.Length > svgEmpty.Length)
+
+    [<Fact>]
+    let ``toHtml with axes suppressed produces shorter output than with default axes`` () =
+        let g = Graph.create [ s ] (0.0, 4.0) (0.0, 4.0)
+        let withAxes    = g |> GraphVG.render
+        let withoutAxes = g |> Graph.withAxes Axis.none |> GraphVG.render
+        Assert.True(withoutAxes.Length < withAxes.Length)
+
+module AxisSkipTests =
+
+    let private scale = Scale.linear (0.0, 10.0) (0.0, 1000.0)
+
+    [<Fact>]
+    let ``withSkipLabelAt sets SkipLabelAt`` () =
+        let a = Axis.create Bottom scale |> Axis.withSkipLabelAt 5.0
+        Assert.Equal(Some 5.0, a.SkipLabelAt)
+
+    [<Fact>]
+    let ``skipLabelAt reduces element count by one`` () =
+        let full    = Axis.create Bottom scale |> Axis.withTicks 5 |> Axis.toElements Theme.empty
+        let skipped = Axis.create Bottom scale |> Axis.withTicks 5 |> Axis.withSkipLabelAt 0.0 |> Axis.toElements Theme.empty
+        // skipping a label at one tick removes 1 element
+        Assert.Equal(full.Length - 1, skipped.Length)
+
+    [<Fact>]
+    let ``skipLabelAt on value not in ticks leaves count unchanged`` () =
+        let full    = Axis.create Bottom scale |> Axis.withTicks 5 |> Axis.toElements Theme.empty
+        let skipped = Axis.create Bottom scale |> Axis.withTicks 5 |> Axis.withSkipLabelAt 99.0 |> Axis.toElements Theme.empty
+        Assert.Equal(full.Length, skipped.Length)
