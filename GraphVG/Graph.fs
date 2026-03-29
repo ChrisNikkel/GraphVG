@@ -33,7 +33,7 @@ module Graph =
 
     // ── Internal helpers ────────────────────────────────────────────────────────
 
-    let private clamp lo hi v = max lo (min hi v)
+    let private clamp lower upper value = max lower (min upper value)
 
     let private pixelRangeOf (scale : Scale) =
         match scale with
@@ -46,10 +46,10 @@ module Graph =
         | Scale.Log(_, r, b) -> Scale.Log(newDomain, r, b)
 
     let private defaultAxes xScale yScale =
-        let xAxisY = Scale.apply yScale 0.0 |> clamp 0.0 Canvas.canvasSize
-        let yAxisX = Scale.apply xScale 0.0 |> clamp 0.0 Canvas.canvasSize
-        Some (Axis.create (HorizontalAt xAxisY) xScale |> Axis.hideOrigin),
-        Some (Axis.create (VerticalAt yAxisX) yScale |> Axis.hideOrigin)
+        let xAxisPosition = Scale.apply yScale 0.0 |> clamp 0.0 Canvas.canvasSize
+        let yAxisPosition = Scale.apply xScale 0.0 |> clamp 0.0 Canvas.canvasSize
+        Some (Axis.create (HorizontalAt xAxisPosition) xScale |> Axis.hideOrigin),
+        Some (Axis.create (VerticalAt yAxisPosition) yScale |> Axis.hideOrigin)
 
     let private pointBounds (series : Series list) =
         let allPoints = series |> List.collect (fun s -> s.Points)
@@ -102,11 +102,11 @@ module Graph =
     let addPadding padPercent graph =
         let domainMin, domainMax = Scale.domain graph.XScale
         let rangeMin, rangeMax = Scale.domain graph.YScale
-        let dp = (domainMax - domainMin) * padPercent
-        let rp = (rangeMax - rangeMin) * padPercent
+        let domainPadding = (domainMax - domainMin) * padPercent
+        let rangePadding = (rangeMax - rangeMin) * padPercent
         { graph with
-            XScale = withScaleDomain (domainMin - dp, domainMax + dp) graph.XScale
-            YScale = withScaleDomain (rangeMin - rp, rangeMax + rp) graph.YScale }
+            XScale = withScaleDomain (domainMin - domainPadding, domainMax + domainPadding) graph.XScale
+            YScale = withScaleDomain (rangeMin - rangePadding, rangeMax + rangePadding) graph.YScale }
 
     let private recalcBounds padPercent graph =
         let domain, range = pointBounds graph.Series
@@ -153,7 +153,7 @@ module Graph =
         | DashDot -> style |> Style.withStrokeDashArray [ 12.0; 6.0; 3.0; 6.0 ]
 
     let drawSeries graph =
-        let toSvgPoint pt = pt |> toScaledSvgCoordinates graph |> Point.ofFloats
+        let toSvgPoint point = point |> toScaledSvgCoordinates graph |> Point.ofFloats
         let seriesToElements i (series : Series) =
             if series.Visible then
                 let seriesPen = Theme.penForSeries i graph.Theme |> Pen.withOpacity series.Opacity
@@ -162,16 +162,16 @@ module Graph =
                     let radius = series.PointRadius |> Option.defaultValue (Length.ofFloat 3.0)
                     let style = Style.empty |> Style.withFillPen seriesPen
                     series.Points
-                    |> List.map (fun pt -> Circle.create (toSvgPoint pt) radius |> Element.createWithStyle style)
+                    |> List.map (fun point -> Circle.create (toSvgPoint point) radius |> Element.createWithStyle style)
                 | SeriesKind.Line ->
-                    let strokePen = series.StrokeWidth |> Option.map (fun w -> seriesPen |> Pen.withWidth w) |> Option.defaultValue seriesPen
+                    let strokePen = series.StrokeWidth |> Option.map (fun width -> seriesPen |> Pen.withWidth width) |> Option.defaultValue seriesPen
                     let style =
                         Style.createWithPen strokePen
                         |> Style.withFillOpacity 0.0
                         |> applyDash series.StrokeDash
                     [ Polyline.ofList (series.Points |> List.map toSvgPoint) |> Element.createWithStyle style ]
                 | Area ->
-                    let strokePen = series.StrokeWidth |> Option.map (fun w -> seriesPen |> Pen.withWidth w) |> Option.defaultValue seriesPen
+                    let strokePen = series.StrokeWidth |> Option.map (fun width -> seriesPen |> Pen.withWidth width) |> Option.defaultValue seriesPen
                     let style =
                         Style.createWithPen strokePen
                         |> Style.withFillPen strokePen
