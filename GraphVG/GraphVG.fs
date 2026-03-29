@@ -5,14 +5,19 @@ open SharpVG
 module GraphVG =
 
     let private margin = 20.0
+    let private titlePadding = 16.0
 
     let private buildSvg (graph : Graph) =
+        let topMargin =
+            graph.Title
+            |> Option.map (fun _ -> max margin (graph.TitleStyle.FontSize + titlePadding))
+            |> Option.defaultValue margin
         let viewBox =
             ViewBox.create
-                (Point.ofFloats (-margin, -margin))
-                (Area.ofFloats (Canvas.canvasSize + 2.0 * margin, Canvas.canvasSize + 2.0 * margin))
+                (Point.ofFloats (-margin, -topMargin))
+                (Area.ofFloats (Canvas.canvasSize + 2.0 * margin, Canvas.canvasSize + topMargin + margin))
         let background =
-            Rect.create (Point.ofFloats (-margin, -margin)) (Area.ofFloats (Canvas.canvasSize + 2.0 * margin, Canvas.canvasSize + 2.0 * margin))
+            Rect.create (Point.ofFloats (-margin, -topMargin)) (Area.ofFloats (Canvas.canvasSize + 2.0 * margin, Canvas.canvasSize + topMargin + margin))
             |> Element.createWithStyle (Style.empty |> Style.withFill graph.Theme.Background)
         let plotBackground =
             graph.Theme.PlotBackground
@@ -27,10 +32,11 @@ module GraphVG =
             graph.Title
             |> Option.map (fun t ->
                 let style = Style.empty |> Style.withFillPen Pen.black
-                let pos = Point.ofFloats (Canvas.canvasSize / 2.0, -margin / 2.0)
+                let pos = Point.ofFloats (Canvas.canvasSize / 2.0, -topMargin + 6.0)
                 Text.create pos t
                 |> Text.withFontSize graph.TitleStyle.FontSize
                 |> Text.withAnchor graph.TitleStyle.Alignment
+                |> Text.withBaseline HangingBaseline
                 |> Element.createWithStyle style)
             |> Option.toList
         background :: plotBackground @ gridElements @ Graph.drawSeries graph @ axisElements @ titleElements

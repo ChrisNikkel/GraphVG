@@ -840,6 +840,15 @@ module TitleStyleTests =
         let custom   = base' |> Graph.withTitleStyle (TitleStyle.create 32.0 SharpVG.Start) |> GraphVG.render
         Assert.True(default' <> custom)
 
+    [<Fact>]
+    let ``title rendering reserves top padding based on font size`` () =
+        let base' = Graph.create [ series ] (0.0, 1.0) (0.0, 1.0) |> Graph.withTitle "Hello"
+        let defaultRender = base' |> GraphVG.render
+        let customRender = base' |> Graph.withTitleStyle (TitleStyle.create 32.0 SharpVG.Start) |> GraphVG.render
+        Assert.Contains("viewBox=\"-20,-32 1040,1052\"", defaultRender)
+        Assert.Contains("dominant-baseline=\"hanging\"", defaultRender)
+        Assert.Contains("viewBox=\"-20,-48 1040,1068\"", customRender)
+
 module PlotBackgroundTests =
 
     open SharpVG
