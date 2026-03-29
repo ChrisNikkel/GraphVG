@@ -4,30 +4,48 @@ open SharpVG
 
 type AxisPosition = Bottom | Top | Left | Right | HorizontalAt of float | VerticalAt of float
 
+type AxisTicks =
+    | TickCount    of int
+    | TickInterval of float     // spacing in data units
+
 type Axis = {
-    Position     : AxisPosition
-    Scale        : Scale
-    TickCount    : int
-    Label        : string option
-    SkipLabelAt  : float option     // suppress tick label at this data value
+    Position          : AxisPosition
+    Scale             : Scale
+    Ticks             : AxisTicks
+    Label             : string option
+    HideOriginTick    : bool
+    HideOriginLabel   : bool
+    HideBoundsTick    : bool
+    HideBoundsLabel   : bool
 }
 
 module Axis =
 
-    let private tickLength  = 6.0
-    let private fontSize    = 12.0
+    let private tickLength = 6.0
+    let private fontSize   = 12.0
 
     let create position scale : Axis =
-        { Position = position; Scale = scale; TickCount = 5; Label = None; SkipLabelAt = None }
+        { Position = position; Scale = scale; Ticks = TickCount 5
+          Label = None
+          HideOriginTick = false; HideOriginLabel = false
+          HideBoundsTick = false; HideBoundsLabel = false }
 
-    let withSkipLabelAt value axis =
-        { axis with SkipLabelAt = Some value }
+    let withTicks count (axis : Axis) =
+        { axis with Ticks = TickCount count }
 
-    let withTicks count axis =
-        { axis with TickCount = count }
+    let withTickInterval interval (axis : Axis) =
+        { axis with Ticks = TickInterval interval }
 
     let withLabel label (axis : Axis) =
         { axis with Label = Some label }
+
+    let hideOriginTick  (axis : Axis) = { axis with HideOriginTick  = true }
+    let hideOriginLabel (axis : Axis) = { axis with HideOriginLabel = true }
+    let hideOrigin      (axis : Axis) = axis |> hideOriginTick |> hideOriginLabel
+
+    let hideBoundsTick  (axis : Axis) = { axis with HideBoundsTick  = true }
+    let hideBoundsLabel (axis : Axis) = { axis with HideBoundsLabel = true }
+    let hideBounds      (axis : Axis) = axis |> hideBoundsTick |> hideBoundsLabel
 
     /// Shorthand for suppressing both axes: pass to Graph.withAxes.
     let none : Axis option * Axis option = None, None
@@ -49,17 +67,27 @@ module Axis =
         |> Element.createWithStyle (fillStyle pen)
 
     let toElements theme (axis : Axis) =
-        let pen       = theme.AxisPen
+        let pen = theme.AxisPen
         let domainMin, domainMax = Scale.domain axis.Scale
-        let startPx   = Scale.apply axis.Scale domainMin
-        let endPx     = Scale.apply axis.Scale domainMax
-        let midPx     = (startPx + endPx) / 2.0
-        let tickValues = Scale.ticks axis.Scale axis.TickCount
-        let fmt v     = sprintf "%.4g" v
-        let lblIfShown v lbl =
-            match axis.SkipLabelAt with
-            | Some skip when abs (v - skip) < 1e-10 -> []
-            | _                                     -> [ lbl ]
+        let startPx  = Scale.apply axis.Scale domainMin
+        let endPx    = Scale.apply axis.Scale domainMax
+        let midPx    = (startPx + endPx) / 2.0
+        let tickValues =
+            match axis.Ticks with
+            | TickCount n    -> Scale.ticks axis.Scale n
+            | TickInterval s ->
+                let lo, hi = Scale.domain axis.Scale
+                let first  = ceil (lo / s) * s
+                [ for i in 0 .. int (floor ((hi - first) / s)) -> first + float i * s ]
+        let fmt v    = sprintf "%.4g" v
+        let near a b = abs (a - b) < 1e-10
+        let isOrigin v = near v 0.0
+        let isBound  v = near v domainMin || near v domainMax
+        let showTick  v = not (axis.HideOriginTick  && isOrigin v) && not (axis.HideBoundsTick  && isBound v)
+        let showLabel v = not (axis.HideOriginLabel && isOrigin v) && not (axis.HideBoundsLabel && isBound v)
+        let tickAndLabel v tick lbl =
+            (if showTick  v then [ tick ] else []) @
+            (if showLabel v then [ lbl  ] else [])
         let gridLines v isHorizontal =
             match theme.GridPen with
             | None -> []
@@ -77,7 +105,7 @@ module Axis =
                     let x    = Scale.apply axis.Scale v
                     let tick = mkLine pen (Point.ofFloats (x, y)) (Point.ofFloats (x, y + tickLength))
                     let lbl  = mkLabel pen Middle HangingBaseline (fmt v) (Point.ofFloats (x, y + tickLength + 2.0))
-                    gridLines v true @ [ tick ] @ lblIfShown v lbl)
+                    gridLines v true @ tickAndLabel v tick lbl)
             let labelEl =
                 axis.Label
                 |> Option.map (mkLabel pen Middle HangingBaseline >> (|>) (Point.ofFloats (midPx, y + tickLength + fontSize + 6.0)))
@@ -92,7 +120,7 @@ module Axis =
                     let x    = Scale.apply axis.Scale v
                     let tick = mkLine pen (Point.ofFloats (x, y)) (Point.ofFloats (x, y - tickLength))
                     let lbl  = mkLabel pen Middle AlphabeticBaseline (fmt v) (Point.ofFloats (x, y - tickLength - 3.0))
-                    gridLines v true @ [ tick ] @ lblIfShown v lbl)
+                    gridLines v true @ tickAndLabel v tick lbl)
             let labelEl =
                 axis.Label
                 |> Option.map (mkLabel pen Middle AlphabeticBaseline >> (|>) (Point.ofFloats (midPx, y - tickLength - fontSize - 4.0)))
@@ -107,7 +135,7 @@ module Axis =
                     let y    = Scale.apply axis.Scale v
                     let tick = mkLine pen (Point.ofFloats (x, y)) (Point.ofFloats (x - tickLength, y))
                     let lbl  = mkLabel pen End CentralBaseline (fmt v) (Point.ofFloats (x - tickLength - 4.0, y))
-                    gridLines v false @ [ tick ] @ lblIfShown v lbl)
+                    gridLines v false @ tickAndLabel v tick lbl)
             let labelEl =
                 axis.Label
                 |> Option.map (mkLabel pen Middle CentralBaseline >> (|>) (Point.ofFloats (x - tickLength - fontSize - 4.0, midPx)))
@@ -122,7 +150,7 @@ module Axis =
                     let y    = Scale.apply axis.Scale v
                     let tick = mkLine pen (Point.ofFloats (x, y)) (Point.ofFloats (x + tickLength, y))
                     let lbl  = mkLabel pen Start CentralBaseline (fmt v) (Point.ofFloats (x + tickLength + 4.0, y))
-                    gridLines v false @ [ tick ] @ lblIfShown v lbl)
+                    gridLines v false @ tickAndLabel v tick lbl)
             let labelEl =
                 axis.Label
                 |> Option.map (mkLabel pen Start CentralBaseline >> (|>) (Point.ofFloats (x + tickLength + fontSize + 4.0, midPx)))
@@ -136,7 +164,7 @@ module Axis =
                     let x    = Scale.apply axis.Scale v
                     let tick = mkLine pen (Point.ofFloats (x, y)) (Point.ofFloats (x, y + tickLength))
                     let lbl  = mkLabel pen Middle HangingBaseline (fmt v) (Point.ofFloats (x, y + tickLength + 2.0))
-                    gridLines v true @ [ tick ] @ lblIfShown v lbl)
+                    gridLines v true @ tickAndLabel v tick lbl)
             let labelEl =
                 axis.Label
                 |> Option.map (mkLabel pen Middle HangingBaseline >> (|>) (Point.ofFloats (midPx, y + tickLength + fontSize + 6.0)))
@@ -153,7 +181,7 @@ module Axis =
                     let y    = Scale.apply axis.Scale v
                     let tick = mkLine pen (Point.ofFloats (x, y)) (Point.ofFloats (x + tickSign * tickLength, y))
                     let lbl  = mkLabel pen anchor CentralBaseline (fmt v) (Point.ofFloats (x + tickSign * (tickLength + 4.0), y))
-                    gridLines v false @ [ tick ] @ lblIfShown v lbl)
+                    gridLines v false @ tickAndLabel v tick lbl)
             let labelEl =
                 axis.Label
                 |> Option.map (mkLabel pen anchor CentralBaseline >> (|>) (Point.ofFloats (x + tickSign * (tickLength + fontSize + 4.0), midPx)))

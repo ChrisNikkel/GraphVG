@@ -191,13 +191,18 @@ module AxisTests =
     [<Fact>]
     let ``create defaults to 5 ticks and no label`` () =
         let a = Axis.create Bottom xScale
-        Assert.Equal(5, a.TickCount)
+        Assert.Equal(TickCount 5, a.Ticks)
         Assert.Equal(None, a.Label)
 
     [<Fact>]
     let ``withTicks sets tick count`` () =
         let a = Axis.create Bottom xScale |> Axis.withTicks 10
-        Assert.Equal(10, a.TickCount)
+        Assert.Equal(TickCount 10, a.Ticks)
+
+    [<Fact>]
+    let ``withTickInterval sets tick interval`` () =
+        let a = Axis.create Bottom xScale |> Axis.withTickInterval 2.5
+        Assert.Equal(TickInterval 2.5, a.Ticks)
 
     [<Fact>]
     let ``withLabel sets label`` () =
@@ -446,24 +451,62 @@ module GraphVGTests =
         let withoutAxes = g |> Graph.withAxes Axis.none |> GraphVG.render
         Assert.True(withoutAxes.Length < withAxes.Length)
 
-module AxisSkipTests =
+module AxisHideTests =
 
-    let private scale = Scale.linear (0.0, 10.0) (0.0, 1000.0)
-
-    [<Fact>]
-    let ``withSkipLabelAt sets SkipLabelAt`` () =
-        let a = Axis.create Bottom scale |> Axis.withSkipLabelAt 5.0
-        Assert.Equal(Some 5.0, a.SkipLabelAt)
+    // Scale with 0.0 in domain so hideOrigin has a tick to suppress
+    let private scale = Scale.linear (-5.0, 5.0) (0.0, 1000.0)
 
     [<Fact>]
-    let ``skipLabelAt reduces element count by one`` () =
-        let full    = Axis.create Bottom scale |> Axis.withTicks 5 |> Axis.toElements Theme.empty
-        let skipped = Axis.create Bottom scale |> Axis.withTicks 5 |> Axis.withSkipLabelAt 0.0 |> Axis.toElements Theme.empty
-        // skipping a label at one tick removes 1 element
-        Assert.Equal(full.Length - 1, skipped.Length)
+    let ``hideOriginTick sets HideOriginTick only`` () =
+        let a = Axis.create Bottom scale |> Axis.hideOriginTick
+        Assert.True(a.HideOriginTick)
+        Assert.False(a.HideOriginLabel)
 
     [<Fact>]
-    let ``skipLabelAt on value not in ticks leaves count unchanged`` () =
-        let full    = Axis.create Bottom scale |> Axis.withTicks 5 |> Axis.toElements Theme.empty
-        let skipped = Axis.create Bottom scale |> Axis.withTicks 5 |> Axis.withSkipLabelAt 99.0 |> Axis.toElements Theme.empty
-        Assert.Equal(full.Length, skipped.Length)
+    let ``hideOriginLabel sets HideOriginLabel only`` () =
+        let a = Axis.create Bottom scale |> Axis.hideOriginLabel
+        Assert.False(a.HideOriginTick)
+        Assert.True(a.HideOriginLabel)
+
+    [<Fact>]
+    let ``hideOrigin sets both HideOriginTick and HideOriginLabel`` () =
+        let a = Axis.create Bottom scale |> Axis.hideOrigin
+        Assert.True(a.HideOriginTick)
+        Assert.True(a.HideOriginLabel)
+
+    [<Fact>]
+    let ``hideBoundsTick sets HideBoundsTick only`` () =
+        let a = Axis.create Bottom scale |> Axis.hideBoundsTick
+        Assert.True(a.HideBoundsTick)
+        Assert.False(a.HideBoundsLabel)
+
+    [<Fact>]
+    let ``hideBoundsLabel sets HideBoundsLabel only`` () =
+        let a = Axis.create Bottom scale |> Axis.hideBoundsLabel
+        Assert.False(a.HideBoundsTick)
+        Assert.True(a.HideBoundsLabel)
+
+    [<Fact>]
+    let ``hideOriginTick removes tick element at origin`` () =
+        let full   = Axis.create Bottom scale |> Axis.withTicks 5 |> Axis.toElements Theme.empty
+        let hidden = Axis.create Bottom scale |> Axis.withTicks 5 |> Axis.hideOriginTick |> Axis.toElements Theme.empty
+        Assert.Equal(full.Length - 1, hidden.Length)
+
+    [<Fact>]
+    let ``hideOriginLabel removes label element at origin`` () =
+        let full   = Axis.create Bottom scale |> Axis.withTicks 5 |> Axis.toElements Theme.empty
+        let hidden = Axis.create Bottom scale |> Axis.withTicks 5 |> Axis.hideOriginLabel |> Axis.toElements Theme.empty
+        Assert.Equal(full.Length - 1, hidden.Length)
+
+    [<Fact>]
+    let ``hideOrigin removes both tick and label at origin`` () =
+        let full   = Axis.create Bottom scale |> Axis.withTicks 5 |> Axis.toElements Theme.empty
+        let hidden = Axis.create Bottom scale |> Axis.withTicks 5 |> Axis.hideOrigin |> Axis.toElements Theme.empty
+        Assert.Equal(full.Length - 2, hidden.Length)
+
+    [<Fact>]
+    let ``hideOrigin on axis with no tick at origin leaves count unchanged`` () =
+        let noZeroScale = Scale.linear (1.0, 10.0) (0.0, 1000.0)
+        let full   = Axis.create Bottom noZeroScale |> Axis.withTicks 5 |> Axis.toElements Theme.empty
+        let hidden = Axis.create Bottom noZeroScale |> Axis.withTicks 5 |> Axis.hideOrigin |> Axis.toElements Theme.empty
+        Assert.Equal(full.Length, hidden.Length)

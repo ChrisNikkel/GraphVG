@@ -24,9 +24,15 @@ let lissajous =
 
 // ── Graph ────────────────────────────────────────────────────────────────────
 
+let xScale = Scale.linear (-1.2, 1.2) (0.0, Canvas.canvasSize)
+let yScale = Scale.linear (-1.2, 1.2) (Canvas.canvasSize, 0.0)
+
 let graph =
     Graph.create [ unitCircle; lissajous ] (-1.2, 1.2) (-1.2, 1.2)
     |> Graph.withTheme Theme.light
+    |> Graph.withAxes (
+        Some (Axis.create (HorizontalAt (Scale.apply yScale 0.0)) xScale |> Axis.withTickInterval 0.5 |> Axis.hideOrigin),
+        Some (Axis.create (VerticalAt   (Scale.apply xScale 0.0)) yScale |> Axis.withTickInterval 0.5 |> Axis.hideOrigin))
 
 // ── Render ───────────────────────────────────────────────────────────────────
 
