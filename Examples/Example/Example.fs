@@ -158,7 +158,7 @@ let logScaleGraph =
     |> Graph.withYScale yScale
     |> Graph.withAxes (
         Some (Axis.create Bottom xScale |> Axis.withTickFormat logTickFormatter |> Axis.withLabel "input scale"),
-        Some (Axis.create Left yScale |> Axis.withLabel "response"))
+        Some (Axis.create Left yScale |> Axis.withLabel Response"))
 
 let examples =
     [
@@ -194,7 +194,7 @@ let galleryHtml pages =
         |> List.map (fun page ->
             let svg = GraphVG.render page.Graph
             "<article class=\"card\">"
-            + "<div class=\"frame\">" + svg + "</div>"
+            + "<a class=\"frame\" href=\"" + page.FileName + "\">" + svg + "</a>"
             + "<div class=\"copy\">"
             + "<h2>" + page.Title + "</h2>"
             + "<p>" + page.Description + "</p>"
@@ -210,7 +210,8 @@ let galleryHtml pages =
         + ".intro{max-width:760px;font-size:18px;line-height:1.5;margin:0 0 28px;color:#43505a;}"
         + ".grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px;}"
         + ".card{background:#fffdf8;border:1px solid #d8cfbf;border-radius:22px;overflow:hidden;box-shadow:0 18px 44px rgba(47,36,18,0.08);display:flex;flex-direction:column;}"
-        + ".frame{padding:18px;background:linear-gradient(180deg,#f8f4ec 0%,#efe5d4 100%);border-bottom:1px solid #e2d8c8;}"
+        + ".frame{display:block;padding:18px;background:linear-gradient(180deg,#f8f4ec 0%,#efe5d4 100%);border-bottom:1px solid #e2d8c8;cursor:pointer;}"
+        + ".frame:hover{background:linear-gradient(180deg,#f0ead8 0%,#e5d8c4 100%);}"
         + ".frame svg{display:block;width:100%;height:auto;aspect-ratio:1/1;}"
         + ".copy{padding:18px 18px 20px;}"
         + ".copy h2{margin:0 0 10px;font-size:24px;}"

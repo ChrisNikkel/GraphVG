@@ -105,6 +105,10 @@ GraphVG builds on SharpVG — match its style throughout so the two feel like on
 
 Do not add NuGet packages without explicit approval. The only allowed dependency is SharpVG. Prefer stdlib (`List`, `String`, `Math`) over pulling in utility libraries.
 
+### No JavaScript
+
+Do not add JavaScript to any generated HTML. Use plain HTML and CSS only. For interactive behaviour in the example gallery, use native HTML elements (`<a>`, `<details>`, CSS `:target`, etc.).
+
 ### Idiomatic F\#
 
 - **Leverage pattern matching**: Use `match ... with` for control flow and data deconstruction instead of if-else chains. Prefer exhaustive matches for safety and clarity.
