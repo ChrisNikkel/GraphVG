@@ -33,6 +33,8 @@ module GraphVG =
     let render (graph : Graph) : string =
         buildSvg graph |> Svg.toString
 
-    /// Returns a full HTML page with the graph embedded.
+    /// Returns a full HTML page with the graph centered and fit to the viewport.
     let toHtml (graph : Graph) : string =
-        buildSvg graph |> Svg.toHtml "GraphVG"
+        let svgContent = buildSvg graph |> Svg.toString
+        let css = "html,body{margin:0;height:100%;}body{display:flex;align-items:center;justify-content:center;background:#f5f5f5;}svg{width:100vmin;height:100vmin;}"
+        "<!DOCTYPE html>\n<html>\n<head>\n<title>GraphVG</title>\n<style>" + css + "</style>\n</head>\n<body>\n" + svgContent + "\n</body>\n</html>\n"

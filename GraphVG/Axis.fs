@@ -89,12 +89,14 @@ module Axis =
             (if showTick  v then [ tick ] else []) @
             (if showLabel v then [ lbl  ] else [])
         let gridLines v isHorizontal =
-            match theme.GridPen with
-            | None -> []
-            | Some gpen ->
-                let px = Scale.apply axis.Scale v
-                if isHorizontal then [ mkLine gpen (Point.ofFloats (px, 0.0)) (Point.ofFloats (px, Canvas.canvasSize)) ]
-                else                 [ mkLine gpen (Point.ofFloats (0.0, px)) (Point.ofFloats (Canvas.canvasSize, px)) ]
+            if not (showTick v) then []
+            else
+                match theme.GridPen with
+                | None -> []
+                | Some gpen ->
+                    let px = Scale.apply axis.Scale v
+                    if isHorizontal then [ mkLine gpen (Point.ofFloats (px, 0.0)) (Point.ofFloats (px, Canvas.canvasSize)) ]
+                    else                 [ mkLine gpen (Point.ofFloats (0.0, px)) (Point.ofFloats (Canvas.canvasSize, px)) ]
 
         match axis.Position with
         | Bottom ->
