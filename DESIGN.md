@@ -4,6 +4,45 @@ Detailed design for all pending changes. Each section maps to one or more requir
 
 ---
 
+## Current architecture
+
+```mermaid
+flowchart TD
+    subgraph "Infrastructure"
+        CV[Canvas]
+    end
+
+    subgraph "Data"
+        SC[Scale]
+        SR[Series]
+    end
+
+    subgraph "Style"
+        TH[Theme]
+        AX[Axis]
+    end
+
+    subgraph "Composition"
+        GR[Graph]
+    end
+
+    subgraph "Output"
+        GVG[GraphVG]
+    end
+
+    CV --> AX
+    CV --> GR
+    SC --> AX
+    SC --> GR
+    SR --> GR
+    TH --> AX
+    TH --> GR
+    AX --> GVG
+    GR --> GVG
+```
+
+---
+
 ## Overview of pending work
 
 | Item | Requirement | Summary |
@@ -51,7 +90,7 @@ type Graph = {
 }
 
 // GraphVG.fs
-val render : Graph -> string              // returns HTML page
+val toHtml : Graph -> string              // returns HTML page
 val toSvg  : Graph -> string              // returns SVG string only
 ```
 
