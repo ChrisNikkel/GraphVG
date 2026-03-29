@@ -66,7 +66,7 @@ The canvas is a fixed `1000×1000` internal unit square. The SVG `viewBox` exten
 ```mermaid
 flowchart LR
     A["data (x, y)"]
-    B["Graph.toScaledSvgCoordinates"]
+    B["scale + invert Y"]
     C["SVG pixel (px, py)"]
     A --> B --> C
 ```
