@@ -23,8 +23,8 @@ module GraphVG =
                 let style = Style.empty |> Style.withFillPen Pen.black
                 let pos = Point.ofFloats (Canvas.canvasSize / 2.0, -margin / 2.0)
                 Text.create pos t
-                |> Text.withFontSize 16.0
-                |> Text.withAnchor Middle
+                |> Text.withFontSize graph.TitleStyle.FontSize
+                |> Text.withAnchor graph.TitleStyle.Alignment
                 |> Element.createWithStyle style)
             |> Option.toList
         background :: gridElements @ Graph.drawSeries graph @ axisElements @ titleElements

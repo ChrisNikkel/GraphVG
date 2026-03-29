@@ -94,6 +94,27 @@ let ``log ticks base 2 returns correct powers`` () =
     let scale = Scale.log (1.0, 8.0) (0.0, 100.0) 2.0
     Assert.Equal<float list>([ 1.0; 2.0; 4.0; 8.0 ], Scale.ticks scale 0)
 
+// Linear – properties
+
+[<Property>]
+let ``linear apply then invert is identity within domain`` (x: FsCheck.NormalFloat) =
+    let lo, hi = 0.0, 100.0
+    let scale = Scale.linear (lo, hi) (0.0, 1000.0)
+    let clamped = max lo (min hi x.Get)
+    isNear clamped (Scale.invert scale (Scale.apply scale clamped))
+
+[<Property>]
+let ``linear apply is order-preserving`` (x1: FsCheck.NormalFloat) (x2: FsCheck.NormalFloat) =
+    let scale = Scale.linear (0.0, 100.0) (0.0, 1000.0)
+    let a = min x1.Get x2.Get
+    let b = max x1.Get x2.Get
+    a = b || Scale.apply scale a <= Scale.apply scale b
+
+[<Property>]
+let ``linear ticks always returns exactly n items`` (n: FsCheck.PositiveInt) =
+    let scale = Scale.linear (0.0, 100.0) (0.0, 1000.0)
+    Scale.ticks scale n.Get |> List.length = n.Get
+
 module SeriesTests =
 
     [<Fact>]
@@ -241,6 +262,12 @@ module ThemeTests =
         Assert.Equal(Pen.gray, original.AxisPen)
         Assert.Equal(Pen.red, modified.AxisPen)
 
+    [<Property>]
+    let ``penForSeries cycles with period equal to pen count`` (i: FsCheck.NonNegativeInt) =
+        let theme = Theme.empty
+        let count = theme.Pens.Length
+        Theme.penForSeries i.Get theme = Theme.penForSeries (i.Get + count) theme
+
 module AxisTests =
 
     let private xScale = Scale.linear (0.0, 10.0) (0.0, 1000.0)
@@ -297,6 +324,11 @@ module AxisTests =
         // 1 + 3×2 = 7 each
         Assert.Equal(7, top.Length)
         Assert.Equal(7, right.Length)
+
+    [<Property>]
+    let ``toElements count is 1 plus 2 times tick count for any count`` (n: FsCheck.PositiveInt) =
+        let axis = Axis.create Bottom xScale |> Axis.withTicks n.Get
+        Axis.toElements Theme.empty axis |> List.length = 1 + 2 * n.Get
 
 module GraphTests =
 
@@ -491,6 +523,19 @@ module GraphTests =
         let graph = Graph.create [ series ] (0.0, 4.0) (0.0, 4.0)
         Assert.Equal(None, graph.Title)
 
+    [<Property>]
+    let ``drawSeries scatter produces one element per point for any count`` (n: FsCheck.PositiveInt) =
+        let pts = List.init n.Get (fun i -> float i, float i)
+        let graph = Graph.create [ Series.scatter pts ] (0.0, float n.Get) (0.0, float n.Get)
+        Graph.drawSeries graph |> List.length = n.Get
+
+    [<Property>]
+    let ``addSeries always increases series count by exactly one`` (n: FsCheck.PositiveInt) =
+        let pts = List.init n.Get (fun i -> float i, float i)
+        let graph = Graph.create [ Series.scatter pts ] (0.0, float n.Get) (0.0, float n.Get)
+        let after = (graph |> Graph.addSeries (Series.line pts)).Series.Length
+        after = graph.Series.Length + 1
+
 module GraphVGTests =
 
     let private points = [ 0.0, 0.0; 2.0, 4.0; 4.0, 2.0 ]
@@ -635,3 +680,80 @@ module AxisStyleTests =
     let ``withFontSize custom value produces different output than default`` () =
         let base' = Axis.create Bottom scale |> Axis.withTicks 3
         Assert.True(Axis.toElements Theme.empty base' <> Axis.toElements Theme.empty (base' |> Axis.withFontSize 24.0))
+
+module AxisTickFormatTests =
+
+    let private scale = Scale.linear (0.0, 1.0) (0.0, 1000.0)
+
+    [<Fact>]
+    let ``default tick format uses %.4g`` () =
+        let axis = Axis.create Bottom scale
+        Assert.Equal(None, axis.TickFormat)
+
+    [<Fact>]
+    let ``withTickFormat sets formatter`` () =
+        let fmt = sprintf "%.0f%%"
+        let axis = Axis.create Bottom scale |> Axis.withTickFormat fmt
+        Assert.Equal(Some fmt, axis.TickFormat)
+
+    [<Fact>]
+    let ``withTickFormat custom formatter produces different output than default`` () =
+        let base' = Axis.create Bottom scale |> Axis.withTicks 3
+        let defaultEl = Axis.toElements Theme.empty base'
+        let customEl  = Axis.toElements Theme.empty (base' |> Axis.withTickFormat (sprintf "%.0f%%"))
+        Assert.True(defaultEl <> customEl)
+
+module StrokeDashTests =
+
+    let private pts = [ 0.0, 0.0; 1.0, 1.0; 2.0, 0.0 ]
+
+    [<Fact>]
+    let ``create defaults to Solid`` () =
+        Assert.Equal(Solid, (Series.line pts).StrokeDash)
+
+    [<Fact>]
+    let ``withStrokeDash sets dash`` () =
+        let s = Series.line pts |> Series.withStrokeDash Dashed
+        Assert.Equal(Dashed, s.StrokeDash)
+
+    [<Fact>]
+    let ``dashed line produces different SVG than solid`` () =
+        let solid  = Graph.create [ Series.line pts ] (0.0, 2.0) (0.0, 2.0) |> GraphVG.render
+        let dashed = Graph.create [ Series.line pts |> Series.withStrokeDash Dashed ] (0.0, 2.0) (0.0, 2.0) |> GraphVG.render
+        Assert.True(solid <> dashed)
+
+    [<Fact>]
+    let ``dotted and dashed produce different SVG`` () =
+        let dashed = Graph.create [ Series.line pts |> Series.withStrokeDash Dashed ] (0.0, 2.0) (0.0, 2.0) |> GraphVG.render
+        let dotted = Graph.create [ Series.line pts |> Series.withStrokeDash Dotted ] (0.0, 2.0) (0.0, 2.0) |> GraphVG.render
+        Assert.True(dashed <> dotted)
+
+    [<Fact>]
+    let ``stroke dash does not affect scatter series`` () =
+        let s1 = Graph.create [ Series.scatter pts ] (0.0, 2.0) (0.0, 2.0) |> GraphVG.render
+        let s2 = Graph.create [ Series.scatter pts |> Series.withStrokeDash Dashed ] (0.0, 2.0) (0.0, 2.0) |> GraphVG.render
+        Assert.Equal(s1, s2)
+
+module TitleStyleTests =
+
+    let private series = Series.line [ 0.0, 0.0; 1.0, 1.0 ]
+
+    [<Fact>]
+    let ``default title style has FontSize 16 and Middle alignment`` () =
+        let graph = Graph.create [ series ] (0.0, 1.0) (0.0, 1.0)
+        Assert.Equal(16.0,                  graph.TitleStyle.FontSize)
+        Assert.Equal(SharpVG.Middle,        graph.TitleStyle.Alignment)
+
+    [<Fact>]
+    let ``withTitleStyle sets both fields`` () =
+        let style = TitleStyle.create 24.0 SharpVG.Start
+        let graph = Graph.create [ series ] (0.0, 1.0) (0.0, 1.0) |> Graph.withTitleStyle style
+        Assert.Equal(24.0,         graph.TitleStyle.FontSize)
+        Assert.Equal(SharpVG.Start, graph.TitleStyle.Alignment)
+
+    [<Fact>]
+    let ``custom title style produces different SVG than default`` () =
+        let base'    = Graph.create [ series ] (0.0, 1.0) (0.0, 1.0) |> Graph.withTitle "Hello"
+        let default' = base' |> GraphVG.render
+        let custom   = base' |> Graph.withTitleStyle (TitleStyle.create 32.0 SharpVG.Start) |> GraphVG.render
+        Assert.True(default' <> custom)

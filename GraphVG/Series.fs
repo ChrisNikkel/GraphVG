@@ -7,6 +7,12 @@ type SeriesKind =
     | Line
     | Area
 
+type StrokeDash =
+    | Solid
+    | Dashed
+    | Dotted
+    | DashDot
+
 type Series =
     {
         Points      : (float * float) list
@@ -14,6 +20,7 @@ type Series =
         Label       : string option
         StrokeWidth : Length option
         PointRadius : Length option
+        StrokeDash  : StrokeDash
     }
 
 module Series =
@@ -25,6 +32,7 @@ module Series =
             Label = None
             StrokeWidth = None
             PointRadius = None
+            StrokeDash = Solid
         }
 
     let scatter points =
@@ -44,6 +52,9 @@ module Series =
 
     let withPointRadius radius (series : Series) =
         { series with PointRadius = Some radius }
+
+    let withStrokeDash dash (series : Series) =
+        { series with StrokeDash = dash }
 
     let ofFunction kind (f: float -> float * float) tMin tMax samples =
         let points =

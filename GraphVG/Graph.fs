@@ -3,15 +3,30 @@ namespace GraphVG
 open SharpVG
 open CommonMath
 
+type TitleStyle =
+    {
+        FontSize : float
+        Alignment : TextAnchor
+    }
+
+module TitleStyle =
+
+    let create fontSize alignment =
+        { FontSize = fontSize; Alignment = alignment }
+
+    let default' =
+        { FontSize = 16.0; Alignment = Middle }
+
 type Graph =
     {
         Series : Series list
         XScale : Scale
         YScale : Scale
-        XAxis  : Axis option
-        YAxis  : Axis option
-        Theme  : Theme
-        Title  : string option
+        XAxis : Axis option
+        YAxis : Axis option
+        Theme : Theme
+        Title : string option
+        TitleStyle : TitleStyle
     }
 
 module Graph =
@@ -34,7 +49,7 @@ module Graph =
         let xAxisY = Scale.apply yScale 0.0 |> clamp 0.0 Canvas.canvasSize
         let yAxisX = Scale.apply xScale 0.0 |> clamp 0.0 Canvas.canvasSize
         Some (Axis.create (HorizontalAt xAxisY) xScale |> Axis.hideOrigin),
-        Some (Axis.create (VerticalAt   yAxisX) yScale |> Axis.hideOrigin)
+        Some (Axis.create (VerticalAt yAxisX) yScale |> Axis.hideOrigin)
 
     let private pointBounds (series : Series list) =
         let allPoints = series |> List.collect (fun s -> s.Points)
@@ -44,7 +59,7 @@ module Graph =
 
     let private buildScales domain range =
         Scale.linear domain (0.0, Canvas.canvasSize),
-        Scale.linear range  (Canvas.canvasSize, 0.0)
+        Scale.linear range (Canvas.canvasSize, 0.0)
 
     // ── Coordinate transform ────────────────────────────────────────────────────
 
@@ -64,6 +79,7 @@ module Graph =
             YAxis = yAxis
             Theme = Theme.empty
             Title = None
+            TitleStyle = TitleStyle.default'
         }
 
     let createWithSeries (series : Series) =
@@ -78,6 +94,7 @@ module Graph =
             YAxis = yAxis
             Theme = Theme.empty
             Title = None
+            TitleStyle = TitleStyle.default'
         }
 
     // ── Bounds helpers ──────────────────────────────────────────────────────────
@@ -124,8 +141,16 @@ module Graph =
 
     let withTheme theme graph = { graph with Theme = theme }
     let withTitle title (graph : Graph) = { graph with Title = Some title }
+    let withTitleStyle style (graph : Graph) = { graph with TitleStyle = style }
 
     // ── Rendering ───────────────────────────────────────────────────────────────
+
+    let private applyDash dash style =
+        match dash with
+        | Solid -> style
+        | Dashed -> style |> Style.withStrokeDashArray [ 12.0; 6.0 ]
+        | Dotted -> style |> Style.withStrokeDashArray [ 3.0; 6.0 ]
+        | DashDot -> style |> Style.withStrokeDashArray [ 12.0; 6.0; 3.0; 6.0 ]
 
     let drawSeries graph =
         let toSvgPoint pt = pt |> toScaledSvgCoordinates graph |> Point.ofFloats
@@ -139,10 +164,16 @@ module Graph =
                 |> List.map (fun pt -> Circle.create (toSvgPoint pt) radius |> Element.createWithStyle style)
             | SeriesKind.Line ->
                 let strokePen = series.StrokeWidth |> Option.map (fun w -> seriesPen |> Pen.withWidth w) |> Option.defaultValue seriesPen
-                let style = Style.createWithPen strokePen |> Style.withFillOpacity 0.0
+                let style =
+                    Style.createWithPen strokePen
+                    |> Style.withFillOpacity 0.0
+                    |> applyDash series.StrokeDash
                 [ Polyline.ofList (series.Points |> List.map toSvgPoint) |> Element.createWithStyle style ]
             | Area ->
                 let strokePen = series.StrokeWidth |> Option.map (fun w -> seriesPen |> Pen.withWidth w) |> Option.defaultValue seriesPen
-                let style = Style.createWithPen strokePen |> Style.withFillPen strokePen
+                let style =
+                    Style.createWithPen strokePen
+                    |> Style.withFillPen strokePen
+                    |> applyDash series.StrokeDash
                 [ Polygon.ofList (series.Points |> List.map toSvgPoint) |> Element.createWithStyle style ]
         graph.Series |> List.mapi seriesToElements |> List.concat

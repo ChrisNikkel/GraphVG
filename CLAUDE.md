@@ -72,6 +72,26 @@ GraphVG builds on SharpVG — match its style throughout so the two feel like on
       }
   ```
 
+- **No alignment padding**: Do not pad field names, `=` signs, or `|` match arms to align columns. Use a single space before and after `=`, `:`, and `->`. Aligned columns look tidy but create noisy diffs and must be maintained manually.
+
+  ```fsharp
+  // wrong
+  type Graph =
+      {
+          Series     : Series list
+          XScale     : Scale
+          TitleStyle : TitleStyle
+      }
+
+  // correct
+  type Graph =
+      {
+          Series : Series list
+          XScale : Scale
+          TitleStyle : TitleStyle
+      }
+  ```
+
 - **Modules**: same name as the type they accompany, immediately after the type definition.
 - **Functions**: camelCase. Public functions are bare `let`. Internal helpers are `let private`.
 - **Builders**: `create`, `with*`, `add*`, `to*` — always pipeline-friendly (subject last).
@@ -105,6 +125,59 @@ Type annotations only where inference needs help (disambiguating record updates,
 ### Naming
 
 Prefer full words over abbreviations: `position` not `pos`, `minimum` not `min` when used as a standalone binding, `opacity` not `op`. Short pipeline bindings like `g`, `s`, `v` are fine as locals in tight transforms.
+
+### Property-Based Testing
+
+Use [FsCheck](https://fscheck.github.io/FsCheck/) with `[<Property>]` (from `FsCheck.Xunit`) alongside `[<Fact>]` tests. Properties catch edge cases that hand-written examples miss.
+
+**When to use `[<Property>]` vs `[<Fact>]`**
+
+| Use `[<Property>]` | Use `[<Fact>]` |
+|---|---|
+| Invariants that hold for *any* input (round-trips, monotonicity, count formulas) | Exact values with a known expected output |
+| Relationships between functions (apply ∘ invert = id) | Specific regression cases |
+| "For all n, count = f(n)" | Behaviour for a single named scenario |
+
+**Common patterns**
+
+- **Round-trip**: `invert (apply scale x) ≈ x` — verifies encode/decode symmetry
+- **Invariant**: `(drawSeries scatter graph).Length = graph.Series.[0].Points.Length`
+- **Monotonicity**: `x < y ==> (apply scale x < apply scale y)`
+- **Count formula**: `toElements axis |> List.length = 1 + 2 * tickCount`
+- **Cycling**: `penForSeries (i + period) = penForSeries i`
+
+**FsCheck generator types**
+
+- `FsCheck.PositiveInt` — `n.Get >= 1`, avoids zero-length edge cases
+- `FsCheck.NonNegativeInt` — `n.Get >= 0`
+- `FsCheck.NormalFloat` — finite float (no NaN/inf); use when arithmetic could overflow
+- `float` / `int` — unconstrained; guard with `==>` or clamp if needed
+
+**Conditional properties** — use `open FsCheck` (add it to the test module) to get `==>`, which discards inputs that violate a precondition:
+
+```fsharp
+[<Property>]
+let ``apply is order-preserving`` (x1: NormalFloat) (x2: NormalFloat) =
+    x1.Get < x2.Get ==> (Scale.apply scale x1.Get < Scale.apply scale x2.Get)
+```
+
+Avoid `==>` when the condition is rarely true (>90% discard rate), since FsCheck will give up. Prefer using `min`/`max` to normalize inputs, or clamp to a valid range:
+
+```fsharp
+// Better: normalize so no inputs are discarded
+let a = min x1.Get x2.Get
+let b = max x1.Get x2.Get
+a = b || Scale.apply scale a <= Scale.apply scale b
+```
+
+**Clamp inputs to valid domain** when the property is undefined outside a range:
+
+```fsharp
+let clamped = max lo (min hi x.Get)
+isNear clamped (Scale.invert scale (Scale.apply scale clamped))
+```
+
+**Avoid over-relying on properties** — a property that always holds trivially (e.g., `List.length xs >= 0`) adds no value. Every property should have a plausible failure mode.
 
 ### Architecture Notes
 

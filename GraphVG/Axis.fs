@@ -27,6 +27,7 @@ type Axis =
         HideBoundsLabel   : bool
         TickLength        : float
         FontSize          : float
+        TickFormat        : (float -> string) option
     }
 
 module Axis =
@@ -43,6 +44,7 @@ module Axis =
             HideBoundsLabel = false
             TickLength = 6.0
             FontSize   = 12.0
+            TickFormat = None
         }
 
     let withTicks count (axis : Axis) =
@@ -59,6 +61,9 @@ module Axis =
 
     let withFontSize fontSize (axis : Axis) =
         { axis with FontSize = fontSize }
+
+    let withTickFormat format (axis : Axis) =
+        { axis with TickFormat = Some format }
 
     let hideOriginTick (axis : Axis) = { axis with HideOriginTick = true }
     let hideOriginLabel (axis : Axis) = { axis with HideOriginLabel = true }
@@ -128,7 +133,7 @@ module Axis =
                 let lower, upper = Scale.domain axis.Scale
                 let first = ceil (lower / interval) * interval
                 [ for i in 0 .. int (floor ((upper - first) / interval)) -> first + float i * interval ]
-        let formatValue value = sprintf "%.4g" value
+        let formatValue = axis.TickFormat |> Option.defaultValue (sprintf "%.4g")
         let isOrigin value = isNear 0.0 value
         let isBound value = isNear domainMin value || isNear domainMax value
         let showTick value = not (axis.HideOriginTick && isOrigin value) && not (axis.HideBoundsTick && isBound value)

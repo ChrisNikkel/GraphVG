@@ -18,18 +18,6 @@ The internal canvas size (currently fixed at 1000×1000) should adapt to the mag
 
 ---
 
-## REQ-13: Axis Tick Label Formatter (deferred)
-
-Tick labels are currently formatted with `"%.4g"`. Users should be able to supply a custom formatter.
-
-```fsharp
-val withTickFormat : (float -> string) -> Axis -> Axis
-```
-
-Example uses: `sprintf "%.0f%%"` for percentages, `sprintf "$%.2f"` for currency, `fun v -> if v >= 1000.0 then sprintf "%.0fk" (v/1000.0) else sprintf "%.0f" v` for compact large numbers.
-
----
-
 
 ## REQ-15: Graph Background and Plot Area (deferred)
 
@@ -86,24 +74,6 @@ Default: `Hidden` (no legend unless explicitly added). Renders as a small box of
 
 ---
 
-## REQ-18: Graph Title Font and Alignment (deferred)
-
-`Graph.withTitle` sets a title string but font size and alignment are hardcoded. These should be configurable.
-
-```fsharp
-type TitleStyle = {
-    FontSize  : float
-    Alignment : TextAnchor   // Start | Middle | End
-}
-
-// on Graph or Theme:
-val withTitleStyle : TitleStyle -> Graph -> Graph
-```
-
-Default: `{ FontSize = 16.0; Alignment = Middle }`.
-
----
-
 ## REQ-19: Scatter Point Shape (deferred)
 
 Scatter series render as circles. Comparable libraries (D3 symbols, Plotly markers) support multiple shapes for distinguishing series without relying on color alone (important for accessibility).
@@ -118,14 +88,3 @@ Default remains `Circle`. Each shape renders at the same effective radius set by
 
 ---
 
-## REQ-20: Dashed / Dotted Line Style (deferred)
-
-Line and area series currently render as solid strokes. SVG natively supports `stroke-dasharray`; this should be exposed.
-
-```fsharp
-type StrokeDash = Solid | Dashed | Dotted | DashDot
-
-val withStrokeDash : StrokeDash -> Series -> Series
-```
-
-Useful for distinguishing series in black-and-white output or when color is insufficient.
