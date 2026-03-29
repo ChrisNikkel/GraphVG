@@ -52,10 +52,10 @@ module Axis =
     let none : Axis option * Axis option = None, None
 
     let private strokeStyle (pen : Pen) =
-        Style.create pen.Color pen.Color pen.Width pen.Opacity pen.Opacity
+        Style.createWithPen pen
 
     let private fillStyle (pen : Pen) =
-        Style.create pen.Color pen.Color (Length.ofInt 1) pen.Opacity pen.Opacity
+        Style.empty |> Style.withFillPen pen
 
     let private mkLine pen startPoint endPoint =
         Line.create startPoint endPoint |> Element.createWithStyle (strokeStyle pen)

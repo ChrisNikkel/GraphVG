@@ -17,7 +17,7 @@ module GraphVG =
         let titleElements =
             graph.Title
             |> Option.map (fun t ->
-                let style = Style.create (Color.ofName Black) (Color.ofName Black) (Length.ofInt 1) 1.0 1.0
+                let style = Style.empty |> Style.withFillPen Pen.black
                 let pos   = Point.ofFloats (Canvas.canvasSize / 2.0, -margin / 2.0)
                 Text.create pos t
                 |> Text.withFontSize 16.0
