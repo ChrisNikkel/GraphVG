@@ -2,12 +2,13 @@ namespace GraphVG
 
 open SharpVG
 
-type Theme = {
-    Background : Color
-    Pens       : Pen list
-    AxisPen    : Pen
-    GridPen    : Pen option
-}
+type Theme =
+    {
+        Background : Color
+        Pens       : Pen list
+        AxisPen    : Pen
+        GridPen    : Pen option
+    }
 
 module Theme =
 

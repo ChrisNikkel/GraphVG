@@ -6,11 +6,6 @@ open Xunit
 open FsCheck.Xunit
 
 
-    // Linear – apply
-
-
-// Linear – apply
-
 [<Fact>]
 let ``linear apply maps domain min to range min`` () =
     let s = Scale.linear (0.0, 10.0) (0.0, 100.0)

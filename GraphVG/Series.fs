@@ -7,13 +7,14 @@ type SeriesKind =
     | Line
     | Area
 
-type Series = {
-    Points      : (float * float) list
-    Kind        : SeriesKind
-    Label       : string option
-    StrokeWidth : Length option
-    PointRadius : Length option
-}
+type Series =
+    {
+        Points      : (float * float) list
+        Kind        : SeriesKind
+        Label       : string option
+        StrokeWidth : Length option
+        PointRadius : Length option
+    }
 
 module Series =
 

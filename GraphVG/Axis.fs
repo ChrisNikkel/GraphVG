@@ -8,16 +8,17 @@ type AxisTicks =
     | TickCount    of int
     | TickInterval of float     // spacing in data units
 
-type Axis = {
-    Position          : AxisPosition
-    Scale             : Scale
-    Ticks             : AxisTicks
-    Label             : string option
-    HideOriginTick    : bool
-    HideOriginLabel   : bool
-    HideBoundsTick    : bool
-    HideBoundsLabel   : bool
-}
+type Axis =
+    {
+        Position          : AxisPosition
+        Scale             : Scale
+        Ticks             : AxisTicks
+        Label             : string option
+        HideOriginTick    : bool
+        HideOriginLabel   : bool
+        HideBoundsTick    : bool
+        HideBoundsLabel   : bool
+    }
 
 module Axis =
 

@@ -2,15 +2,16 @@ namespace GraphVG
 
 open SharpVG
 
-type Graph = {
-    Series : Series list
-    XScale : Scale
-    YScale : Scale
-    XAxis  : Axis option
-    YAxis  : Axis option
-    Theme  : Theme
-    Title  : string option
-}
+type Graph =
+    {
+        Series : Series list
+        XScale : Scale
+        YScale : Scale
+        XAxis  : Axis option
+        YAxis  : Axis option
+        Theme  : Theme
+        Title  : string option
+    }
 
 module Graph =
 
