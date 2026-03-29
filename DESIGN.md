@@ -46,7 +46,7 @@ flowchart TD
 ## Overview of pending work
 
 | Item | Requirement | Summary |
-|------|-------------|---------|
+| ------ | ------------- | --------- |
 | 3 | REQ-8 | API shape: `render : Graph -> string` |
 | 4 | REQ-5 | Evolve `Graph` record to carry theme, axes, title |
 | 5 | REQ-9 | Test coverage gaps (render smoke, grid lines) |
@@ -198,7 +198,7 @@ Scales are set once at construction and stored, not recomputed per point.
 ### Breaking changes
 
 | Old API | New API |
-|---------|---------|
+| --------- | --------- |
 | `Graph.create series domain range` | unchanged |
 | `Graph.createWithSeries s` | unchanged (now also sets default axes) |
 | `GraphVG.render g theme axes size` | `GraphVG.render g` (theme/axes on `g`) |
@@ -219,7 +219,7 @@ Scales are set once at construction and stored, not recomputed per point.
 Tests to add once items 3+4 are implemented:
 
 | Test | What it verifies |
-|------|-----------------|
+| ------ | ----------------- |
 | `render produces non-empty HTML` | smoke test for `GraphVG.render` |
 | `render with Theme.light includes grid elements` | grid line rendering path |
 | `render with no axes produces fewer elements` | `withXAxis None \|> withYAxis None` suppression |

@@ -4,7 +4,7 @@ F# library for generating SVG-based graphs using SharpVG.
 
 ## Project Structure
 
-```
+```fsharp
 GraphVG/           # Main library (net8.0)
   Canvas.fs        # Rendering constant: canvasSize
   Scale.fs         # Data-to-pixel mapping (Linear, Log)
@@ -76,6 +76,7 @@ Use `Option.map` / `Option.defaultWith` / `|> Option.toList` rather than `if x.I
 Use record update syntax (`{ x with Field = v }`) — no mutation.
 Use discriminated unions for variants; avoid booleans as poor-man's enums.
 No computation expressions unless genuinely needed (rare here).
+
 Type annotations only where inference needs help (disambiguating record updates, `(axis : Axis)`). Do not annotate every parameter.
 
 ### Naming
