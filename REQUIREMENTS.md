@@ -17,30 +17,6 @@ The internal canvas size (currently fixed at 1000×1000) should adapt to the mag
 
 ---
 
-## REQ-17: Legend
-
-When series have labels (`Series.withLabel`), a legend should be renderable. Comparable libraries (Plotly, ggplot2) auto-show a legend when series are named.
-
-```fsharp
-type LegendPosition = TopRight | TopLeft | BottomRight | BottomLeft | Hidden
-
-type Legend = {
-    Position : LegendPosition
-    FontSize : float
-}
-
-module Legend =
-    val create   : LegendPosition -> Legend
-    val withFontSize : float -> Legend -> Legend
-
-// on Graph:
-val withLegend : Legend -> Graph -> Graph
-```
-
-Default: `Hidden` (no legend unless explicitly added). Renders as a small box of colored swatches and labels, positioned inside the plot area margin.
-
----
-
 ## REQ-22: Subplots / Small Multiples
 
 Support rendering multiple related plots in one SVG document.

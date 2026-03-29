@@ -3,6 +3,27 @@ namespace GraphVG
 open SharpVG
 open CommonMath
 
+type LegendPosition =
+    | LegendTop
+    | LegendBottom
+    | LegendLeft
+    | LegendRight
+    | LegendHidden
+
+type Legend =
+    {
+        Position : LegendPosition
+        FontSize : float
+    }
+
+module Legend =
+
+    let create position =
+        { Position = position; FontSize = 12.0 }
+
+    let withFontSize fontSize (legend : Legend) =
+        { legend with FontSize = fontSize }
+
 type Annotation =
     | Text of x : float * y : float * content : string
     | Line of x1 : float * y1 : float * x2 : float * y2 : float
@@ -33,6 +54,7 @@ type Graph =
         Title : string option
         TitleStyle : TitleStyle
         Annotations : Annotation list
+        Legend : Legend option
     }
 
 module Graph =
@@ -85,6 +107,7 @@ module Graph =
             Title = None
             TitleStyle = TitleStyle.default'
             Annotations = []
+            Legend = None
         }
 
     let createWithSeries (series : Series) =
@@ -101,6 +124,7 @@ module Graph =
             Title = None
             TitleStyle = TitleStyle.default'
             Annotations = []
+            Legend = None
         }
 
     // ── Bounds helpers ──────────────────────────────────────────────────────────
@@ -149,6 +173,7 @@ module Graph =
     let withTitle title (graph : Graph) = { graph with Title = Some title }
     let withTitleStyle style (graph : Graph) = { graph with TitleStyle = style }
     let addAnnotation annotation (graph : Graph) = { graph with Annotations = graph.Annotations @ [ annotation ] }
+    let withLegend legend (graph : Graph) = { graph with Legend = Some legend }
 
     // ── Rendering ───────────────────────────────────────────────────────────────
 

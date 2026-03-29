@@ -1,134 +1,20 @@
 namespace GraphVG
 
 open SharpVG
-open CommonMath
+open Layout
 
 module GraphVG =
 
-    let private defaultOuterMargin = 20.0
-    let private defaultTitlePadding = 16.0
     let private titleTopInset = 6.0
-    let private estimatedCharacterWidthFactor = 0.6
-    let private topTickLabelGap = 3.0
-    let private bottomTickLabelGap = 2.0
-    let private topAxisLabelGap = 4.0
-    let private bottomAxisLabelGap = 6.0
-    let private verticalTickLabelGap = 4.0
 
-    type private GraphPadding =
-        {
-            Top : float
-            Right : float
-            Bottom : float
-            Left : float
-        }
+    // ── SVG element generation ────────────────────────────────────────────────
 
-    let private emptyPadding =
-        {
-            Top = 0.0
-            Right = 0.0
-            Bottom = 0.0
-            Left = 0.0
-        }
-
-    let private paddingWithTop top =
-        { emptyPadding with Top = top }
-
-    let private paddingWithRight right =
-        { emptyPadding with Right = right }
-
-    let private paddingWithBottom bottom =
-        { emptyPadding with Bottom = bottom }
-
-    let private paddingWithLeft left =
-        { emptyPadding with Left = left }
-
-    let private sumPadding left right =
-        {
-            Top = left.Top + right.Top
-            Right = left.Right + right.Right
-            Bottom = left.Bottom + right.Bottom
-            Left = left.Left + right.Left
-        }
-
-    let private estimatedTextWidth fontSize (text : string) =
-        float text.Length * fontSize * estimatedCharacterWidthFactor
-
-    let private horizontalTickExtent tickLabelGap (axis : Axis) =
-        axis.TickLength + axis.FontSize + tickLabelGap
-
-    let private horizontalLabelExtent axisLabelGap tickExtent (axis : Axis) =
-        axis.Label
-        |> Option.map (fun _ -> axis.TickLength + 2.0 * axis.FontSize + axisLabelGap)
-        |> Option.defaultValue tickExtent
-
-    let private verticalTickExtent maximumTickLabelWidth (axis : Axis) =
-        axis.TickLength + verticalTickLabelGap + maximumTickLabelWidth
-
-    let private verticalLabelExtent maximumTickLabelWidth tickExtent (axis : Axis) =
-        axis.Label
-        |> Option.map (fun _ -> axis.TickLength + verticalTickLabelGap + maximumTickLabelWidth + axis.FontSize + verticalTickLabelGap)
-        |> Option.defaultValue tickExtent
-
-    let private topAxisPadding (axis : Axis) =
-        let tickExtent = horizontalTickExtent topTickLabelGap axis
-        let labelExtent = horizontalLabelExtent topAxisLabelGap tickExtent axis
-        max tickExtent labelExtent |> paddingWithTop
-
-    let private bottomAxisPadding (axis : Axis) =
-        let tickExtent = horizontalTickExtent bottomTickLabelGap axis
-        let labelExtent = horizontalLabelExtent bottomAxisLabelGap tickExtent axis
-        max tickExtent labelExtent |> paddingWithBottom
-
-    let private leftAxisPadding maximumTickLabelWidth (axis : Axis) =
-        let tickExtent = verticalTickExtent maximumTickLabelWidth axis
-        let labelExtent = verticalLabelExtent maximumTickLabelWidth tickExtent axis
-        max tickExtent labelExtent |> paddingWithLeft
-
-    let private rightAxisPadding maximumTickLabelWidth (axis : Axis) =
-        let tickExtent = verticalTickExtent maximumTickLabelWidth axis
-        let labelExtent = verticalLabelExtent maximumTickLabelWidth tickExtent axis
-        max tickExtent labelExtent |> paddingWithRight
-
-    let private titleExtent (graph : Graph) =
-        graph.Title
-        |> Option.map (fun _ -> graph.TitleStyle.FontSize + defaultTitlePadding)
-        |> Option.defaultValue 0.0
-
-    let private axisPadding (axis : Axis) =
-        let tickLabels = Axis.formattedTickLabels axis
-        let maximumTickLabelWidth =
-            tickLabels
-            |> List.map (estimatedTextWidth axis.FontSize)
-            |> List.fold max 0.0
-        match axis.Position with
-        | Top -> topAxisPadding axis
-        | Bottom -> bottomAxisPadding axis
-        | Left -> leftAxisPadding maximumTickLabelWidth axis
-        | Right -> rightAxisPadding maximumTickLabelWidth axis
-        | HorizontalAt _
-        | VerticalAt _ -> emptyPadding
-
-    let private graphPadding (graph : Graph) =
-        let axisPadding =
-            [ graph.XAxis; graph.YAxis ]
-            |> List.choose id
-            |> List.map axisPadding
-            |> List.fold sumPadding emptyPadding
-        let titleExtent = titleExtent graph
-        {
-            Top = max defaultOuterMargin (axisPadding.Top + titleExtent)
-            Right = max defaultOuterMargin axisPadding.Right
-            Bottom = max defaultOuterMargin axisPadding.Bottom
-            Left = max defaultOuterMargin axisPadding.Left
-        }
-
-    let private viewBoxForPadding padding =
+    let private viewBoxForPadding (padding : GraphPadding) =
         ViewBox.create
             (Point.ofFloats (-padding.Left, -padding.Top))
             (Area.ofFloats (Canvas.canvasSize + padding.Left + padding.Right, Canvas.canvasSize + padding.Top + padding.Bottom))
 
-    let private backgroundElementForPadding backgroundColor padding =
+    let private backgroundElement (backgroundColor : Color) (padding : GraphPadding) =
         Rect.create
             (Point.ofFloats (-padding.Left, -padding.Top))
             (Area.ofFloats (Canvas.canvasSize + padding.Left + padding.Right, Canvas.canvasSize + padding.Top + padding.Bottom))
@@ -141,22 +27,19 @@ module GraphVG =
             |> Element.createWithStyle (Style.empty |> Style.withFill color))
         |> Option.toList
 
-    let private titleElements (graph : Graph) padding =
+    let private titleElements (graph : Graph) (padding : GraphPadding) =
         graph.Title
         |> Option.map (fun title ->
-            let style = Style.empty |> Style.withFillPen Pen.black
-            let position = Point.ofFloats (Canvas.canvasSize / 2.0, -padding.Top + titleTopInset)
-            Text.create position title
+            Text.create (Point.ofFloats (Canvas.canvasSize / 2.0, -padding.Top + titleTopInset)) title
             |> Text.withFontSize graph.TitleStyle.FontSize
             |> Text.withAnchor graph.TitleStyle.Alignment
             |> Text.withBaseline HangingBaseline
-            |> Element.createWithStyle style)
+            |> Element.createWithStyle (Style.empty |> Style.withFillPen Pen.black))
         |> Option.toList
 
     let private annotationElements (graph : Graph) =
-        let pen = graph.Theme.AxisPen
-        let strokeStyle = Style.createWithPen pen
-        let fillStyle = Style.empty |> Style.withFillPen pen
+        let strokeStyle = Style.createWithPen graph.Theme.AxisPen
+        let fillStyle = Style.empty |> Style.withFillPen graph.Theme.AxisPen
         graph.Annotations
         |> List.map (fun annotation ->
             match annotation with
@@ -178,16 +61,84 @@ module GraphVG =
                     (Area.ofFloats (svgX2 - svgX, svgY2 - svgY))
                 |> Element.createWithStyle strokeStyle)
 
+    let private legendElements (graph : Graph) (padding : GraphPadding) =
+        match graph.Legend with
+        | None -> []
+        | Some legend ->
+            let labeled =
+                graph.Series
+                |> List.mapi (fun i s -> i, s)
+                |> List.choose (fun (i, s) -> s.Label |> Option.map (fun l -> i, l))
+            match labeled with
+            | [] -> []
+            | _ ->
+                let textStyle = Style.empty |> Style.withFillPen graph.Theme.AxisPen
+                let entryHeight = max swatchHeight legend.FontSize
+                let mkEntry seriesIndex label swatchX swatchY =
+                    let pen = Theme.penForSeries seriesIndex graph.Theme
+                    let swatch =
+                        Rect.create
+                            (Point.ofFloats (swatchX, swatchY))
+                            (Area.ofFloats (swatchWidth, swatchHeight))
+                        |> Element.createWithStyle (Style.empty |> Style.withFillPen pen)
+                    let labelEl =
+                        Text.create
+                            (Point.ofFloats (swatchX + swatchWidth + swatchLabelGap, swatchY + swatchHeight / 2.0))
+                            label
+                        |> Text.withFontSize legend.FontSize
+                        |> Text.withBaseline CentralBaseline
+                        |> Element.createWithStyle textStyle
+                    [ swatch; labelEl ]
+                let verticalEntries swatchX =
+                    let totalHeight = float labeled.Length * entryHeight + float (labeled.Length - 1) * legendEntryGap
+                    let startY = (Canvas.canvasSize - totalHeight) / 2.0
+                    labeled
+                    |> List.mapi (fun row (seriesIndex, label) ->
+                        let swatchY = startY + float row * (entryHeight + legendEntryGap) + (entryHeight - swatchHeight) / 2.0
+                        mkEntry seriesIndex label swatchX swatchY)
+                    |> List.concat
+                let horizontalEntries swatchY =
+                    let entryWidths = labeled |> List.map (fun (_, l) -> swatchWidth + swatchLabelGap + estimatedTextWidth legend.FontSize l)
+                    let totalWidth = List.sum entryWidths + float (labeled.Length - 1) * legendHorizontalGap
+                    let startX = (Canvas.canvasSize - totalWidth) / 2.0
+                    let xStarts =
+                        entryWidths
+                        |> List.scan (+) 0.0
+                        |> List.take labeled.Length
+                        |> List.mapi (fun col w -> startX + w + float col * legendHorizontalGap)
+                    List.map2 (fun (seriesIndex, label) swatchX ->
+                        mkEntry seriesIndex label swatchX swatchY)
+                        labeled xStarts
+                    |> List.concat
+                match legend.Position with
+                | LegendHidden -> []
+                | LegendLeft -> verticalEntries (-padding.Left + legendOuterMargin)
+                | LegendRight -> verticalEntries (Canvas.canvasSize + legendOuterMargin)
+                | LegendTop -> horizontalEntries (-padding.Top + legendOuterMargin)
+                | LegendBottom -> horizontalEntries (Canvas.canvasSize + legendOuterMargin)
+
+    // ── Assembly ──────────────────────────────────────────────────────────────
+
     let private buildSvg (graph : Graph) =
         let padding = graphPadding graph
-        let viewBox = viewBoxForPadding padding
-        let background = backgroundElementForPadding graph.Theme.Background padding
         let axes = [ graph.XAxis; graph.YAxis ] |> List.choose id
         let gridElements = axes |> List.collect (Axis.toGridElements graph.Theme)
         let axisElements = axes |> List.collect (Axis.toElements graph.Theme)
-        background :: (plotBackgroundElements graph) @ gridElements @ Graph.drawSeries graph @ (annotationElements graph) @ axisElements @ (titleElements graph padding)
+        [
+            [ backgroundElement graph.Theme.Background padding ]
+            plotBackgroundElements graph
+            gridElements
+            Graph.drawSeries graph
+            annotationElements graph
+            legendElements graph padding
+            axisElements
+            titleElements graph padding
+        ]
+        |> List.concat
         |> Svg.ofList
-        |> Svg.withViewBox viewBox
+        |> Svg.withViewBox (viewBoxForPadding padding)
+
+    // ── Public API ────────────────────────────────────────────────────────────
 
     /// Returns a raw SVG string.
     let toSvg (graph : Graph) : string =

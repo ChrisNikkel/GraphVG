@@ -11,6 +11,7 @@
     <Compile Include="Theme.fs" />
     <Compile Include="Axis.fs" />
     <Compile Include="Graph.fs" />
+    <Compile Include="Layout.fs" />
     <Compile Include="GraphVG.fs" />
   </ItemGroup>
   <ItemGroup>

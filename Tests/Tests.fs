@@ -1038,3 +1038,92 @@ module AnnotationTests =
             List.init n.Get (fun i -> Annotation.Text(float i, float i, string i))
             |> List.fold (fun acc a -> Graph.addAnnotation a acc) graph
         g.Annotations.Length = n.Get
+
+module LegendTests =
+
+    let private pts = [ 0.0, 0.0; 1.0, 1.0 ]
+    let private labeled = Series.line pts |> Series.withLabel "Alpha"
+    let private unlabeled = Series.line pts
+    let private baseGraph = Graph.create [ labeled ] (0.0, 1.0) (0.0, 1.0)
+
+    [<Fact>]
+    let ``default graph has no legend`` () =
+        Assert.Equal(None, baseGraph.Legend)
+
+    [<Fact>]
+    let ``withLegend sets legend`` () =
+        let g = baseGraph |> Graph.withLegend (Legend.create LegendBottom)
+        Assert.Equal(Some LegendBottom, g.Legend |> Option.map (fun l -> l.Position))
+
+    [<Fact>]
+    let ``withLegend withFontSize sets font size`` () =
+        let g = baseGraph |> Graph.withLegend (Legend.create LegendRight |> Legend.withFontSize 18.0)
+        Assert.Equal(Some 18.0, g.Legend |> Option.map (fun l -> l.FontSize))
+
+    [<Fact>]
+    let ``legend with no labeled series produces same SVG as no legend`` () =
+        let withoutLabels = Graph.create [ unlabeled ] (0.0, 1.0) (0.0, 1.0)
+        let plain = withoutLabels |> GraphVG.toSvg
+        let withLegend = withoutLabels |> Graph.withLegend (Legend.create LegendBottom) |> GraphVG.toSvg
+        Assert.Equal(plain, withLegend)
+
+    [<Fact>]
+    let ``legend renders label text in SVG`` () =
+        let svg = baseGraph |> Graph.withLegend (Legend.create LegendBottom) |> GraphVG.toSvg
+        Assert.Contains("Alpha", svg)
+
+    [<Fact>]
+    let ``legend Bottom expands bottom padding in viewBox`` () =
+        let svg = baseGraph |> Graph.withLegend (Legend.create LegendBottom) |> GraphVG.toSvg
+        // legendOuterMargin(8) + swatchHeight(8) + legendOuterMargin(8) = 24 > defaultOuterMargin(20)
+        Assert.Contains("viewBox=\"-20,-20 1040,1044\"", svg)
+
+    [<Fact>]
+    let ``legend Left expands left padding in viewBox`` () =
+        // label "Alpha" = 5 chars, fontSize 12 → width = 5 * 12 * 0.6 = 36
+        // left = 8 + 20 + 6 + 36 + 8 = 78; total width = 1000 + 78 + 20 = 1098
+        let svg = baseGraph |> Graph.withLegend (Legend.create LegendLeft) |> GraphVG.toSvg
+        Assert.Contains("viewBox=\"-78,-20 1098,1040\"", svg)
+
+    [<Fact>]
+    let ``legend Hidden produces same SVG as no legend`` () =
+        let plain = baseGraph |> GraphVG.toSvg
+        let hidden = baseGraph |> Graph.withLegend (Legend.create LegendHidden) |> GraphVG.toSvg
+        Assert.Equal(plain, hidden)
+
+    [<Fact>]
+    let ``legend produces different SVG than no legend`` () =
+        let plain = baseGraph |> GraphVG.toSvg
+        let withLegend = baseGraph |> Graph.withLegend (Legend.create LegendBottom) |> GraphVG.toSvg
+        Assert.True(plain <> withLegend)
+
+    [<Fact>]
+    let ``all four edge positions produce different SVG from each other`` () =
+        let svgs =
+            [ LegendTop; LegendBottom; LegendLeft; LegendRight ]
+            |> List.map (fun pos -> baseGraph |> Graph.withLegend (Legend.create pos) |> GraphVG.toSvg)
+        Assert.Equal(4, svgs |> List.distinct |> List.length)
+
+    [<Fact>]
+    let ``multiple labeled series all appear in SVG`` () =
+        let s1 = Series.line pts |> Series.withLabel "Bravo"
+        let s2 = Series.scatter pts |> Series.withLabel "Charlie"
+        let svg =
+            Graph.create [ s1; s2 ] (0.0, 1.0) (0.0, 1.0)
+            |> Graph.withLegend (Legend.create LegendRight)
+            |> GraphVG.toSvg
+        Assert.Contains("Bravo", svg)
+        Assert.Contains("Charlie", svg)
+
+    [<Property>]
+    let ``legend with n labeled series produces more SVG than n-1`` (n: FsCheck.PositiveInt) =
+        let series = List.init n.Get (fun i -> Series.line pts |> Series.withLabel (sprintf "S%d" i))
+        let withAll =
+            Graph.create series (0.0, 1.0) (0.0, 1.0)
+            |> Graph.withLegend (Legend.create LegendRight)
+            |> GraphVG.toSvg
+        let withoutLast =
+            Graph.create (List.take (n.Get - 1) series @ [ Series.line pts ]) (0.0, 1.0) (0.0, 1.0)
+            |> Graph.withLegend (Legend.create LegendRight)
+            |> GraphVG.toSvg
+        n.Get = 1 || withAll.Length > withoutLast.Length

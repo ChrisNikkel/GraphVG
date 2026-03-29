@@ -13,8 +13,9 @@ GraphVG/           # Main library (net8.0)
   Series.fs        # Data series type (Scatter, Line, Area)
   Theme.fs         # Visual styling (pens, colors, grid)
   Axis.fs          # Axis rendering (ticks, labels, grid lines)
-  Graph.fs         # Core graph record and coordinate transforms
-  GraphVG.fs       # Top-level API: render, toHtml
+  Graph.fs         # Core graph record, coordinate transforms, series rendering
+  Layout.fs        # GraphPadding type and per-edge padding computation
+  GraphVG.fs       # SVG element generation, assembly, public API (toSvg, toHtml)
 Examples/Example/  # Executable usage demo
 Tests/             # xUnit test suite
 ```
@@ -94,12 +95,15 @@ GraphVG builds on SharpVG — match its style throughout so the two feel like on
   ```
 
 - **Modules**: same name as the type they accompany, immediately after the type definition.
+- **Section comments as a split signal**: If you find yourself adding `// ── Section ───` dividers inside a module to group private helpers, that is a sign the module should be split into separate files instead. Each file should have a single clear purpose — if it needs sections to stay readable, it has too many responsibilities.
 - **Functions**: camelCase. Public functions are bare `let`. Internal helpers are `let private`.
 - **Builders**: `create`, `with*`, `add*`, `to*` — always pipeline-friendly (subject last).
 - **DU serialisation**: `override this.ToString()` on the type itself, not in the module.
 - **Module `to*` wrappers**: thin delegations to static type members (`let toString = MyType.ToString`).
 
 - **Do not shadow SharpVG types**: Always resolve type name conflicts (e.g., use fully qualified names for `Point` if needed).
+
+- **No prime (`'`) suffix on identifiers**: Do not use `foo'` to avoid shadowing `foo`. Choose a descriptive name instead (`labelEl`, `updatedGraph`, `trimmed`). If the outer binding is what needs renaming, rename that.
 
 ### No new dependencies
 

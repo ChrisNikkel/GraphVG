@@ -28,11 +28,13 @@ flowchart TD
     end
 
     subgraph "Output"
+        LY[Layout]
         GVG[GraphVG]
     end
 
     CV --> AX
     CV --> GR
+    CV --> LY
     CV --> GVG
     CM --> SC
     CM --> AX
@@ -43,11 +45,14 @@ flowchart TD
     TH --> AX
     TH --> GR
     AX --> GR
+    AX --> LY
+    GR --> LY
+    LY --> GVG
     AX --> GVG
     GR --> GVG
 ```
 
-Each layer only depends on layers below it. `CommonMath` and `Canvas` are the shared foundation with no upward dependencies.
+Each layer only depends on layers below it. `CommonMath` and `Canvas` are the shared foundation with no upward dependencies. `Layout` owns all padding math — it is the only module that knows how much space each graph element requires. `GraphVG` consumes `Layout.graphPadding` and handles only SVG element generation and final assembly.
 
 ---
 
