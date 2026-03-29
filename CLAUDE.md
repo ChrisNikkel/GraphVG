@@ -130,6 +130,13 @@ Type annotations only where inference needs help (disambiguating record updates,
 
 Prefer full words over abbreviations: `position` not `pos`, `minimum` not `min` when used as a standalone binding, `opacity` not `op`. Short pipeline bindings like `g`, `s`, `v` are fine as locals in tight transforms.
 
+### Markdown and Mermaid
+
+- Use standard CommonMark markdown. Headings, bullet lists, bold, inline code, and fenced code blocks all render correctly.
+- **No `\n` inside mermaid node labels** — it does not render as a line break. Keep node labels short enough to fit on one line. If a label needs more detail, use prose below the diagram instead.
+- Prefer `flowchart` over `graph` for mermaid diagrams (cleaner syntax, explicit direction).
+- Node label style: use `[text]` for plain boxes, `["text"]` when the label contains spaces or punctuation that would be ambiguous.
+
 ### Property-Based Testing
 
 Use [FsCheck](https://fscheck.github.io/FsCheck/) with `[<Property>]` (from `FsCheck.Xunit`) alongside `[<Fact>]` tests. Properties catch edge cases that hand-written examples miss.
