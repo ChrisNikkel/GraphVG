@@ -98,9 +98,9 @@ let ``log ticks base 2 returns correct powers`` () =
 
 [<Property>]
 let ``linear apply then invert is identity within domain`` (x: FsCheck.NormalFloat) =
-    let lo, hi = 0.0, 100.0
-    let scale = Scale.linear (lo, hi) (0.0, 1000.0)
-    let clamped = max lo (min hi x.Get)
+    let lower, upper = 0.0, 100.0
+    let scale = Scale.linear (lower, upper) (0.0, 1000.0)
+    let clamped = clamp lower upper x.Get
     isNear clamped (Scale.invert scale (Scale.apply scale clamped))
 
 [<Property>]

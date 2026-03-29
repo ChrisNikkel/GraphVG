@@ -33,8 +33,6 @@ module Graph =
 
     // ── Internal helpers ────────────────────────────────────────────────────────
 
-    let private clamp lower upper value = max lower (min upper value)
-
     let private pixelRangeOf (scale : Scale) =
         match scale with
         | Scale.Linear(_, r) -> r
