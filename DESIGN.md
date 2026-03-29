@@ -51,6 +51,7 @@ flowchart TD
 | 4 | REQ-5 | Evolve `Graph` record to carry theme, axes, title |
 | 5 | REQ-9 | Test coverage gaps (render smoke, grid lines) |
 | — | REQ-10 | Adaptive canvas resolution (deferred) |
+| ✓ | REQ-14 | Per-series stroke width and scatter radius |
 
 Items 3 and 4 are tightly coupled — REQ-8's clean `render : Graph -> string` is only possible once REQ-5's richer `Graph` record carries everything `render` needs. They should be implemented together.
 

@@ -117,16 +117,19 @@ module Graph =
     let drawSeries graph =
         let toSvgPoint pt = pt |> toScaledSvgCoordinates graph |> Point.ofFloats
         let seriesToElements i (series : Series) =
-            let pen = Theme.penForSeries i graph.Theme
+            let seriesPen = Theme.penForSeries i graph.Theme
             match series.Kind with
             | Scatter ->
-                let style = Style.empty |> Style.withFillPen pen
+                let radius = series.PointRadius |> Option.defaultValue (Length.ofFloat 3.0)
+                let style = Style.empty |> Style.withFillPen seriesPen
                 series.Points
-                |> List.map (fun pt -> Circle.create (toSvgPoint pt) (Length.ofInt 3) |> Element.createWithStyle style)
+                |> List.map (fun pt -> Circle.create (toSvgPoint pt) radius |> Element.createWithStyle style)
             | SeriesKind.Line ->
-                let style = Style.createWithPen pen |> Style.withFillOpacity 0.0
+                let strokePen = series.StrokeWidth |> Option.map (fun w -> seriesPen |> Pen.withWidth w) |> Option.defaultValue seriesPen
+                let style = Style.createWithPen strokePen |> Style.withFillOpacity 0.0
                 [ Polyline.ofList (series.Points |> List.map toSvgPoint) |> Element.createWithStyle style ]
             | Area ->
-                let style = Style.createWithPen pen |> Style.withFillPen pen
+                let strokePen = series.StrokeWidth |> Option.map (fun w -> seriesPen |> Pen.withWidth w) |> Option.defaultValue seriesPen
+                let style = Style.createWithPen strokePen |> Style.withFillPen strokePen
                 [ Polygon.ofList (series.Points |> List.map toSvgPoint) |> Element.createWithStyle style ]
         graph.Series |> List.mapi seriesToElements |> List.concat

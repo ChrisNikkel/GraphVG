@@ -275,18 +275,6 @@ Example uses: `sprintf "%.0f%%"` for percentages, `sprintf "$%.2f"` for currency
 
 ---
 
-## REQ-14: Series Line Width and Scatter Radius (deferred)
-
-Pen width for line/area series and point radius for scatter series are not independently configurable — they inherit from `Theme.Pens` pen width. These should be overridable per series.
-
-```fsharp
-val withStrokeWidth : float -> Series -> Series   // line/area stroke width
-val withPointRadius : float -> Series -> Series   // scatter dot radius
-```
-
-Default stroke width is the theme pen width; default radius is `3.0`.
-
----
 
 ## REQ-15: Graph Background and Plot Area (deferred)
 

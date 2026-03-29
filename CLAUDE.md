@@ -5,6 +5,8 @@ F# library for generating SVG-based graphs using SharpVG.
 ## Project Structure
 
 ```fsharp
+REQUIREMENTS.md    # Track requirements/bugs we plan to build.  Once implemented, remove.
+DESIGN.md          # Track the overall architecture / design of the project both current and future.
 GraphVG/           # Main library (net8.0)
   Canvas.fs        # Rendering constant: canvasSize
   Scale.fs         # Data-to-pixel mapping (Linear, Log)
@@ -35,6 +37,21 @@ let html =
 ```
 
 ## Coding Standards
+
+### SharpVG — source and usage
+
+SharpVG is the only dependency. Source is available in two places:
+- **Local checkout**: `~/Code/SharpVG` — read this to understand available types and functions before writing any rendering code
+- **GitHub**: https://github.com/ChrisNikkel/SharpVG
+
+**Always read SharpVG source before reaching for a raw float or a hand-rolled helper.** SharpVG likely already has what you need:
+
+- Use `Length` (not `float`) for widths, radii, font sizes, and any pixel measurement — `Length.ofFloat`, `Length.px`, etc.
+- Use `Color` (not strings or tuples) for all colors — `Color.ofRgb`, `Color.ofName`, etc.
+- Use `Pen`, `Style`, `Transform` builder functions rather than constructing SVG attributes manually.
+- Use `Element`, `Svg`, `Group` combinators to compose output — avoid hand-rolling SVG strings.
+
+When you encounter a raw `float` or `string` where a SharpVG type would fit, that is a signal to look up the right SharpVG abstraction first.
 
 ### Follow SharpVG conventions exactly
 
