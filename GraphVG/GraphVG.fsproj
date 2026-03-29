@@ -1,8 +1,33 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <OutputType>Library</OutputType>
     <TargetFramework>net8.0</TargetFramework>
+    <Version>0.1.0</Version>
+    <Authors>Chris Nikkel</Authors>
+    <Product>GraphVG</Product>
+    <Description>Generate SVG graphs and charts in F# using SharpVG</Description>
+    <Copyright>Copyright © Chris Nikkel 2026</Copyright>
+    <Summary>An F# library for generating SVG-based graphs and charts built on SharpVG</Summary>
+    <NeutralLanguage>en-US</NeutralLanguage>
+    <Title>GraphVG</Title>
+    <PackageId>GraphVG</PackageId>
+    <PackageTags>Graphics, F#, SVG, charts, graphs, data visualization</PackageTags>
+    <PackageProjectUrl>https://github.com/ChrisNikkel/GraphVG</PackageProjectUrl>
+    <PackageRepositoryUrl>https://github.com/ChrisNikkel/GraphVG</PackageRepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <RootNamespace>GraphVG</RootNamespace>
+    <AssemblyName>GraphVG</AssemblyName>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>See CHANGELOG.md at https://github.com/ChrisNikkel/GraphVG/blob/main/CHANGELOG.md</PackageReleaseNotes>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
   <ItemGroup>
     <Compile Include="CommonMath.fs" />
     <Compile Include="Scale.fs" />
