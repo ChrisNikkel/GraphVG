@@ -19,11 +19,22 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
+      - name: Resolve solution path
+        id: solution
+        run: |
+          solution_path="$(find "$GITHUB_WORKSPACE" -maxdepth 4 -name '*.sln' | head -n 1)"
+          if [ -z "$solution_path" ]; then
+            echo "No solution file found under $GITHUB_WORKSPACE"
+            exit 1
+          fi
+          echo "Using solution: $solution_path"
+          echo "path=$solution_path" >> "$GITHUB_OUTPUT"
+
       - name: Restore
-        run: dotnet restore GraphVG.sln
+        run: dotnet restore "${{ steps.solution.outputs.path }}"
 
       - name: Build
-        run: dotnet build GraphVG.sln --configuration Release --no-restore
+        run: dotnet build "${{ steps.solution.outputs.path }}" --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test GraphVG.sln --configuration Release --no-build
+        run: dotnet test "${{ steps.solution.outputs.path }}" --configuration Release --no-build
