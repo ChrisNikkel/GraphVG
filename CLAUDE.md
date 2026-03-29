@@ -8,14 +8,16 @@ F# library for generating SVG-based graphs using SharpVG.
 REQUIREMENTS.md    # Track requirements/bugs we plan to build.  Once implemented, remove.
 DESIGN.md          # Track the overall architecture / design of the project both current and future.
 GraphVG/           # Main library (net8.0)
-  Canvas.fs        # Rendering constant: canvasSize
+  CommonMath.fs    # canvasSize, GraphPadding type, estimatedTextWidth, pure float math
   Scale.fs         # Data-to-pixel mapping (Linear, Log)
   Series.fs        # Data series type (Scatter, Line, Area)
   Theme.fs         # Visual styling (pens, colors, grid)
   Axis.fs          # Axis rendering (ticks, labels, grid lines)
+  Legend.fs        # LegendPosition/Legend types, swatch constants, element rendering
+  Annotation.fs    # Annotation/TitleStyle types, Annotation.toElements rendering
   Graph.fs         # Core graph record, coordinate transforms, series rendering
-  Layout.fs        # GraphPadding type and per-edge padding computation
-  GraphVG.fs       # SVG element generation, assembly, public API (toSvg, toHtml)
+  Layout.fs        # Padding computation, viewBox, background, title, and plot-background elements
+  GraphVG.fs       # SVG assembly and primary public API
 Examples/Example/  # Executable usage demo
 Tests/             # xUnit test suite
 ```

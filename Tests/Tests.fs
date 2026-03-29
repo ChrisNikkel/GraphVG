@@ -452,13 +452,13 @@ module GraphTests =
     let ``toScaledSvgCoordinates maps domain max to right edge`` () =
         let graph = Graph.create [ series ] (0.0, 4.0) (0.0, 4.0)
         let x, _ = Graph.toScaledSvgCoordinates graph (4.0, 0.0)
-        Assert.Equal(Canvas.canvasSize, x, 10)
+        Assert.Equal(CommonMath.canvasSize, x, 10)
 
     [<Fact>]
     let ``toScaledSvgCoordinates inverts y axis (range min maps to canvas bottom)`` () =
         let graph = Graph.create [ series ] (0.0, 4.0) (0.0, 4.0)
         let _, y = Graph.toScaledSvgCoordinates graph (0.0, 0.0)
-        Assert.Equal(Canvas.canvasSize, y, 10)
+        Assert.Equal(CommonMath.canvasSize, y, 10)
 
     [<Fact>]
     let ``toScaledSvgCoordinates inverts y axis (range max maps to canvas top)`` () =
@@ -851,7 +851,7 @@ module TitleStyleTests =
 
     [<Fact>]
     let ``title and top axis reserve stacked top padding`` () =
-        let xScale = Scale.linear (0.0, 10.0) (0.0, Canvas.canvasSize)
+        let xScale = Scale.linear (0.0, 10.0) (0.0, CommonMath.canvasSize)
         let graph =
             Graph.create [ series ] (0.0, 10.0) (0.0, 1.0)
             |> Graph.withTitle "Hello"

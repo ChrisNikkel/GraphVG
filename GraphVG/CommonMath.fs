@@ -2,6 +2,19 @@ namespace GraphVG
 
 module CommonMath =
 
+    let canvasSize = 1000.0
+
+    type GraphPadding =
+        {
+            Top : float
+            Right : float
+            Bottom : float
+            Left : float
+        }
+
+    let estimatedTextWidth fontSize (text : string) =
+        float text.Length * fontSize * 0.6
+
     let epsilon : float = 1e-10
 
     let isNear (expected : float) (actual : float) =

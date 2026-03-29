@@ -33,8 +33,8 @@ let lissajous =
     |> Series.withStrokeDash Dashed
 
 let centeredAxesGraph =
-    let xScale = Scale.linear (-1.2, 1.2) (0.0, Canvas.canvasSize)
-    let yScale = Scale.linear (-1.2, 1.2) (Canvas.canvasSize, 0.0)
+    let xScale = Scale.linear (-1.2, 1.2) (0.0, CommonMath.canvasSize)
+    let yScale = Scale.linear (-1.2, 1.2) (CommonMath.canvasSize, 0.0)
     Graph.create [ unitCircle; lissajous ] (-1.2, 1.2) (-1.2, 1.2)
     |> Graph.withTheme Theme.light
     |> Graph.withTitle "Centered Axes"
@@ -67,8 +67,8 @@ let axisStylesGraph =
         |> Series.scatter
         |> Series.withLabel "Checkpoints"
         |> Series.withPointRadius (Length.ofFloat 7.0)
-    let xScale = Scale.linear (1.0, 12.0) (0.0, Canvas.canvasSize)
-    let yScale = Scale.linear (0.0, 100.0) (Canvas.canvasSize, 0.0)
+    let xScale = Scale.linear (1.0, 12.0) (0.0, CommonMath.canvasSize)
+    let yScale = Scale.linear (0.0, 100.0) (CommonMath.canvasSize, 0.0)
     let monthFormatter value =
         [
             1.0, "Jan"
@@ -99,6 +99,7 @@ let axisStylesGraph =
     |> Graph.withAxes (
         Some (Axis.create Top xScale |> Axis.withTickInterval 2.0 |> Axis.withTickFormat monthFormatter |> Axis.withTickLength 10.0 |> Axis.withFontSize 14.0 |> Axis.withLabel "Campaign Timeline" |> Axis.hideBoundsTick |> Axis.hideBoundsLabel |> Axis.withSpine SpineStyle.Full),
         Some (Axis.create Right yScale |> Axis.withTicks 6 |> Axis.withTickFormat percentFormatter |> Axis.withFontSize 14.0 |> Axis.withLabel "Coverage" |> Axis.hideBoundsTick |> Axis.withSpine SpineStyle.Hidden))
+    |> Graph.withLegend (Legend.create LegendLeft)
 
 let styledSeriesGraph =
     let baseline = 1.5
@@ -133,6 +134,7 @@ let styledSeriesGraph =
     |> Graph.withTheme themed
     |> Graph.withTitle "Series Styling"
     |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withLegend (Legend.create LegendRight)
 
 let logScaleGraph =
     let responsePoints =
@@ -147,8 +149,8 @@ let logScaleGraph =
         |> Series.scatter
         |> Series.withLabel "Samples"
         |> Series.withPointRadius (Length.ofFloat 6.0)
-    let xScale = Scale.log (1.0, 1000.0) (0.0, Canvas.canvasSize) 10.0
-    let yScale = Scale.linear (0.0, 7.0) (Canvas.canvasSize, 0.0)
+    let xScale = Scale.log (1.0, 1000.0) (0.0, CommonMath.canvasSize) 10.0
+    let yScale = Scale.linear (0.0, 7.0) (CommonMath.canvasSize, 0.0)
     let logTickFormatter value = sprintf "10^%.0f" (Math.Log10 value)
     Graph.create [ lineSeries; markerSeries ] (1.0, 1000.0) (0.0, 7.0)
     |> Graph.withTheme Theme.empty
@@ -159,6 +161,7 @@ let logScaleGraph =
     |> Graph.withAxes (
         Some (Axis.create Bottom xScale |> Axis.withTickFormat logTickFormatter |> Axis.withLabel "Input Scale"),
         Some (Axis.create Left yScale |> Axis.withLabel "Response"))
+    |> Graph.withLegend (Legend.create LegendRight)
 
 let examples =
     [

@@ -9,7 +9,7 @@ Architecture reference for the GraphVG library. Focuses on the *why* behind stru
 ```mermaid
 flowchart TD
     subgraph "Foundation"
-        CV[Canvas]
+        LY[Layout]
         CM[CommonMath]
     end
 
@@ -24,35 +24,39 @@ flowchart TD
     end
 
     subgraph "Composition"
+        LG[Legend]
+        AN[Annotation]
         GR[Graph]
     end
 
     subgraph "Output"
-        LY[Layout]
         GVG[GraphVG]
     end
 
-    CV --> AX
-    CV --> GR
-    CV --> LY
-    CV --> GVG
+    LY --> AX
+    LY --> LG
+    LY --> AN
+    LY --> GR
+    LY --> GVG
     CM --> SC
     CM --> AX
     CM --> GR
     SC --> AX
     SC --> GR
+    SR --> LG
     SR --> GR
     TH --> AX
     TH --> GR
     AX --> GR
-    AX --> LY
-    GR --> LY
-    LY --> GVG
+    LG --> GR
+    AN --> GR
     AX --> GVG
+    LG --> GVG
+    AN --> GVG
     GR --> GVG
 ```
 
-Each layer only depends on layers below it. `CommonMath` and `Canvas` are the shared foundation with no upward dependencies. `Layout` owns all padding math — it is the only module that knows how much space each graph element requires. `GraphVG` consumes `Layout.graphPadding` and handles only SVG element generation and final assembly.
+Each layer only depends on layers below it. `Layout` is the shared foundation: it owns `canvasSize`, the `GraphPadding` type, swatch geometry constants, and the SVG element primitives (`backgroundElement`, `plotBackground`, `titleElement`) that depend only on layout math. `CommonMath` provides pure float math with no SharpVG dependency. `Legend` and `Annotation` define their types and element-rendering functions before `Graph`, taking explicit parameters instead of a `Graph` record to avoid circular dependencies. `GraphVG` owns padding computation (which needs `Axis`, `Graph`, `Legend`) and final SVG assembly.
 
 ---
 
@@ -128,10 +132,3 @@ Shapes are defined as **unit offsets**: vertices relative to a center at the ori
 
 The same transform works for any shape. Adding a new scatter point shape is a new list of unit offsets — no new arithmetic function needed.
 
----
-
-## Deferred: REQ-10 Adaptive canvas resolution
-
-The canvas is currently fixed at `1000×1000`. When domain magnitudes are very large or very small, fixed annotation constants (tick length, font size, margin) become proportionally wrong.
-
-The intended fix is to express annotation constants as fractions of canvas size and scale the canvas resolution to match data magnitude. This is blocked on first expressing all annotation sizes as canvas-relative fractions throughout `Axis.fs` and `GraphVG.fs`.

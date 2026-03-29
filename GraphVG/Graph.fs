@@ -3,46 +3,6 @@ namespace GraphVG
 open SharpVG
 open CommonMath
 
-type LegendPosition =
-    | LegendTop
-    | LegendBottom
-    | LegendLeft
-    | LegendRight
-    | LegendHidden
-
-type Legend =
-    {
-        Position : LegendPosition
-        FontSize : float
-    }
-
-module Legend =
-
-    let create position =
-        { Position = position; FontSize = 12.0 }
-
-    let withFontSize fontSize (legend : Legend) =
-        { legend with FontSize = fontSize }
-
-type Annotation =
-    | Text of x : float * y : float * content : string
-    | Line of x1 : float * y1 : float * x2 : float * y2 : float
-    | Rect of x : float * y : float * width : float * height : float
-
-type TitleStyle =
-    {
-        FontSize : float
-        Alignment : TextAnchor
-    }
-
-module TitleStyle =
-
-    let create fontSize alignment =
-        { FontSize = fontSize; Alignment = alignment }
-
-    let default' =
-        { FontSize = 16.0; Alignment = Middle }
-
 type Graph =
     {
         Series : Series list
@@ -72,8 +32,8 @@ module Graph =
         | Scale.Log(_, r, b) -> Scale.Log(newDomain, r, b)
 
     let private defaultAxes xScale yScale =
-        let xAxisPosition = Scale.apply yScale 0.0 |> clamp 0.0 Canvas.canvasSize
-        let yAxisPosition = Scale.apply xScale 0.0 |> clamp 0.0 Canvas.canvasSize
+        let xAxisPosition = Scale.apply yScale 0.0 |> clamp 0.0 canvasSize
+        let yAxisPosition = Scale.apply xScale 0.0 |> clamp 0.0 canvasSize
         Some (Axis.create (HorizontalAt xAxisPosition) xScale |> Axis.hideOrigin),
         Some (Axis.create (VerticalAt yAxisPosition) yScale |> Axis.hideOrigin)
 
@@ -84,8 +44,8 @@ module Graph =
         (List.reduce min ys, List.reduce max ys)
 
     let private buildScales domain range =
-        Scale.linear domain (0.0, Canvas.canvasSize),
-        Scale.linear range (Canvas.canvasSize, 0.0)
+        Scale.linear domain (0.0, canvasSize),
+        Scale.linear range (canvasSize, 0.0)
 
     // ── Coordinate transform ────────────────────────────────────────────────────
 
@@ -105,7 +65,7 @@ module Graph =
             YAxis = yAxis
             Theme = Theme.empty
             Title = None
-            TitleStyle = TitleStyle.default'
+            TitleStyle = TitleStyle.defaults
             Annotations = []
             Legend = None
         }
@@ -122,7 +82,7 @@ module Graph =
             YAxis = yAxis
             Theme = Theme.empty
             Title = None
-            TitleStyle = TitleStyle.default'
+            TitleStyle = TitleStyle.defaults
             Annotations = []
             Legend = None
         }

@@ -1,29 +1,12 @@
 namespace GraphVG
 
-/// Computes GraphPadding — the space each edge of the canvas needs to
-/// accommodate axes, title, and legend before the viewBox is emitted.
+open SharpVG
+open CommonMath
+
+/// Padding computation and SVG element primitives that directly derive from padding geometry.
 module Layout =
 
-    // ── Legend swatch geometry ────────────────────────────────────────────────
-    // These are public because GraphVG.fs needs them to position swatch elements
-    // at the same coordinates the padding computation reserved.
-
-    let swatchWidth = 20.0
-    let swatchHeight = 8.0
-    let swatchLabelGap = 6.0
-    let legendOuterMargin = 8.0
-    let legendEntryGap = 8.0
-    let legendHorizontalGap = 16.0
-
-    // ── GraphPadding ──────────────────────────────────────────────────────────
-
-    type GraphPadding =
-        {
-            Top : float
-            Right : float
-            Bottom : float
-            Left : float
-        }
+    // ── Padding helpers ───────────────────────────────────────────────────────
 
     let private emptyPadding = { Top = 0.0; Right = 0.0; Bottom = 0.0; Left = 0.0 }
 
@@ -34,11 +17,6 @@ module Layout =
 
     let private sumPadding a b =
         { Top = a.Top + b.Top; Right = a.Right + b.Right; Bottom = a.Bottom + b.Bottom; Left = a.Left + b.Left }
-
-    // ── Shared helpers ────────────────────────────────────────────────────────
-
-    let estimatedTextWidth fontSize (text : string) =
-        float text.Length * fontSize * 0.6
 
     // ── Axis padding ──────────────────────────────────────────────────────────
 
@@ -109,16 +87,16 @@ module Layout =
                 match legend.Position with
                 | LegendHidden -> emptyPadding
                 | LegendLeft ->
-                    legendOuterMargin + swatchWidth + swatchLabelGap + maxLabelWidth + legendOuterMargin
+                    Legend.legendOuterMargin + Legend.swatchWidth + Legend.swatchLabelGap + maxLabelWidth + Legend.legendOuterMargin
                     |> paddingWithLeft
                 | LegendRight ->
-                    legendOuterMargin + swatchWidth + swatchLabelGap + maxLabelWidth + legendOuterMargin
+                    Legend.legendOuterMargin + Legend.swatchWidth + Legend.swatchLabelGap + maxLabelWidth + Legend.legendOuterMargin
                     |> paddingWithRight
                 | LegendTop ->
-                    legendOuterMargin + swatchHeight + legendOuterMargin
+                    Legend.legendOuterMargin + Legend.swatchHeight + Legend.legendOuterMargin
                     |> paddingWithTop
                 | LegendBottom ->
-                    legendOuterMargin + swatchHeight + legendOuterMargin
+                    Legend.legendOuterMargin + Legend.swatchHeight + Legend.legendOuterMargin
                     |> paddingWithBottom
 
     // ── Combined padding ──────────────────────────────────────────────────────
@@ -138,3 +116,29 @@ module Layout =
             Bottom = max defaultOuterMargin raw.Bottom
             Left = max defaultOuterMargin raw.Left
         }
+
+    // ── SVG element primitives ────────────────────────────────────────────────
+
+    let viewBoxForPadding (padding : GraphPadding) =
+        ViewBox.create
+            (Point.ofFloats (-padding.Left, -padding.Top))
+            (Area.ofFloats (canvasSize + padding.Left + padding.Right, canvasSize + padding.Top + padding.Bottom))
+
+    let backgroundElement (backgroundColor : Color) (padding : GraphPadding) =
+        Rect.create
+            (Point.ofFloats (-padding.Left, -padding.Top))
+            (Area.ofFloats (canvasSize + padding.Left + padding.Right, canvasSize + padding.Top + padding.Bottom))
+        |> Element.createWithStyle (Style.empty |> Style.withFill backgroundColor)
+
+    let plotBackground (color : Color) =
+        Rect.create Point.origin (Area.ofFloats (canvasSize, canvasSize))
+        |> Element.createWithStyle (Style.empty |> Style.withFill color)
+
+    let private titleTopInset = 6.0
+
+    let titleElement (title : string) (fontSize : float) (alignment : TextAnchor) (padding : GraphPadding) =
+        Text.create (Point.ofFloats (canvasSize / 2.0, -padding.Top + titleTopInset)) title
+        |> Text.withFontSize fontSize
+        |> Text.withAnchor alignment
+        |> Text.withBaseline HangingBaseline
+        |> Element.createWithStyle (Style.empty |> Style.withFillPen Pen.black)
