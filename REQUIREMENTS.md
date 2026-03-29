@@ -41,56 +41,6 @@ Default: `Hidden` (no legend unless explicitly added). Renders as a small box of
 
 ---
 
-## REQ-19: Scatter Point Shape
-
-Scatter series render as circles. Comparable libraries (D3 symbols, Plotly markers) support multiple shapes for distinguishing series without relying on color alone (important for accessibility).
-
-```fsharp
-type PointShape = Circle | Square | Diamond | Cross | Triangle
-
-val withPointShape : PointShape -> Series -> Series
-```
-
-Default remains `Circle`. Each shape renders at the same effective radius set by `withPointRadius`.
-
----
-
-## REQ-20: Axis Scale Types and Tick Formatting
-
-Support common axis scale modes and custom tick-label formatting for parity with D3/Plotly-style workflows.
-
-```fsharp
-type AxisScale = Linear | Log of baseValue : float | Time
-
-val withScaleType : AxisScale -> Axis -> Axis
-val withTickFormat : (float -> string) -> Axis -> Axis
-```
-
-**Acceptance criteria:**
-
-- Linear and log scales render correctly with matching tick generation.
-- Custom tick formatting is applied to all labels on the target axis.
-- Existing behavior remains default (`Linear` scale, built-in numeric formatting).
-
----
-
-## REQ-21: Series Visibility and Opacity
-
-Enable visibility toggles and soft emphasis/de-emphasis without removing series data.
-
-```fsharp
-val withVisible : bool -> Series -> Series
-val withOpacity : float -> Series -> Series
-```
-
-**Acceptance criteria:**
-
-- Hidden series do not render.
-- Opacity affects scatter markers, polylines, and area fills consistently.
-- Default remains visible with full opacity (`1.0`).
-
----
-
 ## REQ-22: Subplots / Small Multiples
 
 Support rendering multiple related plots in one SVG document.

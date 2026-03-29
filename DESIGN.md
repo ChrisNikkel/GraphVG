@@ -4,6 +4,34 @@ Detailed design for all pending changes. Each section maps to one or more requir
 
 ---
 
+## CommonMath
+
+`CommonMath.fs` is the single location for pure coordinate math — functions that take and return plain `float` or `(float * float)` values with no dependency on SharpVG types.
+
+### Current contents
+
+| Group | Functions |
+| --- | --- |
+| Numeric utilities | `epsilon`, `isNear`, `clamp`, `padRange` |
+| Unit shapes | `squareUnit`, `diamondUnit`, `triangleUnit`, `crossUnit` |
+| Generic centering | `scaleAndTranslate`, `centerPolygon`, `centerLines` |
+
+### Unit-shape pattern
+
+Shapes are expressed as **unit offsets** — vertices relative to a center at the origin with a radius of 1. A single generic transform (`scaleAndTranslate`) places any such shape at a real center and scale:
+
+```
+unit shape (data)  +  centerPolygon / centerLines  →  real coordinates
+```
+
+This keeps the definition of a shape (which vertices) separate from its placement (where and how big). Adding a new shape requires only a new list constant — no new arithmetic.
+
+### Future reorganization
+
+As CommonMath grows it should be split into focused sub-modules (e.g. `Geometry`, `Statistics`, `Numeric`). For now, keep all pure math here and do not let geometry logic leak into `Graph.fs` or `GraphVG.fs`.
+
+---
+
 ## Current architecture
 
 ```mermaid

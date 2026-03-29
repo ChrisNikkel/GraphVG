@@ -157,6 +157,12 @@ module Axis =
     let private formatValue (axis : Axis) =
         axis.TickFormat |> Option.defaultValue (sprintf "%.4g")
 
+    let formattedTickLabels (axis : Axis) =
+        let formatter = formatValue axis
+        tickValues axis
+        |> List.filter (showsLabel axis)
+        |> List.map formatter
+
     let private estimatedTickLabelWidth (axis : Axis) =
         let formatter = formatValue axis
         let maxChars =

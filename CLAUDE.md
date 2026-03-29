@@ -73,7 +73,7 @@ GraphVG builds on SharpVG — match its style throughout so the two feel like on
       }
   ```
 
-- **No alignment padding**: Do not pad field names, `=` signs, or `|` match arms to align columns. Use a single space before and after `=`, `:`, and `->`. Aligned columns look tidy but create noisy diffs and must be maintained manually.
+- **No alignment padding**: Do not pad anything to align columns — this applies to field names, `=` signs, `|` match arms, function arguments, and pipeline operators (`|>`). Use a single space everywhere. Aligned columns look tidy but create noisy diffs and must be maintained manually.
 
   ```fsharp
   // wrong
@@ -188,6 +188,27 @@ isNear clamped (Scale.invert scale (Scale.apply scale clamped))
 #### Avoid Over-Relying on Properties
 
 A property that always holds trivially (e.g., `List.length xs >= 0`) adds no value. Every property should have a plausible failure mode.
+
+### CommonMath
+
+`CommonMath.fs` is the home for all pure float math that has no dependency on SharpVG. Keep it isolated — rendering code belongs in `Graph.fs`/`GraphVG.fs`, coordinate math belongs here.
+
+**When to add something to CommonMath:**
+- The function takes and returns plain `float` or `(float * float)` values
+- It has no dependency on SharpVG types (`Point`, `Length`, `Element`, etc.)
+- The same logic would be useful across more than one rendering module
+
+**Unit-shape + centering pattern** — use this for any geometry that places a fixed pattern at a variable center and scale:
+
+```fsharp
+// 1. Define the shape as unit offsets (center = origin, radius = 1)
+let diamondUnit = [ 0.0, -1.0; 1.0, 0.0; 0.0, 1.0; -1.0, 0.0 ]
+
+// 2. Use centerPolygon / centerLines to place it
+let vertices = centerPolygon (cx, cy) r diamondUnit
+```
+
+Adding a new shape is just a new list constant — no new arithmetic function needed. Do not inline the offset arithmetic into rendering code; put the unit shape in CommonMath and call `centerPolygon` or `centerLines`.
 
 ### Architecture Notes
 

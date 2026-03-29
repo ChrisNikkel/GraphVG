@@ -7,6 +7,8 @@ type SeriesKind =
     | Line
     | Area
 
+type PointShape = Circle | Square | Diamond | Cross | Triangle
+
 type StrokeDash =
     | Solid
     | Dashed
@@ -20,6 +22,7 @@ type Series =
         Label : string option
         StrokeWidth : Length option
         PointRadius : Length option
+        PointShape : PointShape
         StrokeDash : StrokeDash
         Visible : bool
         Opacity : float
@@ -34,6 +37,7 @@ module Series =
             Label = None
             StrokeWidth = None
             PointRadius = None
+            PointShape = Circle
             StrokeDash = Solid
             Visible = true
             Opacity = 1.0
@@ -56,6 +60,9 @@ module Series =
 
     let withPointRadius radius (series : Series) =
         { series with PointRadius = Some radius }
+
+    let withPointShape shape (series : Series) =
+        { series with PointShape = shape }
 
     let withStrokeDash dash (series : Series) =
         { series with StrokeDash = dash }

@@ -859,6 +859,62 @@ module TitleStyleTests =
         let svg = GraphVG.render graph
         Assert.Contains("viewBox=\"-20,-66 1040,1086\"", svg)
 
+module PointShapeTests =
+
+    let private pts = [ 0.0, 0.0; 1.0, 1.0; 2.0, 0.0 ]
+    let private graphOf shape =
+        Graph.create [ Series.scatter pts |> Series.withPointShape shape ] (0.0, 2.0) (0.0, 2.0)
+
+    [<Fact>]
+    let ``create defaults to Circle`` () =
+        Assert.Equal(Circle, (Series.scatter pts).PointShape)
+
+    [<Fact>]
+    let ``withPointShape sets shape`` () =
+        let s = Series.scatter pts |> Series.withPointShape Square
+        Assert.Equal(Square, s.PointShape)
+
+    [<Fact>]
+    let ``Circle produces one element per point`` () =
+        Assert.Equal(pts.Length, Graph.drawSeries (graphOf Circle) |> List.length)
+
+    [<Fact>]
+    let ``Square produces one element per point`` () =
+        Assert.Equal(pts.Length, Graph.drawSeries (graphOf Square) |> List.length)
+
+    [<Fact>]
+    let ``Diamond produces one element per point`` () =
+        Assert.Equal(pts.Length, Graph.drawSeries (graphOf Diamond) |> List.length)
+
+    [<Fact>]
+    let ``Triangle produces one element per point`` () =
+        Assert.Equal(pts.Length, Graph.drawSeries (graphOf Triangle) |> List.length)
+
+    [<Fact>]
+    let ``Cross produces two elements per point`` () =
+        Assert.Equal(pts.Length * 2, Graph.drawSeries (graphOf Cross) |> List.length)
+
+    [<Fact>]
+    let ``each shape produces different SVG than Circle`` () =
+        let circleSvg = graphOf Circle |> GraphVG.render
+        Assert.True(graphOf Square |> GraphVG.render <> circleSvg)
+        Assert.True(graphOf Diamond |> GraphVG.render <> circleSvg)
+        Assert.True(graphOf Triangle |> GraphVG.render <> circleSvg)
+        Assert.True(graphOf Cross |> GraphVG.render <> circleSvg)
+
+    [<Property>]
+    let ``non-Cross shapes produce exactly n elements for n points`` (n: FsCheck.PositiveInt) =
+        let points = List.init n.Get (fun i -> float i, float i)
+        let g shape = Graph.create [ Series.scatter points |> Series.withPointShape shape ] (0.0, float n.Get) (0.0, float n.Get)
+        [ Circle; Square; Diamond; Triangle ]
+        |> List.forall (fun shape -> Graph.drawSeries (g shape) |> List.length = n.Get)
+
+    [<Property>]
+    let ``Cross produces exactly 2n elements for n points`` (n: FsCheck.PositiveInt) =
+        let points = List.init n.Get (fun i -> float i, float i)
+        let g = Graph.create [ Series.scatter points |> Series.withPointShape Cross ] (0.0, float n.Get) (0.0, float n.Get)
+        Graph.drawSeries g |> List.length = n.Get * 2
+
 module PlotBackgroundTests =
 
     open SharpVG

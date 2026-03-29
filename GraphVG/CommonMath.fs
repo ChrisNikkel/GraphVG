@@ -12,3 +12,20 @@ module CommonMath =
     let padRange (percent : float) (minimum : float, maximum : float) =
         let span = maximum - minimum
         minimum - span * percent, maximum + span * percent
+
+    // ── Unit shapes (centered at origin, radius 1) ─────────────────────────────
+
+    let squareUnit = [ -1.0, -1.0; 1.0, -1.0; 1.0, 1.0; -1.0, 1.0 ]
+    let diamondUnit = [ 0.0, -1.0; 1.0, 0.0; 0.0, 1.0; -1.0, 0.0 ]
+    let triangleUnit = [ 0.0, -1.0; 1.0, 1.0; -1.0, 1.0 ]
+    let crossUnit = [ (-1.0, 0.0), (1.0, 0.0); (0.0, -1.0), (0.0, 1.0) ]
+
+    // ── Generic centering ───────────────────────────────────────────────────────
+
+    let scaleAndTranslate (cx : float, cy : float) (r : float) (dx, dy) =
+        cx + dx * r, cy + dy * r
+
+    let centerPolygon center r = List.map (scaleAndTranslate center r)
+
+    let centerLines center r =
+        List.map (fun (p1, p2) -> scaleAndTranslate center r p1, scaleAndTranslate center r p2)

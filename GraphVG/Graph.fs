@@ -158,9 +158,29 @@ module Graph =
                 match series.Kind with
                 | Scatter ->
                     let radius = series.PointRadius |> Option.defaultValue (Length.ofFloat 3.0)
-                    let style = Style.empty |> Style.withFillPen seriesPen
+                    let r = Length.toFloat radius
+                    let fillStyle = Style.empty |> Style.withFillPen seriesPen
+                    let crossPen = series.StrokeWidth |> Option.map (fun w -> seriesPen |> Pen.withWidth w) |> Option.defaultValue seriesPen
+                    let crossStyle = Style.createWithPen crossPen |> Style.withFillOpacity 0.0
                     series.Points
-                    |> List.map (fun point -> Circle.create (toSvgPoint point) radius |> Element.createWithStyle style)
+                    |> List.collect (fun pt ->
+                        let svgPt = toSvgPoint pt
+                        let cx, cy = Point.toFloats svgPt
+                        let polygon unit =
+                            Polygon.ofList (centerPolygon (cx, cy) r unit |> List.map Point.ofFloats)
+                            |> Element.createWithStyle fillStyle
+                        match series.PointShape with
+                        | PointShape.Circle ->
+                            [ Circle.create svgPt radius |> Element.createWithStyle fillStyle ]
+                        | Square ->
+                            [ polygon squareUnit ]
+                        | Diamond ->
+                            [ polygon diamondUnit ]
+                        | Triangle ->
+                            [ polygon triangleUnit ]
+                        | Cross ->
+                            centerLines (cx, cy) r crossUnit
+                            |> List.map (fun (from', to') -> Line.create (Point.ofFloats from') (Point.ofFloats to') |> Element.createWithStyle crossStyle))
                 | SeriesKind.Line ->
                     let strokePen = series.StrokeWidth |> Option.map (fun width -> seriesPen |> Pen.withWidth width) |> Option.defaultValue seriesPen
                     let style =
