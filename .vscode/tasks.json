@@ -30,16 +30,5 @@
             }
         }
         ,
-        {
-            "label": "format",
-            "type": "shell",
-            "command": "fantomas GraphVG/ Tests/ Examples/",
-            "problemMatcher": [],
-            "group": { "kind": "build", "isDefault": false },
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared"
-            }
-        }
     ]
 }
