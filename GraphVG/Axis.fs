@@ -191,7 +191,10 @@ module Axis =
         let axisLabel =
             axis.Label
             |> Option.map (fun body ->
-                mkLabel axis.FontSize pen axisLabelAnchor CentralBaseline body (Point.ofFloats (x + axisLabelOffset, bounds.MidPixel)))
+                let labelX = x + axisLabelOffset
+                let labelY = bounds.MidPixel
+                mkLabel axis.FontSize pen axisLabelAnchor CentralBaseline body (Point.ofFloats (labelX, labelY))
+                |> Element.withTransform (Transform.createRotate (tickDirection * 90.0) (Length.ofFloat labelX) (Length.ofFloat labelY)))
             |> Option.toList
         spineElements pen axis (Point.ofFloats (x, bounds.StartPixel)) (Point.ofFloats (x, bounds.EndPixel)) @ ticks @ axisLabel
 

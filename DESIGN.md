@@ -43,6 +43,64 @@ flowchart TD
 
 ---
 
+## Implemented: Render Layout Padding
+
+`GraphVG.fs` now treats layout padding as a two-stage problem:
+
+1. Compute logical padding per side from graph title and visible outer axes.
+2. Convert that padding into SharpVG boundary primitives (`Point`, `Area`, `ViewBox`, `Rect`) at render time.
+
+### Current renderer layout model
+
+```fsharp
+type private GraphPadding =
+    {
+        Top : float
+        Right : float
+        Bottom : float
+        Left : float
+    }
+```
+
+This remains a private GraphVG concern because SharpVG does not provide a four-sided inset/thickness type. SharpVG primitives are used at the boundary where geometry is emitted:
+
+- `Point` for origin/minimum coordinates
+- `Area` for width/height
+- `ViewBox` for SVG viewport construction
+- `Rect` for background extents
+
+### Why not replace `GraphPadding` with `Area`?
+
+`Area` only models width and height. Layout padding needs independent `top/right/bottom/left` values because title, top-axis labels, right-axis labels, and bottom-axis labels can all reserve different amounts of space.
+
+The intended split is:
+
+- `GraphPadding` for internal layout intent
+- SharpVG primitives for final SVG geometry
+
+### Renderer decomposition
+
+`GraphVG.fs` should stay decomposed around these responsibilities:
+
+- per-axis padding calculation by match case (`Top`, `Bottom`, `Left`, `Right`)
+- graph-level padding aggregation
+- `viewBoxForPadding`
+- `backgroundElementForPadding`
+- `plotBackgroundElements`
+- `titleElements`
+
+This keeps layout math separate from SVG construction and avoids scattering raw float arithmetic throughout `buildSvg`.
+
+### Current limitations
+
+- Spacing values are still private constants in `GraphVG.fs`
+- Layout spacing is not yet user-configurable
+- Title color is still fixed to `Pen.black` rather than theme-driven
+
+Long term, configurable spacing should be addressed via REQ-30.
+
+---
+
 ## Overview of pending work
 
 | Item | Requirement | Summary |

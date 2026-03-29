@@ -4,7 +4,6 @@ Vision: a functional F# charting library similar to D3.js, Plotly.NET, FSharp.Ch
 
 ---
 
-
 ## REQ-10: Adaptive Canvas Resolution
 
 The internal canvas size (currently fixed at 1000×1000) should adapt to the magnitude of the data being plotted. When data values are very large or very small, fixed-size annotation constants (tick lengths, font sizes, margins) become proportionally wrong — either invisible or dominating the plot area.
@@ -17,7 +16,6 @@ The internal canvas size (currently fixed at 1000×1000) should adapt to the mag
 - The displayed chart is unaffected — only internal coordinate precision changes.
 
 ---
-
 
 ## REQ-17: Legend
 
@@ -247,3 +245,26 @@ val withDomainPolicy : DomainPolicy -> Graph -> Graph
 
 ---
 
+## REQ-30: Layout Spacing Configuration
+
+Expose graph layout spacing controls instead of relying on internal fixed margins for titles, axes, and labels.
+
+```fsharp
+type LayoutSpacing =
+    {
+        OuterMargin : float
+        TitlePadding : float
+        AxisLabelPadding : float
+        TickLabelPadding : float
+    }
+
+val withLayoutSpacing : LayoutSpacing -> Graph -> Graph
+```
+
+**Acceptance criteria:**
+
+- Title, tick-label, and axis-label spacing can be configured per graph.
+- Default behavior remains backward-compatible with current built-in spacing values.
+- Large titles and top/right axis labels do not overlap when default spacing is used.
+
+---

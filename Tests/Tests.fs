@@ -849,6 +849,16 @@ module TitleStyleTests =
         Assert.Contains("dominant-baseline=\"hanging\"", defaultRender)
         Assert.Contains("viewBox=\"-20,-48 1040,1068\"", customRender)
 
+    [<Fact>]
+    let ``title and top axis reserve stacked top padding`` () =
+        let xScale = Scale.linear (0.0, 10.0) (0.0, Canvas.canvasSize)
+        let graph =
+            Graph.create [ series ] (0.0, 10.0) (0.0, 1.0)
+            |> Graph.withTitle "Hello"
+            |> Graph.withXAxis (Some (Axis.create Top xScale |> Axis.withLabel "top axis"))
+        let svg = GraphVG.render graph
+        Assert.Contains("viewBox=\"-20,-66 1040,1086\"", svg)
+
 module PlotBackgroundTests =
 
     open SharpVG

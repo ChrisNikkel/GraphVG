@@ -29,7 +29,7 @@ let lissajous =
         let parameter = float index * tau / 200.0
         scale * Math.Sin(3.0 * parameter), scale * Math.Sin(2.0 * parameter + Math.PI / 4.0) - 0.05 ]
     |> Series.line
-    |> Series.withLabel "lissajous"
+    |> Series.withLabel "Lissajous"
     |> Series.withStrokeDash Dashed
 
 let centeredAxesGraph =
@@ -54,13 +54,13 @@ let axisStylesGraph =
     let target =
         [ 1.0, 20.0; 12.0, 80.0 ]
         |> Series.line
-        |> Series.withLabel "target band"
+        |> Series.withLabel "Target Band"
         |> Series.withStrokeDash Dashed
         |> Series.withOpacity 0.55
     let growth =
         months
         |> Series.line
-        |> Series.withLabel "adoption"
+        |> Series.withLabel "Adoption"
         |> Series.withStrokeWidth (Length.ofFloat 4.0)
     let milestones =
         months
@@ -97,8 +97,8 @@ let axisStylesGraph =
     |> Graph.withTitle "Axis Styling"
     |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
     |> Graph.withAxes (
-        Some (Axis.create Top xScale |> Axis.withTickInterval 1.0 |> Axis.withTickFormat monthFormatter |> Axis.withTickLength 10.0 |> Axis.withFontSize 14.0 |> Axis.withLabel "campaign timeline" |> Axis.hideBoundsTick |> Axis.hideBoundsLabel |> Axis.withSpine SpineStyle.Full),
-        Some (Axis.create Right yScale |> Axis.withTicks 6 |> Axis.withTickFormat percentFormatter |> Axis.withFontSize 14.0 |> Axis.withLabel "coverage" |> Axis.hideBoundsTick |> Axis.withSpine SpineStyle.Hidden))
+        Some (Axis.create Top xScale |> Axis.withTickInterval 2.0 |> Axis.withTickFormat monthFormatter |> Axis.withTickLength 10.0 |> Axis.withFontSize 14.0 |> Axis.withLabel "Campaign Timeline" |> Axis.hideBoundsTick |> Axis.hideBoundsLabel |> Axis.withSpine SpineStyle.Full),
+        Some (Axis.create Right yScale |> Axis.withTicks 6 |> Axis.withTickFormat percentFormatter |> Axis.withFontSize 14.0 |> Axis.withLabel "Coverage" |> Axis.hideBoundsTick |> Axis.withSpine SpineStyle.Hidden))
 
 let styledSeriesGraph =
     let baseline = 1.5
@@ -110,7 +110,7 @@ let styledSeriesGraph =
     let areaBand =
         upperBand @ lowerBand
         |> Series.area
-        |> Series.withLabel "band"
+        |> Series.withLabel "Band"
         |> Series.withOpacity 0.28
     let trendLine =
         upperBand
@@ -140,12 +140,12 @@ let logScaleGraph =
     let lineSeries =
         responsePoints
         |> Series.line
-        |> Series.withLabel "response"
+        |> Series.withLabel "Response"
         |> Series.withStrokeWidth (Length.ofFloat 3.5)
     let markerSeries =
         responsePoints
         |> Series.scatter
-        |> Series.withLabel "samples"
+        |> Series.withLabel "Samples"
         |> Series.withPointRadius (Length.ofFloat 6.0)
     let xScale = Scale.log (1.0, 1000.0) (0.0, Canvas.canvasSize) 10.0
     let yScale = Scale.linear (0.0, 7.0) (Canvas.canvasSize, 0.0)
