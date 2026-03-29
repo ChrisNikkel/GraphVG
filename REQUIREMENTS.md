@@ -18,18 +18,6 @@ The internal canvas size (currently fixed at 1000×1000) should adapt to the mag
 
 ---
 
-## REQ-12: Axis Label Font (deferred)
-
-Tick label font size is currently hardcoded at `12.0`. It should be configurable per axis.
-
-```fsharp
-val withFontSize : float -> Axis -> Axis
-```
-
-Default remains `12.0`. Affects tick labels and the axis title label.
-
----
-
 ## REQ-13: Axis Tick Label Formatter (deferred)
 
 Tick labels are currently formatted with `"%.4g"`. Users should be able to supply a custom formatter.

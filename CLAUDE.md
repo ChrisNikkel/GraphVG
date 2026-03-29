@@ -19,6 +19,10 @@ Examples/Example/  # Executable usage demo
 Tests/             # xUnit test suite
 ```
 
+## Git
+
+Do not commit changes automatically. Always wait for the user to review and explicitly request a commit.
+
 ## Build & Test
 
 ```sh
