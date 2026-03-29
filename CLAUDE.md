@@ -45,8 +45,9 @@ let html =
 ### SharpVG — source and usage
 
 SharpVG is the only dependency. Source is available in two places:
+
 - **Local checkout**: `~/Code/SharpVG` — read this to understand available types and functions before writing any rendering code
-- **GitHub**: https://github.com/ChrisNikkel/SharpVG
+- **GitHub**: [https://github.com/ChrisNikkel/SharpVG](https://github.com/ChrisNikkel/SharpVG)
 
 **Always read SharpVG source before reaching for a raw float or a hand-rolled helper.** SharpVG likely already has what you need:
 
@@ -106,7 +107,6 @@ Do not add NuGet packages without explicit approval. The only allowed dependency
 
 ### Idiomatic F\#
 
-
 - **Leverage pattern matching**: Use `match ... with` for control flow and data deconstruction instead of if-else chains. Prefer exhaustive matches for safety and clarity.
 - **Use `Result<'T, 'TError>` for error handling**: Return `Result` types for expected errors instead of exceptions, making error cases explicit and composable.
 - **Apply active patterns**: Define active patterns for reusable, readable matching logic, especially for complex or custom data checks.
@@ -130,15 +130,15 @@ Prefer full words over abbreviations: `position` not `pos`, `minimum` not `min` 
 
 Use [FsCheck](https://fscheck.github.io/FsCheck/) with `[<Property>]` (from `FsCheck.Xunit`) alongside `[<Fact>]` tests. Properties catch edge cases that hand-written examples miss.
 
-**When to use `[<Property>]` vs `[<Fact>]`**
+#### When to Use `[<Property>]` vs `[<Fact>]`
 
 | Use `[<Property>]` | Use `[<Fact>]` |
-|---|---|
+| --- | --- |
 | Invariants that hold for *any* input (round-trips, monotonicity, count formulas) | Exact values with a known expected output |
 | Relationships between functions (apply ∘ invert = id) | Specific regression cases |
 | "For all n, count = f(n)" | Behaviour for a single named scenario |
 
-**Common patterns**
+#### Common Patterns
 
 - **Round-trip**: `invert (apply scale x) ≈ x` — verifies encode/decode symmetry
 - **Invariant**: `(drawSeries scatter graph).Length = graph.Series.[0].Points.Length`
@@ -146,14 +146,16 @@ Use [FsCheck](https://fscheck.github.io/FsCheck/) with `[<Property>]` (from `FsC
 - **Count formula**: `toElements axis |> List.length = 1 + 2 * tickCount`
 - **Cycling**: `penForSeries (i + period) = penForSeries i`
 
-**FsCheck generator types**
+#### FsCheck Generator Types
 
 - `FsCheck.PositiveInt` — `n.Get >= 1`, avoids zero-length edge cases
 - `FsCheck.NonNegativeInt` — `n.Get >= 0`
 - `FsCheck.NormalFloat` — finite float (no NaN/inf); use when arithmetic could overflow
 - `float` / `int` — unconstrained; guard with `==>` or clamp if needed
 
-**Conditional properties** — use `open FsCheck` (add it to the test module) to get `==>`, which discards inputs that violate a precondition:
+#### Conditional Properties
+
+Use `open FsCheck` (add it to the test module) to get `==>`, which discards inputs that violate a precondition:
 
 ```fsharp
 [<Property>]
@@ -170,14 +172,18 @@ let b = max x1.Get x2.Get
 a = b || Scale.apply scale a <= Scale.apply scale b
 ```
 
-**Clamp inputs to valid domain** when the property is undefined outside a range:
+#### Clamp Inputs to Valid Domain
+
+Use this when the property is undefined outside a range:
 
 ```fsharp
 let clamped = max lo (min hi x.Get)
 isNear clamped (Scale.invert scale (Scale.apply scale clamped))
 ```
 
-**Avoid over-relying on properties** — a property that always holds trivially (e.g., `List.length xs >= 0`) adds no value. Every property should have a plausible failure mode.
+#### Avoid Over-Relying on Properties
+
+A property that always holds trivially (e.g., `List.length xs >= 0`) adds no value. Every property should have a plausible failure mode.
 
 ### Architecture Notes
 
