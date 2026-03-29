@@ -3,6 +3,8 @@ namespace GraphVG
 open SharpVG
 open CommonMath
 
+type SpineStyle = Full | Hidden | Box
+
 type AxisPosition =
     | Bottom
     | Top
@@ -17,17 +19,18 @@ type AxisTicks =
 
 type Axis =
     {
-        Position          : AxisPosition
-        Scale             : Scale
-        Ticks             : AxisTicks
-        Label             : string option
-        HideOriginTick    : bool
-        HideOriginLabel   : bool
-        HideBoundsTick    : bool
-        HideBoundsLabel   : bool
-        TickLength        : float
-        FontSize          : float
-        TickFormat        : (float -> string) option
+        Position : AxisPosition
+        Scale : Scale
+        Ticks : AxisTicks
+        Label : string option
+        HideOriginTick : bool
+        HideOriginLabel : bool
+        HideBoundsTick : bool
+        HideBoundsLabel : bool
+        TickLength : float
+        FontSize : float
+        TickFormat : (float -> string) option
+        SpineStyle : SpineStyle
     }
 
 module Axis =
@@ -43,8 +46,9 @@ module Axis =
             HideBoundsTick = false
             HideBoundsLabel = false
             TickLength = 6.0
-            FontSize   = 12.0
+            FontSize = 12.0
             TickFormat = None
+            SpineStyle = Full
         }
 
     let withTicks count (axis : Axis) =
@@ -64,6 +68,9 @@ module Axis =
 
     let withTickFormat format (axis : Axis) =
         { axis with TickFormat = Some format }
+
+    let withSpine spineStyle (axis : Axis) =
+        { axis with SpineStyle = spineStyle }
 
     let hideOriginTick (axis : Axis) = { axis with HideOriginTick = true }
     let hideOriginLabel (axis : Axis) = { axis with HideOriginLabel = true }
@@ -119,9 +126,18 @@ module Axis =
                 else                 mkLine gridPen (Point.ofFloats (0.0, pixel)) (Point.ofFloats (Canvas.canvasSize, pixel)))
 
     let toElements theme (axis : Axis) =
-        let pen        = theme.AxisPen
+        let pen = theme.AxisPen
         let tickLength = axis.TickLength
-        let fontSize   = axis.FontSize
+        let fontSize = axis.FontSize
+        let spineElements startPoint endPoint =
+            match axis.SpineStyle with
+            | Full -> [ mkLine pen startPoint endPoint ]
+            | Hidden -> []
+            | Box ->
+                let boxRect =
+                    Rect.create (Point.ofFloats (0.0, 0.0)) (Area.ofFloats (Canvas.canvasSize, Canvas.canvasSize))
+                    |> Element.createWithStyle (strokeStyle pen)
+                [ boxRect ]
         let domainMin, domainMax = Scale.domain axis.Scale
         let startPixel = Scale.apply axis.Scale domainMin
         let endPixel   = Scale.apply axis.Scale domainMax
@@ -144,91 +160,85 @@ module Axis =
         match axis.Position with
         | Bottom ->
             let y = Canvas.canvasSize
-            let axisLine = mkLine pen (Point.ofFloats (startPixel, y)) (Point.ofFloats (endPixel, y))
             let ticks =
                 tickValues |> List.collect (fun value ->
-                    let x     = Scale.apply axis.Scale value
-                    let tick  = mkLine pen (Point.ofFloats (x, y)) (Point.ofFloats (x, y + tickLength))
+                    let x = Scale.apply axis.Scale value
+                    let tick = mkLine pen (Point.ofFloats (x, y)) (Point.ofFloats (x, y + tickLength))
                     let label = mkLabel fontSize pen Middle HangingBaseline (formatValue value) (Point.ofFloats (x, y + tickLength + 2.0))
                     tickAndLabel value tick label)
             let labelEl =
                 axis.Label
                 |> Option.map (mkLabel fontSize pen Middle HangingBaseline >> (|>) (Point.ofFloats (midPixel, y + tickLength + fontSize + 6.0)))
                 |> Option.toList
-            axisLine :: ticks @ labelEl
+            spineElements (Point.ofFloats (startPixel, y)) (Point.ofFloats (endPixel, y)) @ ticks @ labelEl
 
         | Top ->
             let y = 0.0
-            let axisLine = mkLine pen (Point.ofFloats (startPixel, y)) (Point.ofFloats (endPixel, y))
             let ticks =
                 tickValues |> List.collect (fun value ->
-                    let x     = Scale.apply axis.Scale value
-                    let tick  = mkLine pen (Point.ofFloats (x, y)) (Point.ofFloats (x, y - tickLength))
+                    let x = Scale.apply axis.Scale value
+                    let tick = mkLine pen (Point.ofFloats (x, y)) (Point.ofFloats (x, y - tickLength))
                     let label = mkLabel fontSize pen Middle AlphabeticBaseline (formatValue value) (Point.ofFloats (x, y - tickLength - 3.0))
                     tickAndLabel value tick label)
             let labelEl =
                 axis.Label
                 |> Option.map (mkLabel fontSize pen Middle AlphabeticBaseline >> (|>) (Point.ofFloats (midPixel, y - tickLength - fontSize - 4.0)))
                 |> Option.toList
-            axisLine :: ticks @ labelEl
+            spineElements (Point.ofFloats (startPixel, y)) (Point.ofFloats (endPixel, y)) @ ticks @ labelEl
 
         | Left ->
             let x = 0.0
-            let axisLine = mkLine pen (Point.ofFloats (x, startPixel)) (Point.ofFloats (x, endPixel))
             let ticks =
                 tickValues |> List.collect (fun value ->
-                    let y     = Scale.apply axis.Scale value
-                    let tick  = mkLine pen (Point.ofFloats (x, y)) (Point.ofFloats (x - tickLength, y))
+                    let y = Scale.apply axis.Scale value
+                    let tick = mkLine pen (Point.ofFloats (x, y)) (Point.ofFloats (x - tickLength, y))
                     let label = mkLabel fontSize pen End CentralBaseline (formatValue value) (Point.ofFloats (x - tickLength - 4.0, y))
                     tickAndLabel value tick label)
             let labelEl =
                 axis.Label
                 |> Option.map (mkLabel fontSize pen Middle CentralBaseline >> (|>) (Point.ofFloats (x - tickLength - fontSize - 4.0, midPixel)))
                 |> Option.toList
-            axisLine :: ticks @ labelEl
+            spineElements (Point.ofFloats (x, startPixel)) (Point.ofFloats (x, endPixel)) @ ticks @ labelEl
 
         | Right ->
             let x = Canvas.canvasSize
-            let axisLine = mkLine pen (Point.ofFloats (x, startPixel)) (Point.ofFloats (x, endPixel))
             let ticks =
                 tickValues |> List.collect (fun value ->
-                    let y     = Scale.apply axis.Scale value
-                    let tick  = mkLine pen (Point.ofFloats (x, y)) (Point.ofFloats (x + tickLength, y))
+                    let y = Scale.apply axis.Scale value
+                    let tick = mkLine pen (Point.ofFloats (x, y)) (Point.ofFloats (x + tickLength, y))
                     let label = mkLabel fontSize pen Start CentralBaseline (formatValue value) (Point.ofFloats (x + tickLength + 4.0, y))
                     tickAndLabel value tick label)
             let labelEl =
                 axis.Label
                 |> Option.map (mkLabel fontSize pen Start CentralBaseline >> (|>) (Point.ofFloats (x + tickLength + fontSize + 4.0, midPixel)))
                 |> Option.toList
-            axisLine :: ticks @ labelEl
+            spineElements (Point.ofFloats (x, startPixel)) (Point.ofFloats (x, endPixel)) @ ticks @ labelEl
 
         | HorizontalAt y ->
-            let axisLine = mkLine pen (Point.ofFloats (startPixel, y)) (Point.ofFloats (endPixel, y))
             let ticks =
                 tickValues |> List.collect (fun value ->
-                    let x     = Scale.apply axis.Scale value
-                    let tick  = mkLine pen (Point.ofFloats (x, y)) (Point.ofFloats (x, y + tickLength))
+                    let x = Scale.apply axis.Scale value
+                    let tick = mkLine pen (Point.ofFloats (x, y)) (Point.ofFloats (x, y + tickLength))
                     let label = mkLabel fontSize pen Middle HangingBaseline (formatValue value) (Point.ofFloats (x, y + tickLength + 2.0))
                     tickAndLabel value tick label)
             let labelEl =
                 axis.Label
                 |> Option.map (mkLabel fontSize pen Middle HangingBaseline >> (|>) (Point.ofFloats (midPixel, y + tickLength + fontSize + 6.0)))
                 |> Option.toList
-            axisLine :: ticks @ labelEl
+            spineElements (Point.ofFloats (startPixel, y)) (Point.ofFloats (endPixel, y)) @ ticks @ labelEl
 
         | VerticalAt x ->
-            let axisLine  = mkLine pen (Point.ofFloats (x, startPixel)) (Point.ofFloats (x, endPixel))
-            let leftSide  = x <= Canvas.canvasSize / 2.0
-            let anchor    = if leftSide then Start else End
-            let tickSign  = if leftSide then 1.0 else -1.0
+            let leftSide = x <= Canvas.canvasSize / 2.0
+            let anchor = if leftSide then Start else End
+            let tickSign = if leftSide then 1.0 else -1.0
             let ticks =
                 tickValues |> List.collect (fun value ->
-                    let y     = Scale.apply axis.Scale value
-                    let tick  = mkLine pen (Point.ofFloats (x, y)) (Point.ofFloats (x + tickSign * tickLength, y))
+                    let y = Scale.apply axis.Scale value
+                    let tick = mkLine pen (Point.ofFloats (x, y)) (Point.ofFloats (x + tickSign * tickLength, y))
                     let label = mkLabel fontSize pen anchor CentralBaseline (formatValue value) (Point.ofFloats (x + tickSign * (tickLength + 4.0), y))
                     tickAndLabel value tick label)
             let labelEl =
                 axis.Label
                 |> Option.map (mkLabel fontSize pen anchor CentralBaseline >> (|>) (Point.ofFloats (x + tickSign * (tickLength + fontSize + 4.0), midPixel)))
                 |> Option.toList
-            axisLine :: ticks @ labelEl
+            spineElements (Point.ofFloats (x, startPixel)) (Point.ofFloats (x, endPixel)) @ ticks @ labelEl

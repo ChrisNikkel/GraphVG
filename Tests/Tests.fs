@@ -757,3 +757,75 @@ module TitleStyleTests =
         let default' = base' |> GraphVG.render
         let custom   = base' |> Graph.withTitleStyle (TitleStyle.create 32.0 SharpVG.Start) |> GraphVG.render
         Assert.True(default' <> custom)
+
+module PlotBackgroundTests =
+
+    open SharpVG
+
+    let private series = Series.line [ 0.0, 0.0; 1.0, 1.0 ]
+    let private graph = Graph.create [ series ] (0.0, 1.0) (0.0, 1.0)
+
+    [<Fact>]
+    let ``empty theme has no plot background`` () =
+        Assert.Equal(None, Theme.empty.PlotBackground)
+
+    [<Fact>]
+    let ``withPlotBackground sets PlotBackground to Some`` () =
+        let theme = Theme.empty |> Theme.withPlotBackground (Color.ofName Yellow)
+        Assert.Equal(Some (Color.ofName Yellow), theme.PlotBackground)
+
+    [<Fact>]
+    let ``plot background renders a second rect in SVG`` () =
+        let svgDefault = graph |> GraphVG.render
+        let svgWithBg = graph |> Graph.withTheme (Theme.empty |> Theme.withPlotBackground (Color.ofName Yellow)) |> GraphVG.render
+        let countRects (svg : string) = svg.Split("<rect") |> Array.length |> fun n -> n - 1
+        Assert.Equal(countRects svgDefault + 1, countRects svgWithBg)
+
+    [<Fact>]
+    let ``plot background produces different SVG than no plot background`` () =
+        let svgDefault = graph |> GraphVG.render
+        let svgWithBg = graph |> Graph.withTheme (Theme.empty |> Theme.withPlotBackground (Color.ofName LightBlue)) |> GraphVG.render
+        Assert.True(svgDefault <> svgWithBg)
+
+module SpineStyleTests =
+
+    let private scale = Scale.linear (0.0, 10.0) (0.0, 1000.0)
+    let private pts = [ 0.0, 0.0; 1.0, 1.0 ]
+
+    [<Fact>]
+    let ``create defaults to Full spine`` () =
+        let axis = Axis.create Bottom scale
+        Assert.Equal(Full, axis.SpineStyle)
+
+    [<Fact>]
+    let ``withSpine sets SpineStyle`` () =
+        let axis = Axis.create Bottom scale |> Axis.withSpine Hidden
+        Assert.Equal(Hidden, axis.SpineStyle)
+
+    [<Fact>]
+    let ``Hidden spine produces one fewer element than Full`` () =
+        let full = Axis.create Bottom scale |> Axis.withTicks 3 |> Axis.toElements Theme.empty
+        let hidden = Axis.create Bottom scale |> Axis.withTicks 3 |> Axis.withSpine Hidden |> Axis.toElements Theme.empty
+        Assert.Equal(full.Length - 1, hidden.Length)
+
+    [<Fact>]
+    let ``Box spine produces same element count as Full`` () =
+        let full = Axis.create Bottom scale |> Axis.withTicks 3 |> Axis.toElements Theme.empty
+        let box = Axis.create Bottom scale |> Axis.withTicks 3 |> Axis.withSpine Box |> Axis.toElements Theme.empty
+        Assert.Equal(full.Length, box.Length)
+
+    [<Fact>]
+    let ``Hidden spine produces different SVG than Full`` () =
+        let svgFull = Graph.create [ Series.line pts ] (0.0, 1.0) (0.0, 1.0) |> GraphVG.render
+        let svgHidden =
+            Graph.create [ Series.line pts ] (0.0, 1.0) (0.0, 1.0)
+            |> Graph.withXAxis (Some (Axis.create (HorizontalAt 1000.0) (Scale.linear (0.0, 1.0) (0.0, 1000.0)) |> Axis.withSpine Hidden))
+            |> GraphVG.render
+        Assert.True(svgFull <> svgHidden)
+
+    [<Fact>]
+    let ``Box spine produces different SVG than Full`` () =
+        let axis = Axis.create Bottom scale |> Axis.withTicks 3
+        let full = Axis.toElements Theme.empty axis
+        let box = Axis.toElements Theme.empty (axis |> Axis.withSpine Box)
+        Assert.True(full <> box)

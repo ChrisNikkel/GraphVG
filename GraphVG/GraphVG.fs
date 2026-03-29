@@ -14,6 +14,12 @@ module GraphVG =
         let background =
             Rect.create (Point.ofFloats (-margin, -margin)) (Area.ofFloats (Canvas.canvasSize + 2.0 * margin, Canvas.canvasSize + 2.0 * margin))
             |> Element.createWithStyle (Style.empty |> Style.withFill graph.Theme.Background)
+        let plotBackground =
+            graph.Theme.PlotBackground
+            |> Option.map (fun color ->
+                Rect.create (Point.origin) (Area.ofFloats (Canvas.canvasSize, Canvas.canvasSize))
+                |> Element.createWithStyle (Style.empty |> Style.withFill color))
+            |> Option.toList
         let axes = [ graph.XAxis; graph.YAxis ] |> List.choose id
         let gridElements = axes |> List.collect (Axis.toGridElements graph.Theme)
         let axisElements = axes |> List.collect (Axis.toElements graph.Theme)
@@ -27,7 +33,7 @@ module GraphVG =
                 |> Text.withAnchor graph.TitleStyle.Alignment
                 |> Element.createWithStyle style)
             |> Option.toList
-        background :: gridElements @ Graph.drawSeries graph @ axisElements @ titleElements
+        background :: plotBackground @ gridElements @ Graph.drawSeries graph @ axisElements @ titleElements
         |> Svg.ofList
         |> Svg.withViewBox viewBox
 

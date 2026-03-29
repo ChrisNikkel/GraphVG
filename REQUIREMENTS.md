@@ -19,37 +19,6 @@ The internal canvas size (currently fixed at 1000×1000) should adapt to the mag
 ---
 
 
-## REQ-15: Graph Background and Plot Area
-
-`Theme.Background` sets a color but is not currently rendered as an SVG rect. The plot area (inside the axes) and the full SVG background should be independently styleable.
-
-```fsharp
-type Theme = {
-    ...
-    Background  : Color          // full SVG canvas background
-    PlotBackground : Color option  // inner plot area; None = transparent
-}
-val withPlotBackground : Color -> Theme -> Theme
-```
-
-D3 and Plotly both distinguish canvas background from plot area background; this enables the common "white plot on gray page" or "dark plot on white page" patterns.
-
----
-
-## REQ-16: Axis Placement and Spine Visibility
-
-Currently axes are always drawn as a single line (the spine). Some chart styles omit the spine entirely and rely only on tick marks, or draw all four sides as a box. This should be controllable.
-
-```fsharp
-type SpineStyle = Full | None | Box
-
-val withSpine : SpineStyle -> Axis -> Axis
-```
-
-Inspired by Matplotlib's `ax.spines` and ggplot2's `theme(panel.border = ...)`.
-
----
-
 ## REQ-17: Legend
 
 When series have labels (`Series.withLabel`), a legend should be renderable. Comparable libraries (Plotly, ggplot2) auto-show a legend when series are named.
