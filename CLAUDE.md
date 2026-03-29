@@ -63,12 +63,20 @@ Do not add NuGet packages without explicit approval. The only allowed dependency
 
 ### Idiomatic F\#
 
-- Prefer `List` functions (`List.map`, `List.collect`, `List.choose`) over loops.
-- Use `Option.map` / `Option.defaultWith` / `|> Option.toList` rather than `if x.IsSome then`.
-- Use record update syntax (`{ x with Field = v }`) — no mutation.
-- Use discriminated unions for variants; avoid booleans as poor-man's enums.
-- No computation expressions unless genuinely needed (rare here).
-- Type annotations only where inference needs help (disambiguating record updates, `(axis : Axis)`). Do not annotate every parameter.
+
+- **Leverage pattern matching**: Use `match ... with` for control flow and data deconstruction instead of if-else chains. Prefer exhaustive matches for safety and clarity.
+- **Use `Result<'T, 'TError>` for error handling**: Return `Result` types for expected errors instead of exceptions, making error cases explicit and composable.
+- **Apply active patterns**: Define active patterns for reusable, readable matching logic, especially for complex or custom data checks.
+- **Favor `Seq<'T>` for laziness**: Use `Seq` for large or potentially infinite data to defer computation and improve performance.
+- **Model domains with discriminated unions**: Represent mutually exclusive states or variants with DUs, ensuring type safety and preventing invalid states.
+- **Chain with the forward pipe (`|>`)**: Structure data transformations as left-to-right pipelines for readability and functional flow.
+- **Use function composition (`>>`, `<<`)**: Compose small functions for reuse, but avoid over-composition that reduces clarity.
+Prefer `List` functions (`List.map`, `List.collect`, `List.choose`) over loops.
+Use `Option.map` / `Option.defaultWith` / `|> Option.toList` rather than `if x.IsSome then`.
+Use record update syntax (`{ x with Field = v }`) — no mutation.
+Use discriminated unions for variants; avoid booleans as poor-man's enums.
+No computation expressions unless genuinely needed (rare here).
+Type annotations only where inference needs help (disambiguating record updates, `(axis : Axis)`). Do not annotate every parameter.
 
 ### Naming
 
