@@ -33,10 +33,14 @@ module Axis =
 
     let create position scale : Axis =
         {
-            Position = position; Scale = scale; Ticks = TickCount 5
+            Position = position
+            Scale = scale
+            Ticks = TickCount 5
             Label = None
-            HideOriginTick = false; HideOriginLabel = false
-            HideBoundsTick = false; HideBoundsLabel = false
+            HideOriginTick = false
+            HideOriginLabel = false
+            HideBoundsTick = false
+            HideBoundsLabel = false
         }
 
     let withTicks count (axis : Axis) =

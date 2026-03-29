@@ -535,6 +535,17 @@ module GraphVGTests =
         let withoutAxes = graph |> Graph.withAxes Axis.none |> GraphVG.render
         Assert.True(withoutAxes.Length < withAxes.Length)
 
+    [<Fact>]
+    let ``render contains background rect`` () =
+        let svg = Graph.create [ series ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
+        Assert.Contains("<rect", svg)
+
+    [<Fact>]
+    let ``render background color reflects theme`` () =
+        let svgDark  = Graph.create [ series ] (0.0, 4.0) (0.0, 4.0) |> Graph.withTheme Theme.dark  |> GraphVG.render
+        let svgLight = Graph.create [ series ] (0.0, 4.0) (0.0, 4.0) |> Graph.withTheme Theme.light |> GraphVG.render
+        Assert.True(svgDark <> svgLight)
+
 module AxisHideTests =
 
     // Scale with 0.0 in domain so hideOrigin has a tick to suppress
