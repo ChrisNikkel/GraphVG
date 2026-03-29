@@ -11,10 +11,9 @@ module GraphVG =
             ViewBox.create
                 (Point.ofFloats (-margin, -margin))
                 (Area.ofFloats (Canvas.canvasSize + 2.0 * margin, Canvas.canvasSize + 2.0 * margin))
-        let axisElements =
-            [ graph.XAxis; graph.YAxis ]
-            |> List.choose id
-            |> List.collect (Axis.toElements graph.Theme)
+        let axes = [ graph.XAxis; graph.YAxis ] |> List.choose id
+        let gridElements  = axes |> List.collect (Axis.toGridElements graph.Theme)
+        let axisElements  = axes |> List.collect (Axis.toElements graph.Theme)
         let titleElements =
             graph.Title
             |> Option.map (fun t ->
@@ -25,7 +24,7 @@ module GraphVG =
                 |> Text.withAnchor Middle
                 |> Element.createWithStyle style)
             |> Option.toList
-        Graph.drawSeries graph @ axisElements @ titleElements
+        gridElements @ Graph.drawSeries graph @ axisElements @ titleElements
         |> Svg.ofList
         |> Svg.withViewBox viewBox
 
