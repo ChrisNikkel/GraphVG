@@ -31,8 +31,8 @@ module Graph =
     let private defaultAxes xScale yScale =
         let xAxisY = Scale.apply yScale 0.0 |> clamp 0.0 Canvas.canvasSize
         let yAxisX = Scale.apply xScale 0.0 |> clamp 0.0 Canvas.canvasSize
-        Some (Axis.create (HorizontalAt xAxisY) xScale),
-        Some (Axis.create (VerticalAt   yAxisX) yScale)
+        Some (Axis.create (HorizontalAt xAxisY) xScale |> Axis.withSkipLabelAt 0.0),
+        Some (Axis.create (VerticalAt   yAxisX) yScale |> Axis.withSkipLabelAt 0.0)
 
     let private pointBounds (series : Series list) =
         let allPoints = series |> List.collect (fun s -> s.Points)

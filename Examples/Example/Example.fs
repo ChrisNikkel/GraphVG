@@ -6,7 +6,7 @@ open GraphVG
 
 // Unit circle: x = cos(t), y = sin(t) — both axes span [-1, 1]
 let unitCircle =
-    [ for i in 0 .. 99 ->
+    [ for i in 0 .. 100 ->
         let t = float i * 2.0 * Math.PI / 100.0
         Math.Cos t, Math.Sin t ]
     |> Series.line
@@ -16,7 +16,7 @@ let unitCircle =
 // Unscaled max radius is √2, so dividing by √2 keeps every point within radius 1.
 let lissajous =
     let s = 1.0 / Math.Sqrt 2.0
-    [ for i in 0 .. 199 ->
+    [ for i in 0 .. 200 ->
         let t = float i * 2.0 * Math.PI / 200.0
         s * Math.Sin(3.0 * t), s * Math.Sin(2.0 * t + Math.PI / 4.0) - 0.05 ]
     |> Series.line
