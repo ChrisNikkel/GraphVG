@@ -1,6 +1,7 @@
 module Tests
 
 open GraphVG
+open CommonMath
 
 open Xunit
 open FsCheck.Xunit
@@ -153,7 +154,6 @@ module SeriesTests =
         let series = Series.ofFunction Line (fun t -> t, 0.0) 0.0 1.0 sampleCount
         let first = fst (List.head series.Points)
         let last = fst (List.last series.Points)
-        let isNear expected actual = abs (actual - expected) < 1e-10
         if sampleCount = 1 then isNear 0.0 first
         else isNear 0.0 first && isNear 1.0 last
 
@@ -161,7 +161,7 @@ module SeriesTests =
     let ``ofFunction preserves function values at each t`` (samples: FsCheck.PositiveInt) =
         let sampleCount = samples.Get
         let series = Series.ofFunction Line (fun t -> t, t * t) 0.0 1.0 sampleCount
-        series.Points |> List.forall (fun (x, y) -> abs (y - x * x) < 1e-10)
+        series.Points |> List.forall (fun (x, y) -> isNear (x * x) y)
 
     [<Property>]
     let ``ofFunction label is always None`` (samples: FsCheck.PositiveInt) =

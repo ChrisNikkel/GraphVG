@@ -1,6 +1,7 @@
 namespace GraphVG
 
 open System
+open CommonMath
 
 type Scale =
     | Linear of domain:(float * float) * range:(float * float)
@@ -46,7 +47,6 @@ module Scale =
                 [ for i in 0 .. count - 1 -> domainMin + float i * step ]
         | Log((domainMin, domainMax), _, base') ->
             let logBase x = Math.Log x / Math.Log base'
-            let eps = 1e-10
-            let lo = int (Math.Ceiling(logBase domainMin - eps))
-            let hi = int (Math.Floor(logBase domainMax + eps))
+            let lo = int (Math.Ceiling(logBase domainMin - epsilon))
+            let hi = int (Math.Floor(logBase domainMax + epsilon))
             [ for i in lo .. hi -> Math.Pow(base', float i) ]

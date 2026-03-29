@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Canvas.fs" />
+    <Compile Include="CommonMath.fs" />
     <Compile Include="Scale.fs" />
     <Compile Include="Series.fs" />
     <Compile Include="Theme.fs" />

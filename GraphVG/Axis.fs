@@ -1,6 +1,7 @@
 namespace GraphVG
 
 open SharpVG
+open CommonMath
 
 type AxisPosition =
     | Bottom
@@ -91,9 +92,8 @@ module Axis =
         | None -> []
         | Some gridPen ->
             let domainMin, domainMax = Scale.domain axis.Scale
-            let near a b = abs (a - b) < 1e-10
-            let isOrigin v = near v 0.0
-            let isBound v = near v domainMin || near v domainMax
+            let isOrigin v = isNear 0.0 v
+            let isBound v = isNear domainMin v || isNear domainMax v
             let showTick v = not (axis.HideOriginTick && isOrigin v) && not (axis.HideBoundsTick && isBound v)
             let tickValues =
                 match axis.Ticks with
@@ -129,9 +129,8 @@ module Axis =
                 let first = ceil (lower / interval) * interval
                 [ for i in 0 .. int (floor ((upper - first) / interval)) -> first + float i * interval ]
         let formatValue value = sprintf "%.4g" value
-        let near a b = abs (a - b) < 1e-10
-        let isOrigin value = near value 0.0
-        let isBound value = near value domainMin || near value domainMax
+        let isOrigin value = isNear 0.0 value
+        let isBound value = isNear domainMin value || isNear domainMax value
         let showTick value = not (axis.HideOriginTick && isOrigin value) && not (axis.HideBoundsTick && isBound value)
         let showLabel value = not (axis.HideOriginLabel && isOrigin value) && not (axis.HideBoundsLabel && isBound value)
         let tickAndLabel value tick label =

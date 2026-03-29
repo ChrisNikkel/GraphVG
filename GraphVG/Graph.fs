@@ -1,6 +1,7 @@
 namespace GraphVG
 
 open SharpVG
+open CommonMath
 
 type Graph =
     {
@@ -67,9 +68,7 @@ module Graph =
 
     let createWithSeries (series : Series) =
         let domain, range = pointBounds [ series ]
-        let span (lo, hi) = hi - lo
-        let pad (lo, hi) p = lo - (span (lo, hi)) * p, hi + (span (lo, hi)) * p
-        let xScale, yScale = buildScales (pad domain 0.1) (pad range 0.1)
+        let xScale, yScale = buildScales (padRange 0.1 domain) (padRange 0.1 range)
         let xAxis, yAxis = defaultAxes xScale yScale
         {
             Series = [ series ]
@@ -94,10 +93,8 @@ module Graph =
 
     let private recalcBounds padPercent graph =
         let domain, range = pointBounds graph.Series
-        let span (lo, hi) = hi - lo
-        let pad (lo, hi) p = lo - (span (lo, hi)) * p, hi + (span (lo, hi)) * p
-        let newXScale = Scale.linear (pad domain padPercent) (pixelRangeOf graph.XScale)
-        let newYScale = Scale.linear (pad range padPercent) (pixelRangeOf graph.YScale)
+        let newXScale = Scale.linear (padRange padPercent domain) (pixelRangeOf graph.XScale)
+        let newYScale = Scale.linear (padRange padPercent range) (pixelRangeOf graph.YScale)
         let xAxis, yAxis = defaultAxes newXScale newYScale
         {
             graph with
