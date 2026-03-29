@@ -123,6 +123,8 @@ Tests/              # xUnit and FsCheck test suite
 - Design notes: [DESIGN.md](DESIGN.md)
 - Requirements/backlog: [REQUIREMENTS.md](REQUIREMENTS.md)
 - Developer guidance: [CLAUDE.md](CLAUDE.md)
+- Contributing guide: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Security policy: [SECURITY.md](SECURITY.md)
 
 ## Support
 
