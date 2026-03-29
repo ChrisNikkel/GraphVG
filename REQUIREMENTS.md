@@ -60,27 +60,6 @@ val withPanel : row : int * col : int -> Series -> Series
 
 ---
 
-## REQ-23: Annotation Primitives
-
-Add explicit annotation support for common chart callouts.
-
-```fsharp
-type Annotation =
-    | Text of position : float * float * content : string
-    | Line of fromPoint : float * float * toPoint : float * float
-    | Rect of origin : float * float * width : float * height : float
-
-val addAnnotation : Annotation -> Graph -> Graph
-```
-
-**Acceptance criteria:**
-
-- Text, line, and rectangle annotations render in data coordinates.
-- Annotation order is deterministic and testable.
-- Existing graphs render unchanged when no annotations are added.
-
----
-
 ## REQ-24: Error Bars
 
 Support uncertainty visualization for scatter and line series.
@@ -138,23 +117,6 @@ val withTooltip : (float * float -> string) -> Series -> Series
 - `toHtml` includes hoverable tooltip content for configured series.
 - Raw `render` output remains valid SVG with no required JS runtime.
 - Default remains no tooltip output unless explicitly configured.
-
----
-
-## REQ-27: Export and Persistence Helpers
-
-Provide first-class helpers for writing chart output artifacts.
-
-```fsharp
-val writeSvg : path : string -> Graph -> unit
-val writeHtml : path : string -> Graph -> unit
-```
-
-**Acceptance criteria:**
-
-- Output files are deterministic for identical graph inputs.
-- Parent directory handling and overwrite behavior are documented.
-- Existing `render` and `toHtml` APIs remain unchanged.
 
 ---
 

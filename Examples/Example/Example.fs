@@ -192,7 +192,7 @@ let galleryHtml pages =
     let cards =
         pages
         |> List.map (fun page ->
-            let svg = GraphVG.render page.Graph
+            let svg = GraphVG.toSvg page.Graph
             "<article class=\"card\">"
             + "<a class=\"frame\" href=\"" + page.FileName + "\">" + svg + "</a>"
             + "<div class=\"copy\">"
@@ -239,7 +239,7 @@ let galleryHtml pages =
     + "</html>\n"
 
 let examplePageHtml homeFileName page =
-    let svg = GraphVG.render page.Graph
+    let svg = GraphVG.toSvg page.Graph
     let css =
         "html,body{margin:0;padding:0;background:#f3efe7;color:#1f2a31;font-family:Georgia,\"Iowan Old Style\",serif;}"
         + "body{padding:28px 18px 36px;}"

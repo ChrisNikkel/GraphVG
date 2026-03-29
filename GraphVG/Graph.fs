@@ -3,6 +3,11 @@ namespace GraphVG
 open SharpVG
 open CommonMath
 
+type Annotation =
+    | Text of x : float * y : float * content : string
+    | Line of x1 : float * y1 : float * x2 : float * y2 : float
+    | Rect of x : float * y : float * width : float * height : float
+
 type TitleStyle =
     {
         FontSize : float
@@ -27,6 +32,7 @@ type Graph =
         Theme : Theme
         Title : string option
         TitleStyle : TitleStyle
+        Annotations : Annotation list
     }
 
 module Graph =
@@ -78,6 +84,7 @@ module Graph =
             Theme = Theme.empty
             Title = None
             TitleStyle = TitleStyle.default'
+            Annotations = []
         }
 
     let createWithSeries (series : Series) =
@@ -93,6 +100,7 @@ module Graph =
             Theme = Theme.empty
             Title = None
             TitleStyle = TitleStyle.default'
+            Annotations = []
         }
 
     // ── Bounds helpers ──────────────────────────────────────────────────────────
@@ -140,6 +148,7 @@ module Graph =
     let withTheme theme graph = { graph with Theme = theme }
     let withTitle title (graph : Graph) = { graph with Title = Some title }
     let withTitleStyle style (graph : Graph) = { graph with TitleStyle = style }
+    let addAnnotation annotation (graph : Graph) = { graph with Annotations = graph.Annotations @ [ annotation ] }
 
     // ── Rendering ───────────────────────────────────────────────────────────────
 

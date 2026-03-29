@@ -153,6 +153,31 @@ module GraphVG =
             |> Element.createWithStyle style)
         |> Option.toList
 
+    let private annotationElements (graph : Graph) =
+        let pen = graph.Theme.AxisPen
+        let strokeStyle = Style.createWithPen pen
+        let fillStyle = Style.empty |> Style.withFillPen pen
+        graph.Annotations
+        |> List.map (fun annotation ->
+            match annotation with
+            | Annotation.Text(x, y, content) ->
+                let svgX, svgY = Graph.toScaledSvgCoordinates graph (x, y)
+                Text.create (Point.ofFloats (svgX, svgY)) content
+                |> Text.withFontSize graph.TitleStyle.FontSize
+                |> Element.createWithStyle fillStyle
+            | Annotation.Line(x1, y1, x2, y2) ->
+                let svgX1, svgY1 = Graph.toScaledSvgCoordinates graph (x1, y1)
+                let svgX2, svgY2 = Graph.toScaledSvgCoordinates graph (x2, y2)
+                Line.create (Point.ofFloats (svgX1, svgY1)) (Point.ofFloats (svgX2, svgY2))
+                |> Element.createWithStyle strokeStyle
+            | Annotation.Rect(x, y, width, height) ->
+                let svgX, svgY = Graph.toScaledSvgCoordinates graph (x, y + height)
+                let svgX2, svgY2 = Graph.toScaledSvgCoordinates graph (x + width, y)
+                Rect.create
+                    (Point.ofFloats (svgX, svgY))
+                    (Area.ofFloats (svgX2 - svgX, svgY2 - svgY))
+                |> Element.createWithStyle strokeStyle)
+
     let private buildSvg (graph : Graph) =
         let padding = graphPadding graph
         let viewBox = viewBoxForPadding padding
@@ -160,12 +185,12 @@ module GraphVG =
         let axes = [ graph.XAxis; graph.YAxis ] |> List.choose id
         let gridElements = axes |> List.collect (Axis.toGridElements graph.Theme)
         let axisElements = axes |> List.collect (Axis.toElements graph.Theme)
-        background :: (plotBackgroundElements graph) @ gridElements @ Graph.drawSeries graph @ axisElements @ (titleElements graph padding)
+        background :: (plotBackgroundElements graph) @ gridElements @ Graph.drawSeries graph @ (annotationElements graph) @ axisElements @ (titleElements graph padding)
         |> Svg.ofList
         |> Svg.withViewBox viewBox
 
     /// Returns a raw SVG string.
-    let render (graph : Graph) : string =
+    let toSvg (graph : Graph) : string =
         buildSvg graph |> Svg.toString
 
     /// Returns a full HTML page with the graph centered and fit to the viewport.
@@ -173,3 +198,11 @@ module GraphVG =
         let svgContent = buildSvg graph |> Svg.toString
         let css = "html,body{margin:0;height:100%;}body{display:flex;align-items:center;justify-content:center;background:#f5f5f5;}svg{width:100vmin;height:100vmin;}"
         "<!DOCTYPE html>\n<html>\n<head>\n<title>GraphVG</title>\n<style>" + css + "</style>\n</head>\n<body>\n" + svgContent + "\n</body>\n</html>\n"
+
+    /// Writes the SVG output to a file, overwriting if it exists.
+    let writeSvg (path : string) (graph : Graph) =
+        System.IO.File.WriteAllText(path, toSvg graph)
+
+    /// Writes the HTML output to a file, overwriting if it exists.
+    let writeHtml (path : string) (graph : Graph) =
+        System.IO.File.WriteAllText(path, toHtml graph)

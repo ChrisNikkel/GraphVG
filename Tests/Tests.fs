@@ -498,25 +498,25 @@ module GraphTests =
     [<Fact>]
     let ``drawSeries scatter with custom radius appears in SVG output`` () =
         let seriesWithRadius = Series.scatter points |> Series.withPointRadius (SharpVG.Length.ofFloat 8.0)
-        let svgOutput = Graph.create [ seriesWithRadius ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
+        let svgOutput = Graph.create [ seriesWithRadius ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
         Assert.Contains("8", svgOutput)
 
     [<Fact>]
     let ``drawSeries line with custom stroke width appears in SVG output`` () =
         let seriesWithWidth = Series.line points |> Series.withStrokeWidth (SharpVG.Length.ofFloat 5.0)
-        let svgOutput = Graph.create [ seriesWithWidth ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
+        let svgOutput = Graph.create [ seriesWithWidth ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
         Assert.Contains("5", svgOutput)
 
     [<Fact>]
     let ``drawSeries scatter custom radius produces different SVG than default`` () =
-        let defaultSvg = Graph.create [ Series.scatter points ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
-        let customSvg = Graph.create [ Series.scatter points |> Series.withPointRadius (SharpVG.Length.ofFloat 9.0) ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
+        let defaultSvg = Graph.create [ Series.scatter points ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
+        let customSvg = Graph.create [ Series.scatter points |> Series.withPointRadius (SharpVG.Length.ofFloat 9.0) ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
         Assert.True(defaultSvg <> customSvg)
 
     [<Fact>]
     let ``drawSeries line custom stroke width produces different SVG than default`` () =
-        let defaultSvg = Graph.create [ Series.line points ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
-        let customSvg = Graph.create [ Series.line points |> Series.withStrokeWidth (SharpVG.Length.ofFloat 4.0) ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
+        let defaultSvg = Graph.create [ Series.line points ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
+        let customSvg = Graph.create [ Series.line points |> Series.withStrokeWidth (SharpVG.Length.ofFloat 4.0) ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
         Assert.True(defaultSvg <> customSvg)
 
     // Visibility – REQ-21
@@ -548,20 +548,20 @@ module GraphTests =
 
     [<Fact>]
     let ``drawSeries scatter with reduced opacity produces different SVG than full opacity`` () =
-        let fullSvg = Graph.create [ Series.scatter points ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
-        let dimSvg = Graph.create [ Series.scatter points |> Series.withOpacity 0.3 ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
+        let fullSvg = Graph.create [ Series.scatter points ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
+        let dimSvg = Graph.create [ Series.scatter points |> Series.withOpacity 0.3 ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
         Assert.True(fullSvg <> dimSvg)
 
     [<Fact>]
     let ``drawSeries line with reduced opacity produces different SVG than full opacity`` () =
-        let fullSvg = Graph.create [ Series.line points ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
-        let dimSvg = Graph.create [ Series.line points |> Series.withOpacity 0.3 ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
+        let fullSvg = Graph.create [ Series.line points ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
+        let dimSvg = Graph.create [ Series.line points |> Series.withOpacity 0.3 ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
         Assert.True(fullSvg <> dimSvg)
 
     [<Fact>]
     let ``drawSeries area with reduced opacity produces different SVG than full opacity`` () =
-        let fullSvg = Graph.create [ Series.area points ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
-        let dimSvg = Graph.create [ Series.area points |> Series.withOpacity 0.3 ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
+        let fullSvg = Graph.create [ Series.area points ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
+        let dimSvg = Graph.create [ Series.area points |> Series.withOpacity 0.3 ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
         Assert.True(fullSvg <> dimSvg)
 
     // withTheme
@@ -634,8 +634,8 @@ module GraphVGTests =
         Assert.Contains("<svg", html)
 
     [<Fact>]
-    let ``render returns svg string without html wrapper`` () =
-        let svg = Graph.create [ series ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
+    let ``toSvg returns svg string without html wrapper`` () =
+        let svg = Graph.create [ series ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
         Assert.Contains("<svg", svg)
         Assert.DoesNotContain("<!DOCTYPE", svg)
 
@@ -651,26 +651,26 @@ module GraphVGTests =
     let ``toHtml with Theme.light produces more elements than Theme.empty (grid lines)`` () =
         let graph = Graph.create [ series ] (0.0, 4.0) (0.0, 4.0)
         // Theme.light has GridPen; Theme.empty does not — light should produce a longer SVG
-        let svgLight = graph |> Graph.withTheme Theme.light |> GraphVG.render
-        let svgEmpty = graph |> GraphVG.render
+        let svgLight = graph |> Graph.withTheme Theme.light |> GraphVG.toSvg
+        let svgEmpty = graph |> GraphVG.toSvg
         Assert.True(svgLight.Length > svgEmpty.Length)
 
     [<Fact>]
     let ``toHtml with axes suppressed produces shorter output than with default axes`` () =
         let graph = Graph.create [ series ] (0.0, 4.0) (0.0, 4.0)
-        let withAxes = graph |> GraphVG.render
-        let withoutAxes = graph |> Graph.withAxes Axis.none |> GraphVG.render
+        let withAxes = graph |> GraphVG.toSvg
+        let withoutAxes = graph |> Graph.withAxes Axis.none |> GraphVG.toSvg
         Assert.True(withoutAxes.Length < withAxes.Length)
 
     [<Fact>]
-    let ``render contains background rect`` () =
-        let svg = Graph.create [ series ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.render
+    let ``toSvg contains background rect`` () =
+        let svg = Graph.create [ series ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
         Assert.Contains("<rect", svg)
 
     [<Fact>]
-    let ``render background color reflects theme`` () =
-        let svgDark = Graph.create [ series ] (0.0, 4.0) (0.0, 4.0) |> Graph.withTheme Theme.dark |> GraphVG.render
-        let svgLight = Graph.create [ series ] (0.0, 4.0) (0.0, 4.0) |> Graph.withTheme Theme.light |> GraphVG.render
+    let ``toSvg background color reflects theme`` () =
+        let svgDark = Graph.create [ series ] (0.0, 4.0) (0.0, 4.0) |> Graph.withTheme Theme.dark |> GraphVG.toSvg
+        let svgLight = Graph.create [ series ] (0.0, 4.0) (0.0, 4.0) |> Graph.withTheme Theme.light |> GraphVG.toSvg
         Assert.True(svgDark <> svgLight)
 
 module AxisHideTests =
@@ -800,20 +800,20 @@ module StrokeDashTests =
 
     [<Fact>]
     let ``dashed line produces different SVG than solid`` () =
-        let solid  = Graph.create [ Series.line pts ] (0.0, 2.0) (0.0, 2.0) |> GraphVG.render
-        let dashed = Graph.create [ Series.line pts |> Series.withStrokeDash Dashed ] (0.0, 2.0) (0.0, 2.0) |> GraphVG.render
+        let solid  = Graph.create [ Series.line pts ] (0.0, 2.0) (0.0, 2.0) |> GraphVG.toSvg
+        let dashed = Graph.create [ Series.line pts |> Series.withStrokeDash Dashed ] (0.0, 2.0) (0.0, 2.0) |> GraphVG.toSvg
         Assert.True(solid <> dashed)
 
     [<Fact>]
     let ``dotted and dashed produce different SVG`` () =
-        let dashed = Graph.create [ Series.line pts |> Series.withStrokeDash Dashed ] (0.0, 2.0) (0.0, 2.0) |> GraphVG.render
-        let dotted = Graph.create [ Series.line pts |> Series.withStrokeDash Dotted ] (0.0, 2.0) (0.0, 2.0) |> GraphVG.render
+        let dashed = Graph.create [ Series.line pts |> Series.withStrokeDash Dashed ] (0.0, 2.0) (0.0, 2.0) |> GraphVG.toSvg
+        let dotted = Graph.create [ Series.line pts |> Series.withStrokeDash Dotted ] (0.0, 2.0) (0.0, 2.0) |> GraphVG.toSvg
         Assert.True(dashed <> dotted)
 
     [<Fact>]
     let ``stroke dash does not affect scatter series`` () =
-        let s1 = Graph.create [ Series.scatter pts ] (0.0, 2.0) (0.0, 2.0) |> GraphVG.render
-        let s2 = Graph.create [ Series.scatter pts |> Series.withStrokeDash Dashed ] (0.0, 2.0) (0.0, 2.0) |> GraphVG.render
+        let s1 = Graph.create [ Series.scatter pts ] (0.0, 2.0) (0.0, 2.0) |> GraphVG.toSvg
+        let s2 = Graph.create [ Series.scatter pts |> Series.withStrokeDash Dashed ] (0.0, 2.0) (0.0, 2.0) |> GraphVG.toSvg
         Assert.Equal(s1, s2)
 
 module TitleStyleTests =
@@ -836,15 +836,15 @@ module TitleStyleTests =
     [<Fact>]
     let ``custom title style produces different SVG than default`` () =
         let base'    = Graph.create [ series ] (0.0, 1.0) (0.0, 1.0) |> Graph.withTitle "Hello"
-        let default' = base' |> GraphVG.render
-        let custom   = base' |> Graph.withTitleStyle (TitleStyle.create 32.0 SharpVG.Start) |> GraphVG.render
+        let default' = base' |> GraphVG.toSvg
+        let custom   = base' |> Graph.withTitleStyle (TitleStyle.create 32.0 SharpVG.Start) |> GraphVG.toSvg
         Assert.True(default' <> custom)
 
     [<Fact>]
     let ``title rendering reserves top padding based on font size`` () =
         let base' = Graph.create [ series ] (0.0, 1.0) (0.0, 1.0) |> Graph.withTitle "Hello"
-        let defaultRender = base' |> GraphVG.render
-        let customRender = base' |> Graph.withTitleStyle (TitleStyle.create 32.0 SharpVG.Start) |> GraphVG.render
+        let defaultRender = base' |> GraphVG.toSvg
+        let customRender = base' |> Graph.withTitleStyle (TitleStyle.create 32.0 SharpVG.Start) |> GraphVG.toSvg
         Assert.Contains("viewBox=\"-20,-32 1040,1052\"", defaultRender)
         Assert.Contains("dominant-baseline=\"hanging\"", defaultRender)
         Assert.Contains("viewBox=\"-20,-48 1040,1068\"", customRender)
@@ -856,7 +856,7 @@ module TitleStyleTests =
             Graph.create [ series ] (0.0, 10.0) (0.0, 1.0)
             |> Graph.withTitle "Hello"
             |> Graph.withXAxis (Some (Axis.create Top xScale |> Axis.withLabel "top axis"))
-        let svg = GraphVG.render graph
+        let svg = GraphVG.toSvg graph
         Assert.Contains("viewBox=\"-20,-66 1040,1086\"", svg)
 
 module PointShapeTests =
@@ -896,11 +896,11 @@ module PointShapeTests =
 
     [<Fact>]
     let ``each shape produces different SVG than Circle`` () =
-        let circleSvg = graphOf Circle |> GraphVG.render
-        Assert.True(graphOf Square |> GraphVG.render <> circleSvg)
-        Assert.True(graphOf Diamond |> GraphVG.render <> circleSvg)
-        Assert.True(graphOf Triangle |> GraphVG.render <> circleSvg)
-        Assert.True(graphOf Cross |> GraphVG.render <> circleSvg)
+        let circleSvg = graphOf Circle |> GraphVG.toSvg
+        Assert.True(graphOf Square |> GraphVG.toSvg <> circleSvg)
+        Assert.True(graphOf Diamond |> GraphVG.toSvg <> circleSvg)
+        Assert.True(graphOf Triangle |> GraphVG.toSvg <> circleSvg)
+        Assert.True(graphOf Cross |> GraphVG.toSvg <> circleSvg)
 
     [<Property>]
     let ``non-Cross shapes produce exactly n elements for n points`` (n: FsCheck.PositiveInt) =
@@ -933,15 +933,15 @@ module PlotBackgroundTests =
 
     [<Fact>]
     let ``plot background renders a second rect in SVG`` () =
-        let svgDefault = graph |> GraphVG.render
-        let svgWithBg = graph |> Graph.withTheme (Theme.empty |> Theme.withPlotBackground (Color.ofName Yellow)) |> GraphVG.render
+        let svgDefault = graph |> GraphVG.toSvg
+        let svgWithBg = graph |> Graph.withTheme (Theme.empty |> Theme.withPlotBackground (Color.ofName Yellow)) |> GraphVG.toSvg
         let countRects (svg : string) = svg.Split("<rect") |> Array.length |> fun n -> n - 1
         Assert.Equal(countRects svgDefault + 1, countRects svgWithBg)
 
     [<Fact>]
     let ``plot background produces different SVG than no plot background`` () =
-        let svgDefault = graph |> GraphVG.render
-        let svgWithBg = graph |> Graph.withTheme (Theme.empty |> Theme.withPlotBackground (Color.ofName LightBlue)) |> GraphVG.render
+        let svgDefault = graph |> GraphVG.toSvg
+        let svgWithBg = graph |> Graph.withTheme (Theme.empty |> Theme.withPlotBackground (Color.ofName LightBlue)) |> GraphVG.toSvg
         Assert.True(svgDefault <> svgWithBg)
 
 module SpineStyleTests =
@@ -973,11 +973,11 @@ module SpineStyleTests =
 
     [<Fact>]
     let ``Hidden spine produces different SVG than Full`` () =
-        let svgFull = Graph.create [ Series.line pts ] (0.0, 1.0) (0.0, 1.0) |> GraphVG.render
+        let svgFull = Graph.create [ Series.line pts ] (0.0, 1.0) (0.0, 1.0) |> GraphVG.toSvg
         let svgHidden =
             Graph.create [ Series.line pts ] (0.0, 1.0) (0.0, 1.0)
             |> Graph.withXAxis (Some (Axis.create (HorizontalAt 1000.0) (Scale.linear (0.0, 1.0) (0.0, 1000.0)) |> Axis.withSpine Hidden))
-            |> GraphVG.render
+            |> GraphVG.toSvg
         Assert.True(svgFull <> svgHidden)
 
     [<Fact>]
@@ -986,3 +986,55 @@ module SpineStyleTests =
         let full = Axis.toElements Theme.empty axis
         let box = Axis.toElements Theme.empty (axis |> Axis.withSpine Box)
         Assert.True(full <> box)
+
+module AnnotationTests =
+
+    let private series = Series.line [ 0.0, 0.0; 1.0, 1.0 ]
+    let private graph = Graph.create [ series ] (0.0, 1.0) (0.0, 1.0)
+
+    [<Fact>]
+    let ``default graph has no annotations`` () =
+        Assert.Empty(graph.Annotations)
+
+    [<Fact>]
+    let ``addAnnotation appends to Annotations list`` () =
+        let g = graph |> Graph.addAnnotation (Annotation.Text(0.5, 0.5, "hello"))
+        Assert.Equal(1, g.Annotations.Length)
+
+    [<Fact>]
+    let ``addAnnotation preserves order`` () =
+        let g =
+            graph
+            |> Graph.addAnnotation (Annotation.Text(0.0, 0.0, "first"))
+            |> Graph.addAnnotation (Annotation.Text(1.0, 1.0, "second"))
+        match g.Annotations.[0], g.Annotations.[1] with
+        | Annotation.Text(_, _, "first"), Annotation.Text(_, _, "second") -> ()
+        | _ -> Assert.Fail("annotation order not preserved")
+
+    [<Fact>]
+    let ``text annotation renders content in SVG`` () =
+        let svg = graph |> Graph.addAnnotation (Annotation.Text(0.5, 0.5, "label42")) |> GraphVG.toSvg
+        Assert.Contains("label42", svg)
+
+    [<Fact>]
+    let ``line annotation produces different SVG than unannotated graph`` () =
+        let annotated = graph |> Graph.addAnnotation (Annotation.Line(0.0, 0.0, 1.0, 1.0)) |> GraphVG.toSvg
+        let plain = graph |> GraphVG.toSvg
+        Assert.True(annotated <> plain)
+
+    [<Fact>]
+    let ``rect annotation produces different SVG than unannotated graph`` () =
+        let annotated = graph |> Graph.addAnnotation (Annotation.Rect(0.1, 0.1, 0.5, 0.5)) |> GraphVG.toSvg
+        let plain = graph |> GraphVG.toSvg
+        Assert.True(annotated <> plain)
+
+    [<Fact>]
+    let ``unannotated graph renders identically to baseline`` () =
+        Assert.Equal(graph |> GraphVG.toSvg, graph |> GraphVG.toSvg)
+
+    [<Property>]
+    let ``addAnnotation increases annotation count by exactly one each time`` (n: FsCheck.PositiveInt) =
+        let g =
+            List.init n.Get (fun i -> Annotation.Text(float i, float i, string i))
+            |> List.fold (fun acc a -> Graph.addAnnotation a acc) graph
+        g.Annotations.Length = n.Get
