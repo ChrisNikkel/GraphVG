@@ -1,0 +1,8 @@
+<Project>
+  <PropertyGroup>
+    <CollectCoverage>true</CollectCoverage>
+    <CoverletOutputFormat>lcov,opencover,cobertura</CoverletOutputFormat>
+    <CoverletOutput>$(OutputDirectory)coverage/</CoverletOutput>
+    <ExcludeByFile>**/Tests/Program.fs</ExcludeByFile>
+  </PropertyGroup>
+</Project>
