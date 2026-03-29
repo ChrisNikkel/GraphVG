@@ -2,7 +2,13 @@ namespace GraphVG
 
 open SharpVG
 
-type AxisPosition = Bottom | Top | Left | Right | HorizontalAt of float | VerticalAt of float
+type AxisPosition =
+    | Bottom
+    | Top
+    | Left
+    | Right
+    | HorizontalAt of float
+    | VerticalAt of float
 
 type AxisTicks =
     | TickCount    of int
@@ -26,10 +32,12 @@ module Axis =
     let private fontSize   = 12.0
 
     let create position scale : Axis =
-        { Position = position; Scale = scale; Ticks = TickCount 5
-          Label = None
-          HideOriginTick = false; HideOriginLabel = false
-          HideBoundsTick = false; HideBoundsLabel = false }
+        {
+            Position = position; Scale = scale; Ticks = TickCount 5
+            Label = None
+            HideOriginTick = false; HideOriginLabel = false
+            HideBoundsTick = false; HideBoundsLabel = false
+        }
 
     let withTicks count (axis : Axis) =
         { axis with Ticks = TickCount count }
