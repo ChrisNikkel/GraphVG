@@ -85,14 +85,14 @@ module GraphVG =
     let private verticalTickExtent maximumTickLabelWidth (axis : Axis) =
         axis.TickLength + verticalTickLabelGap + maximumTickLabelWidth
 
-    let private leftLabelExtent tickExtent (axis : Axis) =
+    let private leftLabelExtent maximumTickLabelWidth tickExtent (axis : Axis) =
         axis.Label
-        |> Option.map (fun label -> axis.TickLength + axis.FontSize + verticalTickLabelGap + estimatedTextWidth axis.FontSize label / 2.0)
+        |> Option.map (fun _ -> axis.TickLength + verticalTickLabelGap + maximumTickLabelWidth + axis.FontSize + verticalTickLabelGap)
         |> Option.defaultValue tickExtent
 
-    let private rightLabelExtent tickExtent (axis : Axis) =
+    let private rightLabelExtent maximumTickLabelWidth tickExtent (axis : Axis) =
         axis.Label
-        |> Option.map (fun label -> axis.TickLength + axis.FontSize + verticalTickLabelGap + estimatedTextWidth axis.FontSize label)
+        |> Option.map (fun _ -> axis.TickLength + verticalTickLabelGap + maximumTickLabelWidth + axis.FontSize + verticalTickLabelGap)
         |> Option.defaultValue tickExtent
 
     let private topAxisPadding (axis : Axis) =
@@ -107,12 +107,12 @@ module GraphVG =
 
     let private leftAxisPadding maximumTickLabelWidth (axis : Axis) =
         let tickExtent = verticalTickExtent maximumTickLabelWidth axis
-        let labelExtent = leftLabelExtent tickExtent axis
+        let labelExtent = leftLabelExtent maximumTickLabelWidth tickExtent axis
         max tickExtent labelExtent |> paddingWithLeft
 
     let private rightAxisPadding maximumTickLabelWidth (axis : Axis) =
         let tickExtent = verticalTickExtent maximumTickLabelWidth axis
-        let labelExtent = rightLabelExtent tickExtent axis
+        let labelExtent = rightLabelExtent maximumTickLabelWidth tickExtent axis
         max tickExtent labelExtent |> paddingWithRight
 
     let private titleExtent (graph : Graph) =

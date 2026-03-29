@@ -157,6 +157,14 @@ module Axis =
     let private formatValue (axis : Axis) =
         axis.TickFormat |> Option.defaultValue (sprintf "%.4g")
 
+    let private estimatedTickLabelWidth (axis : Axis) =
+        let formatter = formatValue axis
+        let maxChars =
+            tickValues axis
+            |> List.map (fun v -> (formatter v).Length)
+            |> (fun ls -> if ls.IsEmpty then 0 else List.max ls)
+        float maxChars * axis.FontSize * 0.6
+
     let private horizontalAxisElements pen (axis : Axis) y tickDirection tickBaseline tickLabelOffset axisLabelBaseline axisLabelOffset =
         let bounds = axisBounds axis
         let formatter = formatValue axis
@@ -224,10 +232,16 @@ module Axis =
             horizontalAxisElements pen axis 0.0 -1.0 AlphabeticBaseline -3.0 AlphabeticBaseline (-axis.TickLength - axis.FontSize - 4.0)
 
         | Left ->
-            verticalAxisElements pen axis 0.0 -1.0 End 4.0 Middle (-axis.TickLength - axis.FontSize - 4.0)
+            let maxTickWidth = estimatedTickLabelWidth axis
+            let labelOffset = 4.0
+            let gap = 4.0
+            verticalAxisElements pen axis 0.0 -1.0 End labelOffset Middle (-(axis.TickLength + labelOffset + maxTickWidth + axis.FontSize / 2.0 + gap))
 
         | Right ->
-            verticalAxisElements pen axis Canvas.canvasSize 1.0 Start 4.0 Start (axis.TickLength + axis.FontSize + 4.0)
+            let maxTickWidth = estimatedTickLabelWidth axis
+            let labelOffset = 4.0
+            let gap = 4.0
+            verticalAxisElements pen axis Canvas.canvasSize 1.0 Start labelOffset Start (axis.TickLength + labelOffset + maxTickWidth + axis.FontSize / 2.0 + gap)
 
         | HorizontalAt y ->
             horizontalAxisElements pen axis y 1.0 HangingBaseline 2.0 HangingBaseline (axis.TickLength + axis.FontSize + 6.0)
@@ -236,4 +250,7 @@ module Axis =
             let leftSide = x <= Canvas.canvasSize / 2.0
             let anchor = if leftSide then Start else End
             let tickSign = if leftSide then 1.0 else -1.0
-            verticalAxisElements pen axis x tickSign anchor 4.0 anchor (tickSign * (axis.TickLength + axis.FontSize + 4.0))
+            let maxTickWidth = estimatedTickLabelWidth axis
+            let labelOffset = 4.0
+            let gap = 4.0
+            verticalAxisElements pen axis x tickSign anchor labelOffset anchor (tickSign * (axis.TickLength + labelOffset + maxTickWidth + axis.FontSize / 2.0 + gap))

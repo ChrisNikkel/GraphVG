@@ -21,7 +21,7 @@ let circlePoints sampleCount =
 let unitCircle =
     circlePoints 100
     |> Series.line
-    |> Series.withLabel "unit circle"
+    |> Series.withLabel "Unit Circle"
 
 let lissajous =
     let scale = 1.0 / Math.Sqrt 2.0
@@ -65,7 +65,7 @@ let axisStylesGraph =
     let milestones =
         months
         |> Series.scatter
-        |> Series.withLabel "checkpoints"
+        |> Series.withLabel "Checkpoints"
         |> Series.withPointRadius (Length.ofFloat 7.0)
     let xScale = Scale.linear (1.0, 12.0) (0.0, Canvas.canvasSize)
     let yScale = Scale.linear (0.0, 100.0) (Canvas.canvasSize, 0.0)
@@ -115,7 +115,7 @@ let styledSeriesGraph =
     let trendLine =
         upperBand
         |> Series.line
-        |> Series.withLabel "trend"
+        |> Series.withLabel "Trend"
         |> Series.withStrokeWidth (Length.ofFloat 4.0)
         |> Series.withStrokeDash DashDot
     let highlights =
@@ -123,7 +123,7 @@ let styledSeriesGraph =
         |> List.indexed
         |> List.choose (fun (index, point) -> if index % 5 = 0 then Some point else None)
         |> Series.scatter
-        |> Series.withLabel "samples"
+        |> Series.withLabel "Samples"
         |> Series.withPointRadius (Length.ofFloat 8.0)
     let themed =
         Theme.light
@@ -157,8 +157,8 @@ let logScaleGraph =
     |> Graph.withXScale xScale
     |> Graph.withYScale yScale
     |> Graph.withAxes (
-        Some (Axis.create Bottom xScale |> Axis.withTickFormat logTickFormatter |> Axis.withLabel "input scale"),
-        Some (Axis.create Left yScale |> Axis.withLabel Response"))
+        Some (Axis.create Bottom xScale |> Axis.withTickFormat logTickFormatter |> Axis.withLabel "Input Scale"),
+        Some (Axis.create Left yScale |> Axis.withLabel "Response"))
 
 let examples =
     [
