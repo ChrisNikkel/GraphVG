@@ -1,7 +1,6 @@
 open System
 open System.IO
 open GraphVG
-open SharpVG
 
 type ExamplePage =
     {
@@ -11,400 +10,73 @@ type ExamplePage =
         Graph : Graph
     }
 
-let tau = 2.0 * Math.PI
-
-let circlePoints sampleCount =
-    [ for index in 0 .. sampleCount ->
-        let parameter = float index * tau / float sampleCount
-        Math.Cos parameter, Math.Sin parameter ]
-
-let unitCircle =
-    circlePoints 100
-    |> Series.line
-    |> Series.withLabel "Unit Circle"
-
-let lissajous =
-    let scale = 1.0 / Math.Sqrt 2.0
-    [ for index in 0 .. 200 ->
-        let parameter = float index * tau / 200.0
-        scale * Math.Sin(3.0 * parameter), scale * Math.Sin(2.0 * parameter + Math.PI / 4.0) - 0.05 ]
-    |> Series.line
-    |> Series.withLabel "Lissajous"
-    |> Series.withStrokeDash Dashed
-
-let centeredAxesGraph =
-    let xScale = Scale.linear (-1.2, 1.2) (0.0, CommonMath.canvasSize)
-    let yScale = Scale.linear (-1.2, 1.2) (CommonMath.canvasSize, 0.0)
-    Graph.create [ unitCircle; lissajous ] (-1.2, 1.2) (-1.2, 1.2)
-    |> Graph.withTheme Theme.light
-    |> Graph.withTitle "Centered Axes"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
-    |> Graph.withAxes (
-        Some (Axis.create (HorizontalAt (Scale.apply yScale 0.0)) xScale |> Axis.withTickInterval 0.5 |> Axis.hideOrigin),
-        Some (Axis.create (VerticalAt (Scale.apply xScale 0.0)) yScale |> Axis.withTickInterval 0.5 |> Axis.hideOrigin))
-
-let wavePoints phase =
-    [ for index in 0 .. 160 ->
-        let x = -Math.PI + float index * (2.0 * Math.PI / 160.0)
-        x, Math.Sin(x + phase) ]
-
-let axisStylesGraph =
-    let months =
-        [ 1.0, 18.0; 2.0, 24.0; 3.0, 29.0; 4.0, 39.0; 5.0, 43.0; 6.0, 52.0; 7.0, 61.0; 8.0, 68.0; 9.0, 74.0; 10.0, 82.0; 11.0, 87.0; 12.0, 94.0 ]
-    let target =
-        [ 1.0, 20.0; 12.0, 80.0 ]
-        |> Series.line
-        |> Series.withLabel "Target Band"
-        |> Series.withStrokeDash Dashed
-        |> Series.withOpacity 0.55
-    let growth =
-        months
-        |> Series.line
-        |> Series.withLabel "Adoption"
-        |> Series.withStrokeWidth (Length.ofFloat 4.0)
-    let milestones =
-        months
-        |> Series.scatter
-        |> Series.withLabel "Checkpoints"
-        |> Series.withPointRadius (Length.ofFloat 7.0)
-    let xScale = Scale.linear (1.0, 12.0) (0.0, CommonMath.canvasSize)
-    let yScale = Scale.linear (0.0, 100.0) (CommonMath.canvasSize, 0.0)
-    let monthFormatter value =
-        [
-            1.0, "Jan"
-            2.0, "Feb"
-            3.0, "Mar"
-            4.0, "Apr"
-            5.0, "May"
-            6.0, "Jun"
-            7.0, "Jul"
-            8.0, "Aug"
-            9.0, "Sep"
-            10.0, "Oct"
-            11.0, "Nov"
-            12.0, "Dec"
-        ]
-        |> List.tryPick (fun (tickValue, label) -> if CommonMath.isNear tickValue value then Some label else None)
-        |> Option.defaultValue ""
-    let percentFormatter value = sprintf "%.0f%%" value
-    let themed =
-        Theme.light
-        |> Theme.withPlotBackground (Color.ofName HoneyDew)
-        |> Theme.withPens [ Pen.seaGreen; Pen.tomato; Pen.steelBlue ]
-        |> Theme.withGridPen (Pen.lightGray |> Pen.withOpacity 0.35)
-    Graph.create [ target; growth; milestones ] (1.0, 12.0) (0.0, 100.0)
-    |> Graph.withTheme themed
-    |> Graph.withTitle "Axis Styling"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
-    |> Graph.withAxes (
-        Some (Axis.create Top xScale |> Axis.withTickInterval 2.0 |> Axis.withTickFormat monthFormatter |> Axis.withTickLength 10.0 |> Axis.withFontSize 14.0 |> Axis.withLabel "Campaign Timeline" |> Axis.hideBoundsTick |> Axis.hideBoundsLabel |> Axis.withSpine SpineStyle.Full),
-        Some (Axis.create Right yScale |> Axis.withTicks 6 |> Axis.withTickFormat percentFormatter |> Axis.withFontSize 14.0 |> Axis.withLabel "Coverage" |> Axis.hideBoundsTick |> Axis.withSpine SpineStyle.Hidden))
-    |> Graph.withLegend (Legend.create LegendLeft)
-
-let styledSeriesGraph =
-    let baseline = 1.5
-    let upperBand =
-        [ for index in 0 .. 30 ->
-            let x = float index / 3.0
-            x, baseline + 2.0 + Math.Sin(x * 0.8) + 0.25 * Math.Cos(x * 2.4) ]
-    let lowerBand = upperBand |> List.rev |> List.map (fun (x, _) -> x, baseline)
-    let areaBand =
-        upperBand @ lowerBand
-        |> Series.area
-        |> Series.withLabel "Band"
-        |> Series.withOpacity 0.28
-    let trendLine =
-        upperBand
-        |> Series.line
-        |> Series.withLabel "Trend"
-        |> Series.withStrokeWidth (Length.ofFloat 4.0)
-        |> Series.withStrokeDash DashDot
-    let highlights =
-        upperBand
-        |> List.indexed
-        |> List.choose (fun (index, point) -> if index % 5 = 0 then Some point else None)
-        |> Series.scatter
-        |> Series.withLabel "Samples"
-        |> Series.withPointRadius (Length.ofFloat 8.0)
-    let themed =
-        Theme.light
-        |> Theme.withPlotBackground (Color.ofName FloralWhite)
-        |> Theme.withPens [ Pen.steelBlue; Pen.tomato; Pen.darkGoldenRod ]
-    Graph.create [ areaBand; trendLine; highlights ] (0.0, 10.0) (0.0, 5.5)
-    |> Graph.withTheme themed
-    |> Graph.withTitle "Series Styling"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
-    |> Graph.withLegend (Legend.create LegendRight)
-
-let logScaleGraph =
-    let responsePoints =
-        [ 1.0, 1.0; 2.0, 1.4; 5.0, 2.0; 10.0, 2.6; 20.0, 3.2; 50.0, 4.0; 100.0, 4.7; 200.0, 5.2; 500.0, 6.0; 1000.0, 6.6 ]
-    let lineSeries =
-        responsePoints
-        |> Series.line
-        |> Series.withLabel "Response"
-        |> Series.withStrokeWidth (Length.ofFloat 3.5)
-    let markerSeries =
-        responsePoints
-        |> Series.scatter
-        |> Series.withLabel "Samples"
-        |> Series.withPointRadius (Length.ofFloat 6.0)
-    let xScale = Scale.log (1.0, 1000.0) (0.0, CommonMath.canvasSize) 10.0
-    let yScale = Scale.linear (0.0, 7.0) (CommonMath.canvasSize, 0.0)
-    let logTickFormatter value = sprintf "10^%.0f" (Math.Log10 value)
-    Graph.create [ lineSeries; markerSeries ] (1.0, 1000.0) (0.0, 7.0)
-    |> Graph.withTheme Theme.empty
-    |> Graph.withTitle "Log Scale"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
-    |> Graph.withXScale xScale
-    |> Graph.withYScale yScale
-    |> Graph.withAxes (
-        Some (Axis.create Bottom xScale |> Axis.withTickFormat logTickFormatter |> Axis.withLabel "Input Scale"),
-        Some (Axis.create Left yScale |> Axis.withLabel "Response"))
-    |> Graph.withLegend (Legend.create LegendRight)
-
-// US Net Electricity Generation by Source (TWh), 2014–2024
-// Source: EIA Electric Power Annual, Table 3.1.A
-
-let private electricityPoints =
-    let coal =       [ 2014.0, 1581.7; 2015.0, 1352.4; 2016.0, 1239.1; 2017.0, 1205.8; 2018.0, 1149.5
-                       2019.0,  965.0; 2020.0,  773.4; 2021.0,  898.0; 2022.0,  831.5; 2023.0,  675.1; 2024.0,  652.2 ]
-    let naturalGas = [ 2014.0, 1138.7; 2015.0, 1347.8; 2016.0, 1392.1; 2017.0, 1310.2; 2018.0, 1485.3
-                       2019.0, 1601.1; 2020.0, 1638.6; 2021.0, 1590.6; 2022.0, 1698.8; 2023.0, 1817.8; 2024.0, 1880.7 ]
-    let nuclear =    [ 2014.0,  797.2; 2015.0,  797.2; 2016.0,  805.7; 2017.0,  804.9; 2018.0,  807.1
-                       2019.0,  809.4; 2020.0,  789.9; 2021.0,  779.6; 2022.0,  771.5; 2023.0,  774.9; 2024.0,  781.9 ]
-    let hydro =      [ 2014.0,  259.4; 2015.0,  249.1; 2016.0,  267.8; 2017.0,  300.3; 2018.0,  292.5
-                       2019.0,  287.9; 2020.0,  285.3; 2021.0,  251.6; 2022.0,  254.8; 2023.0,  245.0; 2024.0,  242.9 ]
-    let wind =       [ 2014.0,  261.5; 2015.0,  270.3; 2016.0,  305.6; 2017.0,  333.0; 2018.0,  350.5
-                       2019.0,  368.9; 2020.0,  408.5; 2021.0,  448.4; 2022.0,  502.2; 2023.0,  484.7; 2024.0,  513.7 ]
-    let solar =      [ 2014.0,   28.9; 2015.0,   39.0; 2016.0,   54.9; 2017.0,   77.3; 2018.0,   93.4
-                       2019.0,  106.9; 2020.0,  130.7; 2021.0,  164.4; 2022.0,  205.1; 2023.0,  238.9; 2024.0,  303.8 ]
-    [ "Coal", coal; "Natural Gas", naturalGas; "Nuclear", nuclear; "Hydro", hydro; "Wind", wind; "Solar", solar ]
-
-let stackedAreaGraph =
-    let allSeries =
-        electricityPoints
-        |> List.map (fun (label, pts) -> pts |> Series.stackedArea |> Series.withLabel label)
-    let yearFormatter value = sprintf "%.0f" value
-    let xScale = Scale.linear (2014.0, 2024.0) (0.0, CommonMath.canvasSize)
-    let yScale = Scale.linear (0.0, 4600.0) (CommonMath.canvasSize, 0.0)
-    let blueScheme =
-        Theme.light
-        |> Theme.withPens [ Pen.navy; Pen.royalBlue; Pen.steelBlue; Pen.cornflowerBlue; Pen.lightSteelBlue; Pen.powderBlue ]
-    Graph.create allSeries (2014.0, 2024.0) (0.0, 4600.0)
-    |> Graph.withTheme blueScheme
-    |> Graph.withTitle "US Electricity by Source"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
-    |> Graph.withAxes (
-        Some (Axis.create Bottom xScale |> Axis.withTickInterval 2.0 |> Axis.withTickFormat yearFormatter),
-        Some (Axis.create Left yScale |> Axis.withTicks 6 |> Axis.withLabel "TWh"))
-    |> Graph.withLegend (Legend.create LegendTop)
-
-let normalizedStackedAreaGraph =
-    let allSeries =
-        electricityPoints
-        |> List.map (fun (label, pts) -> pts |> Series.normalizedStackedArea |> Series.withLabel label)
-    let yearFormatter value = sprintf "%.0f" value
-    let xScale = Scale.linear (2014.0, 2024.0) (0.0, CommonMath.canvasSize)
-    let yScale = Scale.linear (0.0, 100.0) (CommonMath.canvasSize, 0.0)
-    let autumnScheme =
-        Theme.light
-        |> Theme.withPens [ Pen.fireBrick; Pen.sienna; Pen.peru; Pen.darkGoldenRod; Pen.sandyBrown; Pen.coral ]
-    Graph.create allSeries (2014.0, 2024.0) (0.0, 100.0)
-    |> Graph.withTheme autumnScheme
-    |> Graph.withTitle "Normalized Stacked Area"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
-    |> Graph.withAxes (
-        Some (Axis.create Bottom xScale |> Axis.withTickInterval 2.0 |> Axis.withTickFormat yearFormatter),
-        Some (Axis.create Left yScale |> Axis.withTicks 5 |> Axis.withTickFormat (sprintf "%.0f%%") |> Axis.withLabel "Share"))
-    |> Graph.withLegend (Legend.create LegendTop)
-
-let streamgraphGraph =
-    // Annual console hardware sales (millions of units), 1995–2012
-    // Source: Wikipedia console articles, VGChartz, Nintendo/Sony/Microsoft annual reports
-    let years = [ for y in 1995 .. 2012 -> float y ]
-    let mk label values = List.zip years values |> Series.streamgraph |> Series.withLabel label
-    let ps1    = mk "PlayStation"  [ 5.5; 15.0; 20.0; 21.0; 20.0; 10.0; 6.0; 4.0; 2.0; 1.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0 ]
-    let n64    = mk "N64"          [ 0.0; 5.5; 10.0; 9.0; 9.0; 6.0; 3.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0 ]
-    let saturn = mk "Saturn"       [ 2.5; 4.5; 4.0; 2.0; 0.5; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0 ]
-    let dc     = mk "Dreamcast"    [ 0.0; 0.0; 0.0; 1.5; 4.5; 3.0; 1.5; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0 ]
-    let ps2    = mk "PS2"          [ 0.0; 0.0; 0.0; 0.0; 0.0; 10.0; 22.0; 22.0; 22.0; 20.0; 16.0; 16.0; 14.0; 11.0; 7.3; 4.1; 4.0; 0.0 ]
-    let xbox   = mk "Xbox"         [ 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 4.0; 7.0; 6.0; 6.5; 1.5; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0 ]
-    let gc     = mk "GameCube"     [ 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 4.0; 6.0; 5.0; 4.0; 3.0; 1.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0 ]
-    let ds     = mk "DS"           [ 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 2.5; 11.0; 17.0; 23.0; 31.0; 27.0; 18.0; 15.0; 10.0 ]
-    let psp    = mk "PSP"          [ 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.8; 8.0; 10.0; 11.0; 11.0; 10.0; 8.0; 7.0; 4.0 ]
-    let wii    = mk "Wii"          [ 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 5.5; 18.5; 26.0; 21.0; 15.0; 11.0; 3.9 ]
-    let x360   = mk "Xbox 360"     [ 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 4.5; 10.0; 13.0; 11.0; 11.0; 13.7; 13.9; 11.6 ]
-    let ps3    = mk "PS3"          [ 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 3.8; 9.0; 10.0; 13.0; 14.3; 14.0; 16.5 ]
-    let allSeries = [ ps1; n64; saturn; dc; ps2; xbox; gc; ds; psp; wii; x360; ps3 ]
-    let xScale = Scale.linear (1995.0, 2012.0) (0.0, CommonMath.canvasSize)
-    let yScale = Scale.linear (-60.0, 60.0) (CommonMath.canvasSize, 0.0)
-    let rainbowScheme =
-        Theme.light
-        |> Theme.withPens [ Pen.red; Pen.orangeRed; Pen.orange; Pen.goldenRod; Pen.yellowGreen; Pen.limeGreen; Pen.mediumSeaGreen; Pen.mediumAquamarine; Pen.cornflowerBlue; Pen.royalBlue; Pen.blueViolet; Pen.hotPink ]
-    Graph.create allSeries (1995.0, 2012.0) (-60.0, 60.0)
-    |> Graph.withTheme rainbowScheme
-    |> Graph.withTitle "Console Wars 1995–2012"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
-    |> Graph.withAxes (
-        Some (Axis.create Bottom xScale |> Axis.withTickInterval 5.0 |> Axis.withTickFormat (sprintf "%.0f") |> Axis.withSpine SpineStyle.Hidden),
-        None)
-    |> Graph.withLegend (Legend.create LegendBottom)
-
-let barChartGraph =
-    // Quarterly revenue (USD millions) by product line
-    let quarters = [ 1.0; 2.0; 3.0; 4.0 ]
-    let mkSeries label values =
-        List.zip quarters values |> Series.bar |> Series.withLabel label
-    let productA = mkSeries "Product A" [ 42.0; 55.0; 61.0; 73.0 ]
-    let productB = mkSeries "Product B" [ 28.0; 31.0; 45.0; 52.0 ]
-    let productC = mkSeries "Product C" [ 15.0; 22.0; 38.0; 41.0 ]
-    let allSeries = [ productA; productB; productC ]
-    let quarterFormatter value =
-        match value with
-        | 1.0 -> "Q1"
-        | 2.0 -> "Q2"
-        | 3.0 -> "Q3"
-        | 4.0 -> "Q4"
-        | _ -> ""
-    let xScale = Scale.linear (0.5, 4.5) (0.0, CommonMath.canvasSize)
-    let yScale = Scale.linear (0.0, 90.0) (CommonMath.canvasSize, 0.0)
-    Graph.create allSeries (0.5, 4.5) (0.0, 90.0)
-    |> Graph.withTheme (Theme.light |> Theme.withPens [ Pen.steelBlue; Pen.coral; Pen.mediumSeaGreen ])
-    |> Graph.withTitle "Quarterly Revenue by Product"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
-    |> Graph.withAxes (
-        Some (Axis.create Bottom xScale |> Axis.withTicks 4 |> Axis.withTickFormat quarterFormatter |> Axis.hideBoundsTick |> Axis.hideBoundsLabel),
-        Some (Axis.create Left yScale |> Axis.withTicks 5 |> Axis.withLabel "$M"))
-    |> Graph.withLegend (Legend.create LegendTop)
-
-let horizontalBarGraph =
-    // Average daily screen time (hours) by app category — Statista 2024 approximate
-    let categories = [ 7.0; 6.0; 5.0; 4.0; 3.0; 2.0; 1.0 ]
-    let labels = [| "Social"; "Video"; "Games"; "Browser"; "Music"; "Shopping"; "News" |]
-    let values = [ 1.8; 1.5; 0.9; 0.7; 0.5; 0.4; 0.3 ]
-    let points = List.zip values categories
-    let series = points |> Series.horizontalBar |> Series.withLabel "Hours/day"
-    let catFormatter value =
-        labels |> Array.tryItem (7 - int value) |> Option.defaultValue ""
-    let xScale = Scale.linear (0.0, 2.2) (0.0, CommonMath.canvasSize)
-    let yScale = Scale.linear (0.5, 7.5) (CommonMath.canvasSize, 0.0)
-    Graph.create [ series ] (0.0, 2.2) (0.5, 7.5)
-    |> Graph.withTheme (Theme.light |> Theme.withPens [ Pen.cornflowerBlue ])
-    |> Graph.withTitle "Daily Screen Time by Category"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
-    |> Graph.withAxes (
-        Some (Axis.create Bottom xScale |> Axis.withTicks 5 |> Axis.withTickFormat (sprintf "%.1fh") |> Axis.withLabel "Hours per day"),
-        Some (Axis.create Left yScale |> Axis.withTicks 7 |> Axis.withTickFormat catFormatter |> Axis.hideBoundsTick |> Axis.hideBoundsLabel))
-
-let histogramGraph =
-    let rng = System.Random(42)
-    let values =
-        [ for _ in 1 .. 300 ->
-            let u1 = rng.NextDouble()
-            let u2 = rng.NextDouble()
-            5.0 + 1.5 * System.Math.Sqrt(-2.0 * System.Math.Log u1) * System.Math.Cos(tau / 2.0 * u2) ]
-    Series.histogram values
-    |> Series.withLabel "Count"
-    |> Graph.createWithSeries
-    |> Graph.withTheme (Theme.light |> Theme.withPlotBackground (Color.ofName AliceBlue))
-    |> Graph.withTitle "Histogram"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
-
-let boxPlotGraph =
-    let rng = System.Random(7)
-    let sample mean std n =
-        [ for _ in 1 .. n ->
-            let u1 = rng.NextDouble()
-            let u2 = rng.NextDouble()
-            mean + std * System.Math.Sqrt(-2.0 * System.Math.Log u1) * System.Math.Cos(tau / 2.0 * u2) ]
-    let groupA = Series.boxAt 1.0 (sample 5.0 1.2 80) |> Series.withLabel "Group A"
-    let groupB = Series.boxAt 2.0 (sample 6.5 0.8 80) |> Series.withLabel "Group B"
-    let groupC = Series.boxAt 3.0 (sample 4.5 1.8 80) |> Series.withLabel "Group C"
-    let xScale = Scale.linear (0.0, 4.0) (0.0, CommonMath.canvasSize)
-    let yScale = Scale.linear (0.0, 12.0) (CommonMath.canvasSize, 0.0)
-    let labelFormatter value =
-        match value with
-        | 1.0 -> "A"
-        | 2.0 -> "B"
-        | 3.0 -> "C"
-        | _ -> ""
-    Graph.create [ groupA; groupB; groupC ] (0.0, 4.0) (0.0, 12.0)
-    |> Graph.withTheme (Theme.light |> Theme.withPens [ Pen.steelBlue; Pen.tomato; Pen.seaGreen ])
-    |> Graph.withTitle "Box Plot"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
-    |> Graph.withAxes (
-        Some (Axis.create Bottom xScale |> Axis.withTicks 3 |> Axis.withTickFormat labelFormatter |> Axis.hideBoundsTick |> Axis.hideBoundsLabel),
-        Some (Axis.create Left yScale |> Axis.withTicks 6))
-    |> Graph.withLegend (Legend.create LegendRight)
-
 let examples =
     [
         {
             FileName = "centered-axes.html"
             Title = "Centered Axes"
             Description = "HorizontalAt and VerticalAt axes with two styled line series."
-            Graph = centeredAxesGraph
+            Graph = LineCharts.centeredAxesGraph
         }
         {
             FileName = "axis-styles.html"
             Title = "Axis Styling"
             Description = "Custom tick intervals, formatted labels, plot background, and non-default spine styles."
-            Graph = axisStylesGraph
+            Graph = LineCharts.axisStylesGraph
         }
         {
             FileName = "series-styles.html"
             Title = "Series Styling"
             Description = "Area, line, and scatter rendering with dash styles, opacity, point radius, and custom pens."
-            Graph = styledSeriesGraph
+            Graph = LineCharts.styledSeriesGraph
         }
         {
             FileName = "log-scale.html"
             Title = "Log Scale"
             Description = "Logarithmic x-axis with explicit axis configuration and tick formatting."
-            Graph = logScaleGraph
+            Graph = LineCharts.logScaleGraph
         }
         {
             FileName = "stacked-area.html"
             Title = "Stacked Area"
             Description = "US electricity generation 2014–2024 by source (EIA data): coal declining, natural gas dominant, wind and solar surging."
-            Graph = stackedAreaGraph
+            Graph = AreaCharts.stackedAreaGraph
         }
         {
             FileName = "stacked-area-percent.html"
             Title = "Normalized Stacked Area"
             Description = "Same EIA electricity data normalized to 100%, showing each source's share of total generation over time."
-            Graph = normalizedStackedAreaGraph
+            Graph = AreaCharts.normalizedStackedAreaGraph
         }
         {
             FileName = "streamgraph.html"
             Title = "Streamgraph"
             Description = "Annual console hardware sales 1995–2012: PS2 dominance, the Wii explosion, the DS tsunami, and Sega's dramatic exit."
-            Graph = streamgraphGraph
+            Graph = AreaCharts.streamgraphGraph
         }
         {
             FileName = "bar-chart.html"
             Title = "Grouped Bar Chart"
             Description = "Three product lines compared across four quarters — vertical grouped bars with a shared x-axis category."
-            Graph = barChartGraph
+            Graph = BarCharts.barChartGraph
         }
         {
             FileName = "horizontal-bar.html"
             Title = "Horizontal Bar Chart"
             Description = "Average daily screen time by app category, sorted by usage — horizontal bars for easy label reading."
-            Graph = horizontalBarGraph
+            Graph = BarCharts.horizontalBarGraph
         }
         {
             FileName = "histogram.html"
             Title = "Histogram"
             Description = "300 normally distributed samples binned automatically using Sturges' rule."
-            Graph = histogramGraph
+            Graph = DistributionCharts.histogramGraph
         }
         {
             FileName = "box-plot.html"
             Title = "Box Plot"
             Description = "Three groups of 80 samples showing median, quartiles, and whiskers."
-            Graph = boxPlotGraph
+            Graph = DistributionCharts.boxPlotGraph
         }
     ]
 
@@ -450,7 +122,7 @@ let galleryHtml pages =
     + "<body>\n"
     + "<main class=\"wrap\">\n"
     + "<h1>GraphVG Example Gallery</h1>\n"
-    + "<p class=\"intro\">A small set of focused examples covering centered axes, axis styling, series styling, plot backgrounds, and logarithmic scales.</p>\n"
+    + "<p class=\"intro\">A collection of focused examples covering line charts, stacked and normalized area, streamgraphs, bar charts, histograms, and box plots.</p>\n"
     + "<section class=\"grid\">\n"
     + cards + "\n"
     + "</section>\n"

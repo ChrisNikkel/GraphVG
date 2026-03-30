@@ -4,6 +4,10 @@
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="LineCharts.fs" />
+    <Compile Include="AreaCharts.fs" />
+    <Compile Include="BarCharts.fs" />
+    <Compile Include="DistributionCharts.fs" />
     <Compile Include="Example.fs" />
   </ItemGroup>
   <ItemGroup>
