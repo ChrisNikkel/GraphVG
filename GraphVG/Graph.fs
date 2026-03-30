@@ -74,11 +74,12 @@ module Graph =
 
     let createWithSeries (series : Series) =
         let domain, range = pointBounds [ series ]
-        let paddedY =
+        let paddedDomain, paddedRange =
             match series.Kind with
-            | Histogram -> (0.0, snd range + (snd range - fst range) * 0.1)
-            | _ -> padRange 0.1 range
-        let xScale, yScale = buildScales (padRange 0.1 domain) paddedY
+            | Histogram | Bar -> padRange 0.1 domain, (0.0, snd range + (snd range - fst range) * 0.1)
+            | HorizontalBar -> (0.0, snd domain + (snd domain - fst domain) * 0.1), padRange 0.1 range
+            | _ -> padRange 0.1 domain, padRange 0.1 range
+        let xScale, yScale = buildScales paddedDomain paddedRange
         let xAxis, yAxis = defaultAxes xScale yScale
         {
             Series = [ series ]
@@ -201,6 +202,29 @@ module Graph =
         |> List.concat
         |> Map.ofList
 
+    let private inferMinSpacing (values : float list) =
+        match List.sort values with
+        | first :: second :: _ as sorted ->
+            let spacing = sorted |> List.pairwise |> List.map (fun (a, b) -> b - a) |> List.min
+            if spacing > 0.0 then spacing * 0.8 else abs (second - first) * 0.8
+        | _ -> 0.8
+
+    let private groupedBarLayout (kind : SeriesKind) (allSeries : Series list) =
+        let grouped =
+            allSeries
+            |> List.mapi (fun i s -> i, s)
+            |> List.filter (fun (_, s) -> s.Kind = kind)
+        let count = grouped.Length
+        grouped
+        |> List.mapi (fun groupIdx (seriesIdx, _) -> seriesIdx, (groupIdx, count))
+        |> Map.ofList
+
+    let private computeBarLayouts (allSeries : Series list) =
+        [ groupedBarLayout SeriesKind.Bar allSeries
+          groupedBarLayout SeriesKind.HorizontalBar allSeries ]
+        |> List.collect Map.toList
+        |> Map.ofList
+
     let private applyDash dash style =
         match dash with
         | Solid -> style
@@ -211,6 +235,7 @@ module Graph =
     let drawSeries graph =
         let toSvgPoint point = point |> toScaledSvgCoordinates graph |> Point.ofFloats
         let stackingMap = computeStacking graph.Series
+        let barLayouts = computeBarLayouts graph.Series
         let seriesToElements i (series : Series) =
             if series.Visible then
                 let seriesPen = Theme.penForSeries i graph.Theme |> Pen.withOpacity series.Opacity
@@ -298,6 +323,38 @@ module Graph =
                             |> Element.createWithStyle strokeStyle
                         ]
                     | _ -> []
+                | SeriesKind.Bar ->
+                    match Map.tryFind i barLayouts with
+                    | None -> []
+                    | Some (groupIdx, groupCount) ->
+                        let fillStyle = Style.createWithPen seriesPen |> Style.withFillPen seriesPen
+                        let groupWidth = series.BinWidth |> Option.defaultValue (inferMinSpacing (series.Points |> List.map fst))
+                        let barWidth = groupWidth / float groupCount
+                        let xOffset = (float groupIdx - float (groupCount - 1) / 2.0) * barWidth
+                        series.Points
+                        |> List.map (fun (catX, value) ->
+                            let svgX1, svgY1 = toScaledSvgCoordinates graph (catX + xOffset - barWidth / 2.0, value)
+                            let svgX2, svgY2 = toScaledSvgCoordinates graph (catX + xOffset + barWidth / 2.0, 0.0)
+                            Rect.create
+                                (Point.ofFloats (min svgX1 svgX2, min svgY1 svgY2))
+                                (Area.ofFloats (abs (svgX2 - svgX1), abs (svgY2 - svgY1)))
+                            |> Element.createWithStyle fillStyle)
+                | SeriesKind.HorizontalBar ->
+                    match Map.tryFind i barLayouts with
+                    | None -> []
+                    | Some (groupIdx, groupCount) ->
+                        let fillStyle = Style.createWithPen seriesPen |> Style.withFillPen seriesPen
+                        let groupHeight = series.BinWidth |> Option.defaultValue (inferMinSpacing (series.Points |> List.map snd))
+                        let barHeight = groupHeight / float groupCount
+                        let yOffset = (float groupIdx - float (groupCount - 1) / 2.0) * barHeight
+                        series.Points
+                        |> List.map (fun (value, catY) ->
+                            let svgX1, svgY1 = toScaledSvgCoordinates graph (0.0, catY + yOffset + barHeight / 2.0)
+                            let svgX2, svgY2 = toScaledSvgCoordinates graph (value, catY + yOffset - barHeight / 2.0)
+                            Rect.create
+                                (Point.ofFloats (min svgX1 svgX2, min svgY1 svgY2))
+                                (Area.ofFloats (abs (svgX2 - svgX1), abs (svgY2 - svgY1)))
+                            |> Element.createWithStyle fillStyle)
                 | StackedArea | NormalizedStackedArea | Streamgraph ->
                     match Map.tryFind i stackingMap with
                     | None -> []

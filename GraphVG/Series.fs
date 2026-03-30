@@ -12,6 +12,8 @@ type SeriesKind =
     | Streamgraph
     | Histogram
     | Box
+    | Bar
+    | HorizontalBar
 
 type PointShape = Circle | Square | Diamond | Cross | Triangle
 
@@ -68,6 +70,12 @@ module Series =
 
     let streamgraph points =
         create Streamgraph points
+
+    let bar points =
+        create Bar points
+
+    let horizontalBar points =
+        create HorizontalBar points
 
     let withLabel label series =
         { series with Label = Some label }
@@ -160,6 +168,12 @@ module Series =
             let xs, ys = series.Points |> List.unzip
             let position = List.min xs
             (position - 0.5, position + 0.5), (List.min ys, List.max ys)
+        | Bar ->
+            let xs, ys = series.Points |> List.unzip
+            (List.min xs - 0.5, List.max xs + 0.5), (min 0.0 (List.min ys), List.max ys)
+        | HorizontalBar ->
+            let xs, ys = series.Points |> List.unzip
+            (min 0.0 (List.min xs), List.max xs), (List.min ys - 0.5, List.max ys + 0.5)
         | _ ->
             let xs, ys = series.Points |> List.unzip
             (List.min xs, List.max xs), (List.min ys, List.max ys)

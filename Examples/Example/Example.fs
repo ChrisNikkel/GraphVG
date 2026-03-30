@@ -220,30 +220,82 @@ let normalizedStackedAreaGraph =
     |> Graph.withLegend (Legend.create LegendTop)
 
 let streamgraphGraph =
-    // Programming Language Usage (% respondents), Stack Overflow Developer Survey 2017–2024
-    let mk label pts = pts |> Series.streamgraph |> Series.withLabel label
-    let javascript = mk "JavaScript" [ 2017.0, 61.9; 2018.0, 69.8; 2019.0, 67.8; 2020.0, 67.7; 2021.0, 65.0; 2022.0, 65.4; 2023.0, 63.6; 2024.0, 62.3 ]
-    let python =     mk "Python"     [ 2017.0, 31.7; 2018.0, 38.8; 2019.0, 41.7; 2020.0, 44.1; 2021.0, 48.2; 2022.0, 48.1; 2023.0, 49.3; 2024.0, 51.0 ]
-    let java =       mk "Java"       [ 2017.0, 39.3; 2018.0, 45.3; 2019.0, 41.1; 2020.0, 40.2; 2021.0, 35.4; 2022.0, 33.3; 2023.0, 30.6; 2024.0, 30.3 ]
-    let csharp =     mk "C#"         [ 2017.0, 33.8; 2018.0, 34.4; 2019.0, 31.0; 2020.0, 31.4; 2021.0, 27.9; 2022.0, 28.0; 2023.0, 27.6; 2024.0, 27.1 ]
-    let typescript = mk "TypeScript" [ 2017.0,  9.4; 2018.0, 17.4; 2019.0, 21.2; 2020.0, 25.4; 2021.0, 30.2; 2022.0, 34.8; 2023.0, 38.9; 2024.0, 38.5 ]
-    let php =        mk "PHP"        [ 2017.0, 27.9; 2018.0, 30.7; 2019.0, 26.4; 2020.0, 26.2; 2021.0, 22.0; 2022.0, 20.9; 2023.0, 18.6; 2024.0, 18.2 ]
-    let go =         mk "Go"         [ 2017.0,  4.2; 2018.0,  7.1; 2019.0,  8.2; 2020.0,  8.8; 2021.0,  9.6; 2022.0, 11.2; 2023.0, 13.2; 2024.0, 13.5 ]
-    let ruby =       mk "Ruby"       [ 2017.0,  9.0; 2018.0, 10.1; 2019.0,  8.4; 2020.0,  7.1; 2021.0,  6.8; 2022.0,  6.1; 2023.0,  6.2; 2024.0,  5.2 ]
-    let allSeries = [ javascript; python; java; csharp; typescript; php; go; ruby ]
-    let xScale = Scale.linear (2017.0, 2024.0) (0.0, CommonMath.canvasSize)
-    let yScale = Scale.linear (-130.0, 130.0) (CommonMath.canvasSize, 0.0)
+    // Annual console hardware sales (millions of units), 1995–2012
+    // Source: Wikipedia console articles, VGChartz, Nintendo/Sony/Microsoft annual reports
+    let years = [ for y in 1995 .. 2012 -> float y ]
+    let mk label values = List.zip years values |> Series.streamgraph |> Series.withLabel label
+    let ps1    = mk "PlayStation"  [ 5.5; 15.0; 20.0; 21.0; 20.0; 10.0; 6.0; 4.0; 2.0; 1.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0 ]
+    let n64    = mk "N64"          [ 0.0; 5.5; 10.0; 9.0; 9.0; 6.0; 3.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0 ]
+    let saturn = mk "Saturn"       [ 2.5; 4.5; 4.0; 2.0; 0.5; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0 ]
+    let dc     = mk "Dreamcast"    [ 0.0; 0.0; 0.0; 1.5; 4.5; 3.0; 1.5; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0 ]
+    let ps2    = mk "PS2"          [ 0.0; 0.0; 0.0; 0.0; 0.0; 10.0; 22.0; 22.0; 22.0; 20.0; 16.0; 16.0; 14.0; 11.0; 7.3; 4.1; 4.0; 0.0 ]
+    let xbox   = mk "Xbox"         [ 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 4.0; 7.0; 6.0; 6.5; 1.5; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0 ]
+    let gc     = mk "GameCube"     [ 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 4.0; 6.0; 5.0; 4.0; 3.0; 1.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0 ]
+    let ds     = mk "DS"           [ 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 2.5; 11.0; 17.0; 23.0; 31.0; 27.0; 18.0; 15.0; 10.0 ]
+    let psp    = mk "PSP"          [ 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.8; 8.0; 10.0; 11.0; 11.0; 10.0; 8.0; 7.0; 4.0 ]
+    let wii    = mk "Wii"          [ 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 5.5; 18.5; 26.0; 21.0; 15.0; 11.0; 3.9 ]
+    let x360   = mk "Xbox 360"     [ 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 4.5; 10.0; 13.0; 11.0; 11.0; 13.7; 13.9; 11.6 ]
+    let ps3    = mk "PS3"          [ 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 3.8; 9.0; 10.0; 13.0; 14.3; 14.0; 16.5 ]
+    let allSeries = [ ps1; n64; saturn; dc; ps2; xbox; gc; ds; psp; wii; x360; ps3 ]
+    let xScale = Scale.linear (1995.0, 2012.0) (0.0, CommonMath.canvasSize)
+    let yScale = Scale.linear (-60.0, 60.0) (CommonMath.canvasSize, 0.0)
     let rainbowScheme =
         Theme.light
-        |> Theme.withPens [ Pen.red; Pen.orangeRed; Pen.goldenRod; Pen.limeGreen; Pen.mediumAquamarine; Pen.royalBlue; Pen.blueViolet; Pen.hotPink ]
-    Graph.create allSeries (2017.0, 2024.0) (-130.0, 130.0)
+        |> Theme.withPens [ Pen.red; Pen.orangeRed; Pen.orange; Pen.goldenRod; Pen.yellowGreen; Pen.limeGreen; Pen.mediumSeaGreen; Pen.mediumAquamarine; Pen.cornflowerBlue; Pen.royalBlue; Pen.blueViolet; Pen.hotPink ]
+    Graph.create allSeries (1995.0, 2012.0) (-60.0, 60.0)
     |> Graph.withTheme rainbowScheme
-    |> Graph.withTitle "Programming Language Popularity"
+    |> Graph.withTitle "Console Wars 1995–2012"
     |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
     |> Graph.withAxes (
-        Some (Axis.create Bottom xScale |> Axis.withTickInterval 1.0 |> Axis.withTickFormat (sprintf "%.0f") |> Axis.withSpine SpineStyle.Hidden),
+        Some (Axis.create Bottom xScale |> Axis.withTickInterval 5.0 |> Axis.withTickFormat (sprintf "%.0f") |> Axis.withSpine SpineStyle.Hidden),
         None)
     |> Graph.withLegend (Legend.create LegendBottom)
+
+let barChartGraph =
+    // Quarterly revenue (USD millions) by product line
+    let quarters = [ 1.0; 2.0; 3.0; 4.0 ]
+    let mkSeries label values =
+        List.zip quarters values |> Series.bar |> Series.withLabel label
+    let productA = mkSeries "Product A" [ 42.0; 55.0; 61.0; 73.0 ]
+    let productB = mkSeries "Product B" [ 28.0; 31.0; 45.0; 52.0 ]
+    let productC = mkSeries "Product C" [ 15.0; 22.0; 38.0; 41.0 ]
+    let allSeries = [ productA; productB; productC ]
+    let quarterFormatter value =
+        match value with
+        | 1.0 -> "Q1"
+        | 2.0 -> "Q2"
+        | 3.0 -> "Q3"
+        | 4.0 -> "Q4"
+        | _ -> ""
+    let xScale = Scale.linear (0.5, 4.5) (0.0, CommonMath.canvasSize)
+    let yScale = Scale.linear (0.0, 90.0) (CommonMath.canvasSize, 0.0)
+    Graph.create allSeries (0.5, 4.5) (0.0, 90.0)
+    |> Graph.withTheme (Theme.light |> Theme.withPens [ Pen.steelBlue; Pen.coral; Pen.mediumSeaGreen ])
+    |> Graph.withTitle "Quarterly Revenue by Product"
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withAxes (
+        Some (Axis.create Bottom xScale |> Axis.withTicks 4 |> Axis.withTickFormat quarterFormatter |> Axis.hideBoundsTick |> Axis.hideBoundsLabel),
+        Some (Axis.create Left yScale |> Axis.withTicks 5 |> Axis.withLabel "$M"))
+    |> Graph.withLegend (Legend.create LegendTop)
+
+let horizontalBarGraph =
+    // Average daily screen time (hours) by app category — Statista 2024 approximate
+    let categories = [ 7.0; 6.0; 5.0; 4.0; 3.0; 2.0; 1.0 ]
+    let labels = [| "Social"; "Video"; "Games"; "Browser"; "Music"; "Shopping"; "News" |]
+    let values = [ 1.8; 1.5; 0.9; 0.7; 0.5; 0.4; 0.3 ]
+    let points = List.zip values categories
+    let series = points |> Series.horizontalBar |> Series.withLabel "Hours/day"
+    let catFormatter value =
+        labels |> Array.tryItem (7 - int value) |> Option.defaultValue ""
+    let xScale = Scale.linear (0.0, 2.2) (0.0, CommonMath.canvasSize)
+    let yScale = Scale.linear (0.5, 7.5) (CommonMath.canvasSize, 0.0)
+    Graph.create [ series ] (0.0, 2.2) (0.5, 7.5)
+    |> Graph.withTheme (Theme.light |> Theme.withPens [ Pen.cornflowerBlue ])
+    |> Graph.withTitle "Daily Screen Time by Category"
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withAxes (
+        Some (Axis.create Bottom xScale |> Axis.withTicks 5 |> Axis.withTickFormat (sprintf "%.1fh") |> Axis.withLabel "Hours per day"),
+        Some (Axis.create Left yScale |> Axis.withTicks 7 |> Axis.withTickFormat catFormatter |> Axis.hideBoundsTick |> Axis.hideBoundsLabel))
 
 let histogramGraph =
     let rng = System.Random(42)
@@ -327,8 +379,20 @@ let examples =
         {
             FileName = "streamgraph.html"
             Title = "Streamgraph"
-            Description = "Programming language popularity 2017–2024 from Stack Overflow Developer Survey: JavaScript leads, Python rises, TypeScript emerges."
+            Description = "Annual console hardware sales 1995–2012: PS2 dominance, the Wii explosion, the DS tsunami, and Sega's dramatic exit."
             Graph = streamgraphGraph
+        }
+        {
+            FileName = "bar-chart.html"
+            Title = "Grouped Bar Chart"
+            Description = "Three product lines compared across four quarters — vertical grouped bars with a shared x-axis category."
+            Graph = barChartGraph
+        }
+        {
+            FileName = "horizontal-bar.html"
+            Title = "Horizontal Bar Chart"
+            Description = "Average daily screen time by app category, sorted by usage — horizontal bars for easy label reading."
+            Graph = horizontalBarGraph
         }
         {
             FileName = "histogram.html"

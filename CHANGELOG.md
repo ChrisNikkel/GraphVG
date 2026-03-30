@@ -5,6 +5,8 @@ All notable changes to GraphVG will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- `Bar` series kind: `Series.bar` renders vertical grouped bars; multiple `Bar` series at the same x positions are automatically laid out side-by-side
+- `HorizontalBar` series kind: `Series.horizontalBar` renders horizontal bars with values on the x-axis and categories on the y-axis; multiple series group automatically
 - `Histogram` series kind: `Series.histogram` and `Series.histogramWithBins` create bar charts from raw float values using automatic or explicit bin counts (Sturges' rule by default)
 - `Box` series kind: `Series.box` and `Series.boxAt` render median, quartiles, whiskers, and caps from raw float values; box width controlled via `withPointRadius`
 - `StackedArea` series kind: `Series.stackedArea` stacks multiple area series with cumulative absolute values

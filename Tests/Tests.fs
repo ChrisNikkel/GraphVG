@@ -1316,3 +1316,77 @@ module BoxPlotTests =
         let s = Series.box vs
         let ys = s.Points |> List.map snd
         ys.[0] <= ys.[1] && ys.[1] <= ys.[2] && ys.[2] <= ys.[3] && ys.[3] <= ys.[4]
+
+module BarChartTests =
+
+    let private singleSeries =
+        [ 1.0, 10.0; 2.0, 20.0; 3.0, 15.0 ] |> Series.bar
+
+    let private groupedA =
+        [ 1.0, 10.0; 2.0, 20.0 ] |> Series.bar |> Series.withLabel "A"
+
+    let private groupedB =
+        [ 1.0,  5.0; 2.0, 12.0 ] |> Series.bar |> Series.withLabel "B"
+
+    [<Fact>]
+    let ``bar creates Bar kind`` () =
+        Assert.Equal(SeriesKind.Bar, singleSeries.Kind)
+
+    [<Fact>]
+    let ``horizontalBar creates HorizontalBar kind`` () =
+        let s = [ 10.0, 1.0; 20.0, 2.0 ] |> Series.horizontalBar
+        Assert.Equal(SeriesKind.HorizontalBar, s.Kind)
+
+    [<Fact>]
+    let ``bar renders one rect per point`` () =
+        let graph = Graph.create [ singleSeries ] (0.0, 4.0) (0.0, 25.0)
+        let elements = Graph.drawSeries graph
+        Assert.Equal(3, elements.Length)
+
+    [<Fact>]
+    let ``grouped bar renders one rect per point per series`` () =
+        let graph = Graph.create [ groupedA; groupedB ] (0.0, 3.0) (0.0, 25.0)
+        let elements = Graph.drawSeries graph
+        Assert.Equal(4, elements.Length)
+
+    [<Fact>]
+    let ``horizontalBar renders one rect per point`` () =
+        let s = [ 10.0, 1.0; 20.0, 2.0; 15.0, 3.0 ] |> Series.horizontalBar
+        let graph = Graph.create [ s ] (0.0, 25.0) (0.0, 4.0)
+        let elements = Graph.drawSeries graph
+        Assert.Equal(3, elements.Length)
+
+    [<Fact>]
+    let ``bar bounds y min is zero for positive values`` () =
+        let _, (yMin, _) = Series.bounds singleSeries
+        Assert.Equal(0.0, yMin)
+
+    [<Fact>]
+    let ``bar bounds x extends half unit beyond outermost categories`` () =
+        let (xMin, xMax), _ = Series.bounds singleSeries
+        Assert.Equal(0.5, xMin)
+        Assert.Equal(3.5, xMax)
+
+    [<Fact>]
+    let ``horizontalBar bounds x min is zero for positive values`` () =
+        let s = [ 10.0, 1.0; 20.0, 2.0 ] |> Series.horizontalBar
+        let (xMin, _), _ = Series.bounds s
+        Assert.Equal(0.0, xMin)
+
+    [<Fact>]
+    let ``bar createWithSeries produces SVG with rects`` () =
+        let svg = Graph.createWithSeries singleSeries |> GraphVG.toSvg
+        Assert.Contains("<rect", svg)
+
+    [<Fact>]
+    let ``horizontalBar createWithSeries produces SVG with rects`` () =
+        let s = [ 10.0, 1.0; 20.0, 2.0; 5.0, 3.0 ] |> Series.horizontalBar
+        let svg = Graph.createWithSeries s |> GraphVG.toSvg
+        Assert.Contains("<rect", svg)
+
+    [<Property>]
+    let ``bar element count equals point count`` (points : FsCheck.NonEmptyArray<FsCheck.NormalFloat * FsCheck.PositiveInt>) =
+        let pts = points.Get |> Array.map (fun (x, y) -> x.Get, float y.Get) |> Array.toList
+        let s = Series.bar pts
+        let graph = Graph.create [ s ] (-100.0, 100.0) (0.0, 200.0)
+        Graph.drawSeries graph |> List.length = pts.Length
