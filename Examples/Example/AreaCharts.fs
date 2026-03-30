@@ -3,39 +3,37 @@ module AreaCharts
 open GraphVG
 open SharpVG
 
-// US Net Electricity Generation by Source (TWh), 2014–2024
+// US Net Electricity Generation by Source (TWh), biennial 1990–2024
 // Source: EIA Electric Power Annual, Table 3.1.A
+// Tells the story of coal's rise and collapse, the gas surge, and renewables emerging from zero.
 
 let private electricityPoints =
-    let coal =       [ 2014.0, 1581.7; 2015.0, 1352.4; 2016.0, 1239.1; 2017.0, 1205.8; 2018.0, 1149.5
-                       2019.0,  965.0; 2020.0,  773.4; 2021.0,  898.0; 2022.0,  831.5; 2023.0,  675.1; 2024.0,  652.2 ]
-    let naturalGas = [ 2014.0, 1138.7; 2015.0, 1347.8; 2016.0, 1392.1; 2017.0, 1310.2; 2018.0, 1485.3
-                       2019.0, 1601.1; 2020.0, 1638.6; 2021.0, 1590.6; 2022.0, 1698.8; 2023.0, 1817.8; 2024.0, 1880.7 ]
-    let nuclear =    [ 2014.0,  797.2; 2015.0,  797.2; 2016.0,  805.7; 2017.0,  804.9; 2018.0,  807.1
-                       2019.0,  809.4; 2020.0,  789.9; 2021.0,  779.6; 2022.0,  771.5; 2023.0,  774.9; 2024.0,  781.9 ]
-    let hydro =      [ 2014.0,  259.4; 2015.0,  249.1; 2016.0,  267.8; 2017.0,  300.3; 2018.0,  292.5
-                       2019.0,  287.9; 2020.0,  285.3; 2021.0,  251.6; 2022.0,  254.8; 2023.0,  245.0; 2024.0,  242.9 ]
-    let wind =       [ 2014.0,  261.5; 2015.0,  270.3; 2016.0,  305.6; 2017.0,  333.0; 2018.0,  350.5
-                       2019.0,  368.9; 2020.0,  408.5; 2021.0,  448.4; 2022.0,  502.2; 2023.0,  484.7; 2024.0,  513.7 ]
-    let solar =      [ 2014.0,   28.9; 2015.0,   39.0; 2016.0,   54.9; 2017.0,   77.3; 2018.0,   93.4
-                       2019.0,  106.9; 2020.0,  130.7; 2021.0,  164.4; 2022.0,  205.1; 2023.0,  238.9; 2024.0,  303.8 ]
-    [ "Coal", coal; "Natural Gas", naturalGas; "Nuclear", nuclear; "Hydro", hydro; "Wind", wind; "Solar", solar ]
+    let years = [ 1990.0; 1992.0; 1994.0; 1996.0; 1998.0; 2000.0; 2002.0; 2004.0; 2006.0; 2008.0; 2010.0; 2012.0; 2014.0; 2016.0; 2018.0; 2020.0; 2022.0; 2024.0 ]
+    let zip values = List.zip years values
+    let coal =      zip [ 1560.0; 1576.0; 1636.0; 1737.0; 1807.0; 1966.0; 1933.0; 1978.0; 2016.0; 1985.0; 1847.0; 1514.0; 1582.0; 1240.0; 1146.0;  774.0;  832.0;  652.0 ]
+    let naturalGas= zip [  373.0;  379.0;  443.0;  455.0;  529.0;  601.0;  691.0;  710.0;  813.0;  920.0;  938.0; 1227.0; 1139.0; 1392.0; 1468.0; 1617.0; 1698.0; 1881.0 ]
+    let nuclear =   zip [  577.0;  619.0;  640.0;  675.0;  673.0;  754.0;  780.0;  789.0;  787.0;  806.0;  807.0;  769.0;  797.0;  806.0;  807.0;  790.0;  772.0;  782.0 ]
+    let petroleum = zip [  120.0;  103.0;   93.0;   83.0;   93.0;  111.0;   91.0;   91.0;   64.0;   46.0;   37.0;   30.0;   30.0;   23.0;   25.0;   16.0;   18.0;   16.0 ]
+    let hydro =     zip [  297.0;  243.0;  260.0;  347.0;  321.0;  276.0;  264.0;  268.0;  289.0;  254.0;  257.0;  277.0;  259.0;  268.0;  293.0;  285.0;  255.0;  243.0 ]
+    let wind =      zip [    3.0;    3.0;    4.0;    4.0;   14.0;   11.0;   11.0;   14.0;   26.0;   55.0;   95.0;  140.0;  182.0;  227.0;  275.0;  338.0;  434.0;  514.0 ]
+    let solar =     zip [    0.0;    0.0;    0.0;    0.0;    1.0;    1.0;    1.0;    1.0;    1.0;    2.0;    4.0;    8.0;   29.0;   55.0;   93.0;  131.0;  205.0;  304.0 ]
+    [ "Coal", coal; "Natural Gas", naturalGas; "Nuclear", nuclear; "Petroleum", petroleum; "Hydro", hydro; "Wind", wind; "Solar", solar ]
 
 let stackedAreaGraph =
     let allSeries =
         electricityPoints
         |> List.map (fun (label, pts) -> pts |> Series.stackedArea |> Series.withLabel label)
-    let xScale = Scale.linear (2014.0, 2024.0) (0.0, CommonMath.canvasSize)
-    let yScale = Scale.linear (0.0, 4600.0) (CommonMath.canvasSize, 0.0)
+    let xScale = Scale.linear (1990.0, 2024.0) (0.0, CommonMath.canvasSize)
+    let yScale = Scale.linear (0.0, 4800.0) (CommonMath.canvasSize, 0.0)
     let blueScheme =
         Theme.light
-        |> Theme.withPens [ Pen.navy; Pen.royalBlue; Pen.steelBlue; Pen.cornflowerBlue; Pen.lightSteelBlue; Pen.powderBlue ]
-    Graph.create allSeries (2014.0, 2024.0) (0.0, 4600.0)
+        |> Theme.withPens [ Pen.navy; Pen.royalBlue; Pen.mediumSlateBlue; Pen.steelBlue; Pen.cadetBlue; Pen.cornflowerBlue; Pen.powderBlue ]
+    Graph.create allSeries (1990.0, 2024.0) (0.0, 4800.0)
     |> Graph.withTheme blueScheme
     |> Graph.withTitle "US Electricity by Source"
     |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
     |> Graph.withAxes (
-        Some (Axis.create Bottom xScale |> Axis.withTickInterval 2.0 |> Axis.withTickFormat (sprintf "%.0f")),
+        Some (Axis.create Bottom xScale |> Axis.withTickInterval 10.0 |> Axis.withTickFormat (sprintf "%.0f")),
         Some (Axis.create Left yScale |> Axis.withTicks 6 |> Axis.withLabel "TWh"))
     |> Graph.withLegend (Legend.create LegendTop)
 
@@ -43,17 +41,17 @@ let normalizedStackedAreaGraph =
     let allSeries =
         electricityPoints
         |> List.map (fun (label, pts) -> pts |> Series.normalizedStackedArea |> Series.withLabel label)
-    let xScale = Scale.linear (2014.0, 2024.0) (0.0, CommonMath.canvasSize)
+    let xScale = Scale.linear (1990.0, 2024.0) (0.0, CommonMath.canvasSize)
     let yScale = Scale.linear (0.0, 100.0) (CommonMath.canvasSize, 0.0)
     let autumnScheme =
         Theme.light
-        |> Theme.withPens [ Pen.fireBrick; Pen.sienna; Pen.peru; Pen.darkGoldenRod; Pen.sandyBrown; Pen.coral ]
-    Graph.create allSeries (2014.0, 2024.0) (0.0, 100.0)
+        |> Theme.withPens [ Pen.fireBrick; Pen.sienna; Pen.peru; Pen.darkGoldenRod; Pen.sandyBrown; Pen.coral; Pen.peachPuff ]
+    Graph.create allSeries (1990.0, 2024.0) (0.0, 100.0)
     |> Graph.withTheme autumnScheme
     |> Graph.withTitle "Normalized Stacked Area"
     |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
     |> Graph.withAxes (
-        Some (Axis.create Bottom xScale |> Axis.withTickInterval 2.0 |> Axis.withTickFormat (sprintf "%.0f")),
+        Some (Axis.create Bottom xScale |> Axis.withTickInterval 10.0 |> Axis.withTickFormat (sprintf "%.0f")),
         Some (Axis.create Left yScale |> Axis.withTicks 5 |> Axis.withTickFormat (sprintf "%.0f%%") |> Axis.withLabel "Share"))
     |> Graph.withLegend (Legend.create LegendTop)
 

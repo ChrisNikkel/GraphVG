@@ -39,13 +39,13 @@ let examples =
         {
             FileName = "stacked-area.html"
             Title = "Stacked Area"
-            Description = "US electricity generation 2014–2024 by source (EIA data): coal declining, natural gas dominant, wind and solar surging."
+            Description = "US electricity generation 1990–2024 by source (EIA data): coal's mountain arc, the fracking gas surge, petroleum's near-disappearance, and renewables emerging from zero."
             Graph = AreaCharts.stackedAreaGraph
         }
         {
             FileName = "stacked-area-percent.html"
             Title = "Normalized Stacked Area"
-            Description = "Same EIA electricity data normalized to 100%, showing each source's share of total generation over time."
+            Description = "Same EIA electricity data 1990–2024 normalized to 100%, showing coal's share halving, gas doubling, and renewables rising from nothing."
             Graph = AreaCharts.normalizedStackedAreaGraph
         }
         {
