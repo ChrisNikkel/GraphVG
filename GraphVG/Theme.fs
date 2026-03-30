@@ -2,6 +2,11 @@ namespace GraphVG
 
 open SharpVG
 
+type ThemePreset =
+    | Light
+    | Dark
+    | HighContrast
+
 type Theme =
     {
         Background : Color
@@ -55,6 +60,14 @@ module Theme =
         GridPen = Some (Pen.dimGray |> Pen.withOpacity 0.5)
     }
 
+    let highContrast = {
+        Background = Color.ofName Black
+        PlotBackground = None
+        Pens = [ Pen.yellow; Pen.cyan; Pen.magenta; Pen.lime; Pen.orangeRed; Pen.white ]
+        AxisPen = Pen.white
+        GridPen = Some (Pen.white |> Pen.withOpacity 0.25)
+    }
+
     let turtle = {
         Background = Color.ofName Black
         PlotBackground = None
@@ -62,3 +75,9 @@ module Theme =
         AxisPen = Pen.green
         GridPen = None
     }
+
+    let preset (themePreset : ThemePreset) =
+        match themePreset with
+        | Light -> light
+        | Dark -> dark
+        | HighContrast -> highContrast
