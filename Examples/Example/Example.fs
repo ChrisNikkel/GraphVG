@@ -163,6 +163,71 @@ let logScaleGraph =
         Some (Axis.create Left yScale |> Axis.withLabel "Response"))
     |> Graph.withLegend (Legend.create LegendRight)
 
+let stackedAreaData =
+    let xs = [ for i in 0 .. 11 -> float i ]
+    let mkSeries label ys =
+        List.zip xs ys |> Series.stackedArea |> Series.withLabel label
+    let seriesA = mkSeries "Product A" [ 30.0; 35.0; 32.0; 38.0; 42.0; 45.0; 48.0; 52.0; 50.0; 55.0; 58.0; 60.0 ]
+    let seriesB = mkSeries "Product B" [ 20.0; 22.0; 25.0; 23.0; 26.0; 28.0; 30.0; 27.0; 32.0; 30.0; 33.0; 35.0 ]
+    let seriesC = mkSeries "Product C" [ 10.0; 12.0; 11.0; 14.0; 13.0; 15.0; 18.0; 16.0; 20.0; 22.0; 21.0; 25.0 ]
+    seriesA, seriesB, seriesC
+
+let stackedAreaGraph =
+    let seriesA, seriesB, seriesC = stackedAreaData
+    let monthFormatter value =
+        [| "Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun"; "Jul"; "Aug"; "Sep"; "Oct"; "Nov"; "Dec" |]
+        |> Array.tryItem (int value)
+        |> Option.defaultValue ""
+    let xScale = Scale.linear (0.0, 11.0) (0.0, CommonMath.canvasSize)
+    let yScale = Scale.linear (0.0, 130.0) (CommonMath.canvasSize, 0.0)
+    Graph.create [ seriesA; seriesB; seriesC ] (0.0, 11.0) (0.0, 130.0)
+    |> Graph.withTheme (Theme.light |> Theme.withPens [ Pen.steelBlue; Pen.tomato; Pen.seaGreen ])
+    |> Graph.withTitle "Stacked Area"
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withAxes (
+        Some (Axis.create Bottom xScale |> Axis.withTickInterval 1.0 |> Axis.withTickFormat monthFormatter |> Axis.hideBoundsTick),
+        Some (Axis.create Left yScale |> Axis.withTicks 6 |> Axis.withLabel "Units"))
+    |> Graph.withLegend (Legend.create LegendTop)
+
+let normalizedStackedAreaGraph =
+    let seriesA, seriesB, seriesC = stackedAreaData
+    let seriesAp = { seriesA with Kind = NormalizedStackedArea; Label = Some "Product A" }
+    let seriesBp = { seriesB with Kind = NormalizedStackedArea; Label = Some "Product B" }
+    let seriesCp = { seriesC with Kind = NormalizedStackedArea; Label = Some "Product C" }
+    let monthFormatter value =
+        [| "Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun"; "Jul"; "Aug"; "Sep"; "Oct"; "Nov"; "Dec" |]
+        |> Array.tryItem (int value)
+        |> Option.defaultValue ""
+    let xScale = Scale.linear (0.0, 11.0) (0.0, CommonMath.canvasSize)
+    let yScale = Scale.linear (0.0, 100.0) (CommonMath.canvasSize, 0.0)
+    Graph.create [ seriesAp; seriesBp; seriesCp ] (0.0, 11.0) (0.0, 100.0)
+    |> Graph.withTheme (Theme.light |> Theme.withPens [ Pen.steelBlue; Pen.tomato; Pen.seaGreen ])
+    |> Graph.withTitle "100% Stacked Area"
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withAxes (
+        Some (Axis.create Bottom xScale |> Axis.withTickInterval 1.0 |> Axis.withTickFormat monthFormatter |> Axis.hideBoundsTick),
+        Some (Axis.create Left yScale |> Axis.withTicks 5 |> Axis.withTickFormat (sprintf "%.0f%%") |> Axis.withLabel "Share"))
+    |> Graph.withLegend (Legend.create LegendTop)
+
+let streamgraphGraph =
+    let xs = [ for i in 0 .. 19 -> float i ]
+    let wave phase amplitude =
+        xs |> List.map (fun x -> x, amplitude * abs (sin (x * 0.4 + phase)) + 1.0)
+    let s0 = wave 0.0 4.0 |> Series.streamgraph |> Series.withLabel "Stream A"
+    let s1 = wave 1.2 3.0 |> Series.streamgraph |> Series.withLabel "Stream B"
+    let s2 = wave 2.5 5.0 |> Series.streamgraph |> Series.withLabel "Stream C"
+    let s3 = wave 3.8 2.5 |> Series.streamgraph |> Series.withLabel "Stream D"
+    let xScale = Scale.linear (0.0, 19.0) (0.0, CommonMath.canvasSize)
+    let yScale = Scale.linear (-8.0, 8.0) (CommonMath.canvasSize, 0.0)
+    Graph.create [ s0; s1; s2; s3 ] (0.0, 19.0) (-8.0, 8.0)
+    |> Graph.withTheme (Theme.light |> Theme.withPens [ Pen.steelBlue; Pen.tomato; Pen.seaGreen; Pen.goldenRod ])
+    |> Graph.withTitle "Streamgraph"
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withAxes (
+        Some (Axis.create Bottom xScale |> Axis.withSpine SpineStyle.Hidden |> Axis.withTicks 0),
+        None)
+    |> Graph.withLegend (Legend.create LegendBottom)
+
 let histogramGraph =
     let rng = System.Random(42)
     let values =
@@ -229,6 +294,24 @@ let examples =
             Title = "Log Scale"
             Description = "Logarithmic x-axis with explicit axis configuration and tick formatting."
             Graph = logScaleGraph
+        }
+        {
+            FileName = "stacked-area.html"
+            Title = "Stacked Area"
+            Description = "Absolute stacked area chart showing cumulative contribution of three product lines over 12 months."
+            Graph = stackedAreaGraph
+        }
+        {
+            FileName = "stacked-area-percent.html"
+            Title = "100% Stacked Area"
+            Description = "Normalized stacked area chart showing each product's share of total units per month."
+            Graph = normalizedStackedAreaGraph
+        }
+        {
+            FileName = "streamgraph.html"
+            Title = "Streamgraph"
+            Description = "Four flowing streams symmetrically centered around y=0 using the wiggle baseline."
+            Graph = streamgraphGraph
         }
         {
             FileName = "histogram.html"

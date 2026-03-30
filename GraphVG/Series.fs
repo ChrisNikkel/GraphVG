@@ -7,6 +7,9 @@ type SeriesKind =
     | Scatter
     | Line
     | Area
+    | StackedArea
+    | NormalizedStackedArea
+    | Streamgraph
     | Histogram
     | Box
 
@@ -56,6 +59,15 @@ module Series =
 
     let area points =
         create Area points
+
+    let stackedArea points =
+        create StackedArea points
+
+    let normalizedStackedArea points =
+        create NormalizedStackedArea points
+
+    let streamgraph points =
+        create Streamgraph points
 
     let withLabel label series =
         { series with Label = Some label }

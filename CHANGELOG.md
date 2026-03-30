@@ -7,6 +7,9 @@ All notable changes to GraphVG will be documented in this file.
 ### Added
 - `Histogram` series kind: `Series.histogram` and `Series.histogramWithBins` create bar charts from raw float values using automatic or explicit bin counts (Sturges' rule by default)
 - `Box` series kind: `Series.box` and `Series.boxAt` render median, quartiles, whiskers, and caps from raw float values; box width controlled via `withPointRadius`
+- `StackedArea` series kind: `Series.stackedArea` stacks multiple area series with cumulative absolute values
+- `NormalizedStackedArea` series kind: `Series.normalizedStackedArea` normalizes each column to 100%, showing proportional share
+- `Streamgraph` series kind: `Series.streamgraph` applies the wiggle baseline so all streams are symmetrically centered around y=0
 
 ## [0.1.0] - 2026-03-29
 

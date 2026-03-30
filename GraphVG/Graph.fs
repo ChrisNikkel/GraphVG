@@ -143,6 +143,64 @@ module Graph =
 
     // ── Rendering ───────────────────────────────────────────────────────────────
 
+    let private stackingFor (kind : SeriesKind) (isPercent : bool) (allSeries : Series list) =
+        let grouped =
+            allSeries
+            |> List.mapi (fun i s -> i, s)
+            |> List.filter (fun (_, s) -> s.Kind = kind)
+        match grouped with
+        | [] -> []
+        | (_, first) :: _ ->
+            let xValues = first.Points |> List.map fst
+            let n = xValues.Length
+            let rawY = grouped |> List.map (fun (_, s) -> s.Points |> List.map snd)
+            let totals =
+                [ 0 .. n - 1 ]
+                |> List.map (fun k -> rawY |> List.sumBy (fun ys -> List.item k ys))
+            let scaledY =
+                if isPercent then
+                    rawY |> List.map (fun ys ->
+                        ys |> List.mapi (fun k y ->
+                            if totals.[k] > 0.0 then y / totals.[k] * 100.0 else 0.0))
+                else rawY
+            let cumSums =
+                scaledY
+                |> List.scan (fun acc ys -> List.map2 (+) acc ys) (List.replicate n 0.0)
+            List.zip grouped (List.pairwise cumSums)
+            |> List.map (fun ((seriesIdx, _), (baselines, tops)) ->
+                seriesIdx, (xValues, baselines, tops))
+
+    let private streamgraphStacking (allSeries : Series list) =
+        let grouped =
+            allSeries
+            |> List.mapi (fun i s -> i, s)
+            |> List.filter (fun (_, s) -> s.Kind = Streamgraph)
+        match grouped with
+        | [] -> []
+        | (_, first) :: _ ->
+            let xValues = first.Points |> List.map fst
+            let n = xValues.Length
+            let rawY = grouped |> List.map (fun (_, s) -> s.Points |> List.map snd)
+            let totals =
+                [ 0 .. n - 1 ]
+                |> List.map (fun k -> rawY |> List.sumBy (fun ys -> List.item k ys))
+            let offsets = totals |> List.map (fun t -> -t / 2.0)
+            let cumSums =
+                rawY
+                |> List.scan (fun acc ys -> List.map2 (+) acc ys) (List.replicate n 0.0)
+            List.zip grouped (List.pairwise cumSums)
+            |> List.map (fun ((seriesIdx, _), (baselines, tops)) ->
+                let shiftedBase = List.map2 (+) baselines offsets
+                let shiftedTop = List.map2 (+) tops offsets
+                seriesIdx, (xValues, shiftedBase, shiftedTop))
+
+    let private computeStacking (allSeries : Series list) =
+        [ stackingFor StackedArea false allSeries
+          stackingFor NormalizedStackedArea true allSeries
+          streamgraphStacking allSeries ]
+        |> List.concat
+        |> Map.ofList
+
     let private applyDash dash style =
         match dash with
         | Solid -> style
@@ -152,6 +210,7 @@ module Graph =
 
     let drawSeries graph =
         let toSvgPoint point = point |> toScaledSvgCoordinates graph |> Point.ofFloats
+        let stackingMap = computeStacking graph.Series
         let seriesToElements i (series : Series) =
             if series.Visible then
                 let seriesPen = Theme.penForSeries i graph.Theme |> Pen.withOpacity series.Opacity
@@ -239,5 +298,18 @@ module Graph =
                             |> Element.createWithStyle strokeStyle
                         ]
                     | _ -> []
+                | StackedArea | NormalizedStackedArea | Streamgraph ->
+                    match Map.tryFind i stackingMap with
+                    | None -> []
+                    | Some (xValues, baselines, tops) ->
+                        let strokePen = series.StrokeWidth |> Option.map (fun w -> seriesPen |> Pen.withWidth w) |> Option.defaultValue seriesPen
+                        let style =
+                            Style.createWithPen strokePen
+                            |> Style.withFillPen strokePen
+                            |> applyDash series.StrokeDash
+                        let toSvgXY x y = toScaledSvgCoordinates graph (x, y) |> Point.ofFloats
+                        let topPts = List.map2 toSvgXY xValues tops
+                        let basePts = List.map2 toSvgXY xValues baselines
+                        [ Polygon.ofList (topPts @ List.rev basePts) |> Element.createWithStyle style ]
             else []
         graph.Series |> List.mapi seriesToElements |> List.concat

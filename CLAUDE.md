@@ -27,6 +27,15 @@ Tests/             # xUnit test suite
 
 Do not commit changes automatically. Always wait for the user to review and explicitly request a commit.
 
+## Documentation Wiki
+
+The documentation lives in a separate repo at `../GraphVG.wiki` (GitHub: https://github.com/ChrisNikkel/GraphVG.wiki.git).
+
+- When a feature is implemented, add or update the relevant wiki page(s) to document the public API.
+- Wiki pages use standard Markdown. Follow the style and structure of existing pages.
+- Read existing wiki pages before writing new ones — check what's already there and extend rather than duplicate.
+- Do **not** document internal implementation details (private functions, module-level constants) — only the public API that library consumers use.
+
 ## Changelog
 
 `CHANGELOG.md` is the human-readable history of the project. Keep it current:

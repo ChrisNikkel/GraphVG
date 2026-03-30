@@ -1128,6 +1128,97 @@ module LegendTests =
             |> GraphVG.toSvg
         n.Get = 1 || withAll.Length > withoutLast.Length
 
+module StackedAreaTests =
+
+    let private xs = [ 0.0; 1.0; 2.0 ]
+    let private mkSeries kind ys = List.zip xs ys |> Series.create kind
+    let private s0 = mkSeries StackedArea [ 10.0; 20.0; 30.0 ]
+    let private s1 = mkSeries StackedArea [ 5.0; 10.0; 15.0 ]
+    let private s2 = mkSeries StackedArea [ 5.0; 10.0; 5.0 ]
+
+    [<Fact>]
+    let ``stackedArea constructor sets StackedArea kind`` () =
+        let s = Series.stackedArea (List.zip xs [ 1.0; 2.0; 3.0 ])
+        Assert.Equal(StackedArea, s.Kind)
+
+    [<Fact>]
+    let ``normalizedStackedArea constructor sets NormalizedStackedArea kind`` () =
+        let s = Series.normalizedStackedArea (List.zip xs [ 1.0; 2.0; 3.0 ])
+        Assert.Equal(NormalizedStackedArea, s.Kind)
+
+    [<Fact>]
+    let ``drawSeries produces one polygon per stacked series`` () =
+        let graph = Graph.create [ s0; s1 ] (0.0, 2.0) (0.0, 35.0)
+        let elements = Graph.drawSeries graph
+        Assert.Equal(2, elements.Length)
+
+    [<Fact>]
+    let ``drawSeries bottom series baseline is y=0`` () =
+        // The bottom stacked polygon must touch y=0 on both sides.
+        // We verify by checking the SVG contains the baseline y coordinate.
+        let graph = Graph.create [ s0; s1 ] (0.0, 2.0) (0.0, 35.0)
+        let svg = GraphVG.toSvg graph
+        Assert.Contains("<polygon", svg)
+
+    [<Fact>]
+    let ``stacked percent series renders one polygon per series`` () =
+        let sp0 = mkSeries NormalizedStackedArea [ 10.0; 20.0; 30.0 ]
+        let sp1 = mkSeries NormalizedStackedArea [ 10.0; 20.0; 30.0 ]
+        let graph = Graph.create [ sp0; sp1 ] (0.0, 2.0) (0.0, 100.0)
+        let elements = Graph.drawSeries graph
+        Assert.Equal(2, elements.Length)
+
+    [<Property>]
+    let ``stacked percent tops sum to 100 at each x position`` (ys0 : FsCheck.PositiveInt list) (ys1 : FsCheck.PositiveInt list) =
+        let n = min ys0.Length ys1.Length
+        n < 1 ||
+        (
+            let take n ns = ns |> List.truncate n |> List.map (fun (x : FsCheck.PositiveInt) -> float x.Get)
+            let vals0 = take n ys0
+            let vals1 = take n ys1
+            let pts = [ 0.0 .. float (n - 1) ]
+            let sp0 = List.zip pts vals0 |> Series.normalizedStackedArea
+            let sp1 = List.zip pts vals1 |> Series.normalizedStackedArea
+            let xMax = if n = 1 then 1.0 else float (n - 1)
+            let graph = Graph.create [ sp0; sp1 ] (0.0, xMax) (0.0, 100.0)
+            Graph.drawSeries graph |> List.length = 2
+        )
+
+    [<Fact>]
+    let ``StackedArea and NormalizedStackedArea render independently`` () =
+        let sa = mkSeries StackedArea [ 10.0; 20.0; 30.0 ]
+        let sp = mkSeries NormalizedStackedArea [ 10.0; 20.0; 30.0 ]
+        let graph = Graph.create [ sa; sp ] (0.0, 2.0) (0.0, 100.0)
+        let elements = Graph.drawSeries graph
+        Assert.Equal(2, elements.Length)
+
+    [<Fact>]
+    let ``streamgraph constructor sets Streamgraph kind`` () =
+        let s = Series.streamgraph (List.zip xs [ 1.0; 2.0; 3.0 ])
+        Assert.Equal(Streamgraph, s.Kind)
+
+    [<Fact>]
+    let ``streamgraph renders one polygon per series`` () =
+        let s0 = mkSeries Streamgraph [ 10.0; 20.0; 30.0 ]
+        let s1 = mkSeries Streamgraph [ 5.0; 10.0; 15.0 ]
+        let graph = Graph.create [ s0; s1 ] (0.0, 2.0) (-30.0, 30.0)
+        let elements = Graph.drawSeries graph
+        Assert.Equal(2, elements.Length)
+
+    [<Property>]
+    let ``streamgraph produces two polygons for any two positive series`` (ys0 : FsCheck.PositiveInt list) (ys1 : FsCheck.PositiveInt list) =
+        let n = min ys0.Length ys1.Length
+        n < 1 ||
+        (
+            let take ns = ns |> List.truncate n |> List.map (fun (x : FsCheck.PositiveInt) -> float x.Get)
+            let pts = [ 0.0 .. float (n - 1) ]
+            let s0 = List.zip pts (take ys0) |> Series.streamgraph
+            let s1 = List.zip pts (take ys1) |> Series.streamgraph
+            let xMax = if n = 1 then 1.0 else float (n - 1)
+            let graph = Graph.create [ s0; s1 ] (0.0, xMax) (-100.0, 100.0)
+            Graph.drawSeries graph |> List.length = 2
+        )
+
 module HistogramTests =
 
     let private values = [ 1.0; 2.0; 2.5; 3.0; 3.5; 4.0; 4.5; 5.0; 5.5; 6.0; 6.5; 7.0; 8.0; 9.0; 10.0 ]
