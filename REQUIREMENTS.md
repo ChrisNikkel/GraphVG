@@ -56,30 +56,6 @@ val withErrorBars : ErrorBar -> Series -> Series
 
 ---
 
-## REQ-25: Distribution Chart Types
-
-Add core distribution visualizations commonly available in peer libraries.
-
-```fsharp
-type SeriesKind =
-    | Scatter
-    | Line
-    | Area
-    | Histogram
-    | Box
-
-val histogram : float list -> Series
-val box : float list -> Series
-```
-
-**Acceptance criteria:**
-
-- Histogram supports configurable bin count/strategy.
-- Box plot renders median, quartiles, and whiskers.
-- Existing chart kinds remain behaviorally unchanged.
-
----
-
 ## REQ-26: Tooltip Metadata for HTML Output
 
 Allow optional per-point tooltip content when rendering to HTML.

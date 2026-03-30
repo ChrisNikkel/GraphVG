@@ -968,7 +968,7 @@ module SpineStyleTests =
     [<Fact>]
     let ``Box spine produces same element count as Full`` () =
         let full = Axis.create Bottom scale |> Axis.withTicks 3 |> Axis.toElements Theme.empty
-        let box = Axis.create Bottom scale |> Axis.withTicks 3 |> Axis.withSpine Box |> Axis.toElements Theme.empty
+        let box = Axis.create Bottom scale |> Axis.withTicks 3 |> Axis.withSpine SpineStyle.Box |> Axis.toElements Theme.empty
         Assert.Equal(full.Length, box.Length)
 
     [<Fact>]
@@ -984,7 +984,7 @@ module SpineStyleTests =
     let ``Box spine produces different SVG than Full`` () =
         let axis = Axis.create Bottom scale |> Axis.withTicks 3
         let full = Axis.toElements Theme.empty axis
-        let box = Axis.toElements Theme.empty (axis |> Axis.withSpine Box)
+        let box = Axis.toElements Theme.empty (axis |> Axis.withSpine SpineStyle.Box)
         Assert.True(full <> box)
 
 module AnnotationTests =
@@ -1127,3 +1127,101 @@ module LegendTests =
             |> Graph.withLegend (Legend.create LegendRight)
             |> GraphVG.toSvg
         n.Get = 1 || withAll.Length > withoutLast.Length
+
+module HistogramTests =
+
+    let private values = [ 1.0; 2.0; 2.5; 3.0; 3.5; 4.0; 4.5; 5.0; 5.5; 6.0; 6.5; 7.0; 8.0; 9.0; 10.0 ]
+
+    [<Fact>]
+    let ``histogram creates Histogram kind series`` () =
+        let s = Series.histogram values
+        Assert.Equal(Histogram, s.Kind)
+
+    [<Fact>]
+    let ``histogram stores BinWidth`` () =
+        let s = Series.histogram values
+        Assert.True(s.BinWidth.IsSome)
+
+    [<Fact>]
+    let ``histogramWithBins creates requested number of bins`` () =
+        let s = Series.histogramWithBins 5 values
+        Assert.Equal(5, s.Points.Length)
+
+    [<Fact>]
+    let ``histogram bin counts sum to total value count`` () =
+        let s = Series.histogramWithBins 5 values
+        let totalCount = s.Points |> List.sumBy snd |> int
+        Assert.Equal(values.Length, totalCount)
+
+    [<Fact>]
+    let ``histogram bounds x max includes right edge of last bin`` () =
+        let s = Series.histogramWithBins 5 values
+        let (_, xMax), _ = Series.bounds s
+        let binWidth = s.BinWidth.Value
+        let lastBinLeft = s.Points |> List.map fst |> List.max
+        Assert.Equal(lastBinLeft + binWidth, xMax, 10)
+
+    [<Fact>]
+    let ``histogram bounds y min is zero`` () =
+        let s = Series.histogram values
+        let _, (yMin, _) = Series.bounds s
+        Assert.Equal(0.0, yMin)
+
+    [<Fact>]
+    let ``histogram renders one rect per bin`` () =
+        let s = Series.histogramWithBins 5 values
+        let graph = Graph.create [ s ] (1.0, 10.0) (0.0, 10.0)
+        let elements = Graph.drawSeries graph
+        Assert.Equal(5, elements.Length)
+
+    [<Fact>]
+    let ``histogram createWithSeries produces valid SVG`` () =
+        let svg = Graph.createWithSeries (Series.histogram values) |> GraphVG.toSvg
+        Assert.Contains("<rect", svg)
+
+module BoxPlotTests =
+
+    let private values = [ 2.0; 4.0; 4.0; 4.0; 5.0; 5.0; 7.0; 9.0 ]
+
+    [<Fact>]
+    let ``box creates Box kind series`` () =
+        let s = Series.box values
+        Assert.Equal(SeriesKind.Box, s.Kind)
+
+    [<Fact>]
+    let ``box has exactly 5 points`` () =
+        let s = Series.box values
+        Assert.Equal(5, s.Points.Length)
+
+    [<Fact>]
+    let ``box points are ordered min Q1 median Q3 max`` () =
+        let s = Series.box values
+        let ys = s.Points |> List.map snd
+        Assert.Equal(List.min values, ys.[0], 10)
+        Assert.Equal(List.max values, ys.[4], 10)
+        Assert.True(ys.[0] <= ys.[1] && ys.[1] <= ys.[2] && ys.[2] <= ys.[3] && ys.[3] <= ys.[4])
+
+    [<Fact>]
+    let ``boxAt positions box at specified x`` () =
+        let s = Series.boxAt 3.0 values
+        let xs = s.Points |> List.map fst
+        Assert.True(xs |> List.forall (fun x -> CommonMath.isNear 3.0 x))
+
+    [<Fact>]
+    let ``box renders 6 elements (rect + median + 2 whiskers + 2 caps)`` () =
+        let s = Series.box values
+        let graph = Graph.create [ s ] (0.0, 1.0) (0.0, 10.0)
+        let elements = Graph.drawSeries graph
+        Assert.Equal(6, elements.Length)
+
+    [<Fact>]
+    let ``box createWithSeries produces valid SVG`` () =
+        let svg = Graph.createWithSeries (Series.box values) |> GraphVG.toSvg
+        Assert.Contains("<rect", svg)
+
+    [<Property>]
+    let ``box stats are monotonically non-decreasing`` (values : FsCheck.NonEmptyArray<FsCheck.NormalFloat>) =
+        let vs = values.Get |> Array.map (fun x -> x.Get) |> Array.toList
+        let s = Series.box vs
+        let ys = s.Points |> List.map snd
+        ys.[0] <= ys.[1] && ys.[1] <= ys.[2] && ys.[2] <= ys.[3] && ys.[3] <= ys.[4]

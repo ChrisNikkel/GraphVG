@@ -4,6 +4,10 @@ All notable changes to GraphVG will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- `Histogram` series kind: `Series.histogram` and `Series.histogramWithBins` create bar charts from raw float values using automatic or explicit bin counts (Sturges' rule by default)
+- `Box` series kind: `Series.box` and `Series.boxAt` render median, quartiles, whiskers, and caps from raw float values; box width controlled via `withPointRadius`
+
 ## [0.1.0] - 2026-03-29
 
 ### Added

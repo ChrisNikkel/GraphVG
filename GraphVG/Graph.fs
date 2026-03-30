@@ -38,10 +38,12 @@ module Graph =
         Some (Axis.create (VerticalAt yAxisPosition) yScale |> Axis.hideOrigin)
 
     let private pointBounds (series : Series list) =
-        let allPoints = series |> List.collect (fun s -> s.Points)
-        let xs, ys = allPoints |> List.unzip
-        (List.reduce min xs, List.reduce max xs),
-        (List.reduce min ys, List.reduce max ys)
+        let allBounds = series |> List.map Series.bounds
+        let domainMin = allBounds |> List.map (fst >> fst) |> List.reduce min
+        let domainMax = allBounds |> List.map (fst >> snd) |> List.reduce max
+        let rangeMin = allBounds |> List.map (snd >> fst) |> List.reduce min
+        let rangeMax = allBounds |> List.map (snd >> snd) |> List.reduce max
+        (domainMin, domainMax), (rangeMin, rangeMax)
 
     let private buildScales domain range =
         Scale.linear domain (0.0, canvasSize),
@@ -72,7 +74,11 @@ module Graph =
 
     let createWithSeries (series : Series) =
         let domain, range = pointBounds [ series ]
-        let xScale, yScale = buildScales (padRange 0.1 domain) (padRange 0.1 range)
+        let paddedY =
+            match series.Kind with
+            | Histogram -> (0.0, snd range + (snd range - fst range) * 0.1)
+            | _ -> padRange 0.1 range
+        let xScale, yScale = buildScales (padRange 0.1 domain) paddedY
         let xAxis, yAxis = defaultAxes xScale yScale
         {
             Series = [ series ]
@@ -189,5 +195,49 @@ module Graph =
                         |> Style.withFillPen strokePen
                         |> applyDash series.StrokeDash
                     [ Polygon.ofList (series.Points |> List.map toSvgPoint) |> Element.createWithStyle style ]
+                | SeriesKind.Histogram ->
+                    let binWidth = series.BinWidth |> Option.defaultValue 1.0
+                    let fillStyle = Style.createWithPen seriesPen |> Style.withFillPen seriesPen
+                    series.Points
+                    |> List.map (fun (binLeft, count) ->
+                        let svgX1, svgY1 = toScaledSvgCoordinates graph (binLeft, count)
+                        let svgX2, svgY2 = toScaledSvgCoordinates graph (binLeft + binWidth, 0.0)
+                        Rect.create
+                            (Point.ofFloats (svgX1, svgY1))
+                            (Area.ofFloats (svgX2 - svgX1, svgY2 - svgY1))
+                        |> Element.createWithStyle fillStyle)
+                | SeriesKind.Box ->
+                    match series.Points with
+                    | [ (xPos, yMin); (_, q1); (_, median); (_, q3); (_, yMax) ] ->
+                        let halfWidth = series.PointRadius |> Option.map Length.toFloat |> Option.defaultValue 40.0
+                        let svgX = fst (toScaledSvgCoordinates graph (xPos, 0.0))
+                        let svgY value = snd (toScaledSvgCoordinates graph (0.0, value))
+                        let svgMin = svgY yMin
+                        let svgQ1 = svgY q1
+                        let svgMedian = svgY median
+                        let svgQ3 = svgY q3
+                        let svgMax = svgY yMax
+                        let fillStyle =
+                            Style.createWithPen seriesPen
+                            |> Style.withFillPen seriesPen
+                            |> Style.withFillOpacity 0.2
+                        let strokeStyle = Style.createWithPen seriesPen
+                        [
+                            Rect.create
+                                (Point.ofFloats (svgX - halfWidth, svgQ3))
+                                (Area.ofFloats (halfWidth * 2.0, svgQ1 - svgQ3))
+                            |> Element.createWithStyle fillStyle
+                            Line.create (Point.ofFloats (svgX - halfWidth, svgMedian)) (Point.ofFloats (svgX + halfWidth, svgMedian))
+                            |> Element.createWithStyle strokeStyle
+                            Line.create (Point.ofFloats (svgX, svgQ1)) (Point.ofFloats (svgX, svgMin))
+                            |> Element.createWithStyle strokeStyle
+                            Line.create (Point.ofFloats (svgX, svgQ3)) (Point.ofFloats (svgX, svgMax))
+                            |> Element.createWithStyle strokeStyle
+                            Line.create (Point.ofFloats (svgX - halfWidth / 2.0, svgMin)) (Point.ofFloats (svgX + halfWidth / 2.0, svgMin))
+                            |> Element.createWithStyle strokeStyle
+                            Line.create (Point.ofFloats (svgX - halfWidth / 2.0, svgMax)) (Point.ofFloats (svgX + halfWidth / 2.0, svgMax))
+                            |> Element.createWithStyle strokeStyle
+                        ]
+                    | _ -> []
             else []
         graph.Series |> List.mapi seriesToElements |> List.concat
