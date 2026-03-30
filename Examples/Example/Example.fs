@@ -163,68 +163,85 @@ let logScaleGraph =
         Some (Axis.create Left yScale |> Axis.withLabel "Response"))
     |> Graph.withLegend (Legend.create LegendRight)
 
-let stackedAreaData =
-    let xs = [ for i in 0 .. 11 -> float i ]
-    let mkSeries label ys =
-        List.zip xs ys |> Series.stackedArea |> Series.withLabel label
-    let seriesA = mkSeries "Product A" [ 30.0; 35.0; 32.0; 38.0; 42.0; 45.0; 48.0; 52.0; 50.0; 55.0; 58.0; 60.0 ]
-    let seriesB = mkSeries "Product B" [ 20.0; 22.0; 25.0; 23.0; 26.0; 28.0; 30.0; 27.0; 32.0; 30.0; 33.0; 35.0 ]
-    let seriesC = mkSeries "Product C" [ 10.0; 12.0; 11.0; 14.0; 13.0; 15.0; 18.0; 16.0; 20.0; 22.0; 21.0; 25.0 ]
-    seriesA, seriesB, seriesC
+// US Net Electricity Generation by Source (TWh), 2014–2024
+// Source: EIA Electric Power Annual, Table 3.1.A
+
+let private electricityPoints =
+    let coal =       [ 2014.0, 1581.7; 2015.0, 1352.4; 2016.0, 1239.1; 2017.0, 1205.8; 2018.0, 1149.5
+                       2019.0,  965.0; 2020.0,  773.4; 2021.0,  898.0; 2022.0,  831.5; 2023.0,  675.1; 2024.0,  652.2 ]
+    let naturalGas = [ 2014.0, 1138.7; 2015.0, 1347.8; 2016.0, 1392.1; 2017.0, 1310.2; 2018.0, 1485.3
+                       2019.0, 1601.1; 2020.0, 1638.6; 2021.0, 1590.6; 2022.0, 1698.8; 2023.0, 1817.8; 2024.0, 1880.7 ]
+    let nuclear =    [ 2014.0,  797.2; 2015.0,  797.2; 2016.0,  805.7; 2017.0,  804.9; 2018.0,  807.1
+                       2019.0,  809.4; 2020.0,  789.9; 2021.0,  779.6; 2022.0,  771.5; 2023.0,  774.9; 2024.0,  781.9 ]
+    let hydro =      [ 2014.0,  259.4; 2015.0,  249.1; 2016.0,  267.8; 2017.0,  300.3; 2018.0,  292.5
+                       2019.0,  287.9; 2020.0,  285.3; 2021.0,  251.6; 2022.0,  254.8; 2023.0,  245.0; 2024.0,  242.9 ]
+    let wind =       [ 2014.0,  261.5; 2015.0,  270.3; 2016.0,  305.6; 2017.0,  333.0; 2018.0,  350.5
+                       2019.0,  368.9; 2020.0,  408.5; 2021.0,  448.4; 2022.0,  502.2; 2023.0,  484.7; 2024.0,  513.7 ]
+    let solar =      [ 2014.0,   28.9; 2015.0,   39.0; 2016.0,   54.9; 2017.0,   77.3; 2018.0,   93.4
+                       2019.0,  106.9; 2020.0,  130.7; 2021.0,  164.4; 2022.0,  205.1; 2023.0,  238.9; 2024.0,  303.8 ]
+    [ "Coal", coal; "Natural Gas", naturalGas; "Nuclear", nuclear; "Hydro", hydro; "Wind", wind; "Solar", solar ]
 
 let stackedAreaGraph =
-    let seriesA, seriesB, seriesC = stackedAreaData
-    let monthFormatter value =
-        [| "Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun"; "Jul"; "Aug"; "Sep"; "Oct"; "Nov"; "Dec" |]
-        |> Array.tryItem (int value)
-        |> Option.defaultValue ""
-    let xScale = Scale.linear (0.0, 11.0) (0.0, CommonMath.canvasSize)
-    let yScale = Scale.linear (0.0, 130.0) (CommonMath.canvasSize, 0.0)
-    Graph.create [ seriesA; seriesB; seriesC ] (0.0, 11.0) (0.0, 130.0)
-    |> Graph.withTheme (Theme.light |> Theme.withPens [ Pen.steelBlue; Pen.tomato; Pen.seaGreen ])
-    |> Graph.withTitle "Stacked Area"
+    let allSeries =
+        electricityPoints
+        |> List.map (fun (label, pts) -> pts |> Series.stackedArea |> Series.withLabel label)
+    let yearFormatter value = sprintf "%.0f" value
+    let xScale = Scale.linear (2014.0, 2024.0) (0.0, CommonMath.canvasSize)
+    let yScale = Scale.linear (0.0, 4600.0) (CommonMath.canvasSize, 0.0)
+    let blueScheme =
+        Theme.light
+        |> Theme.withPens [ Pen.navy; Pen.royalBlue; Pen.steelBlue; Pen.cornflowerBlue; Pen.lightSteelBlue; Pen.powderBlue ]
+    Graph.create allSeries (2014.0, 2024.0) (0.0, 4600.0)
+    |> Graph.withTheme blueScheme
+    |> Graph.withTitle "US Electricity by Source"
     |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
     |> Graph.withAxes (
-        Some (Axis.create Bottom xScale |> Axis.withTickInterval 1.0 |> Axis.withTickFormat monthFormatter |> Axis.hideBoundsTick),
-        Some (Axis.create Left yScale |> Axis.withTicks 6 |> Axis.withLabel "Units"))
+        Some (Axis.create Bottom xScale |> Axis.withTickInterval 2.0 |> Axis.withTickFormat yearFormatter),
+        Some (Axis.create Left yScale |> Axis.withTicks 6 |> Axis.withLabel "TWh"))
     |> Graph.withLegend (Legend.create LegendTop)
 
 let normalizedStackedAreaGraph =
-    let seriesA, seriesB, seriesC = stackedAreaData
-    let seriesAp = { seriesA with Kind = NormalizedStackedArea; Label = Some "Product A" }
-    let seriesBp = { seriesB with Kind = NormalizedStackedArea; Label = Some "Product B" }
-    let seriesCp = { seriesC with Kind = NormalizedStackedArea; Label = Some "Product C" }
-    let monthFormatter value =
-        [| "Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun"; "Jul"; "Aug"; "Sep"; "Oct"; "Nov"; "Dec" |]
-        |> Array.tryItem (int value)
-        |> Option.defaultValue ""
-    let xScale = Scale.linear (0.0, 11.0) (0.0, CommonMath.canvasSize)
+    let allSeries =
+        electricityPoints
+        |> List.map (fun (label, pts) -> pts |> Series.normalizedStackedArea |> Series.withLabel label)
+    let yearFormatter value = sprintf "%.0f" value
+    let xScale = Scale.linear (2014.0, 2024.0) (0.0, CommonMath.canvasSize)
     let yScale = Scale.linear (0.0, 100.0) (CommonMath.canvasSize, 0.0)
-    Graph.create [ seriesAp; seriesBp; seriesCp ] (0.0, 11.0) (0.0, 100.0)
-    |> Graph.withTheme (Theme.light |> Theme.withPens [ Pen.steelBlue; Pen.tomato; Pen.seaGreen ])
-    |> Graph.withTitle "100% Stacked Area"
+    let autumnScheme =
+        Theme.light
+        |> Theme.withPens [ Pen.fireBrick; Pen.sienna; Pen.peru; Pen.darkGoldenRod; Pen.sandyBrown; Pen.coral ]
+    Graph.create allSeries (2014.0, 2024.0) (0.0, 100.0)
+    |> Graph.withTheme autumnScheme
+    |> Graph.withTitle "Normalized Stacked Area"
     |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
     |> Graph.withAxes (
-        Some (Axis.create Bottom xScale |> Axis.withTickInterval 1.0 |> Axis.withTickFormat monthFormatter |> Axis.hideBoundsTick),
+        Some (Axis.create Bottom xScale |> Axis.withTickInterval 2.0 |> Axis.withTickFormat yearFormatter),
         Some (Axis.create Left yScale |> Axis.withTicks 5 |> Axis.withTickFormat (sprintf "%.0f%%") |> Axis.withLabel "Share"))
     |> Graph.withLegend (Legend.create LegendTop)
 
 let streamgraphGraph =
-    let xs = [ for i in 0 .. 19 -> float i ]
-    let wave phase amplitude =
-        xs |> List.map (fun x -> x, amplitude * abs (sin (x * 0.4 + phase)) + 1.0)
-    let s0 = wave 0.0 4.0 |> Series.streamgraph |> Series.withLabel "Stream A"
-    let s1 = wave 1.2 3.0 |> Series.streamgraph |> Series.withLabel "Stream B"
-    let s2 = wave 2.5 5.0 |> Series.streamgraph |> Series.withLabel "Stream C"
-    let s3 = wave 3.8 2.5 |> Series.streamgraph |> Series.withLabel "Stream D"
-    let xScale = Scale.linear (0.0, 19.0) (0.0, CommonMath.canvasSize)
-    let yScale = Scale.linear (-8.0, 8.0) (CommonMath.canvasSize, 0.0)
-    Graph.create [ s0; s1; s2; s3 ] (0.0, 19.0) (-8.0, 8.0)
-    |> Graph.withTheme (Theme.light |> Theme.withPens [ Pen.steelBlue; Pen.tomato; Pen.seaGreen; Pen.goldenRod ])
-    |> Graph.withTitle "Streamgraph"
+    // Programming Language Usage (% respondents), Stack Overflow Developer Survey 2017–2024
+    let mk label pts = pts |> Series.streamgraph |> Series.withLabel label
+    let javascript = mk "JavaScript" [ 2017.0, 61.9; 2018.0, 69.8; 2019.0, 67.8; 2020.0, 67.7; 2021.0, 65.0; 2022.0, 65.4; 2023.0, 63.6; 2024.0, 62.3 ]
+    let python =     mk "Python"     [ 2017.0, 31.7; 2018.0, 38.8; 2019.0, 41.7; 2020.0, 44.1; 2021.0, 48.2; 2022.0, 48.1; 2023.0, 49.3; 2024.0, 51.0 ]
+    let java =       mk "Java"       [ 2017.0, 39.3; 2018.0, 45.3; 2019.0, 41.1; 2020.0, 40.2; 2021.0, 35.4; 2022.0, 33.3; 2023.0, 30.6; 2024.0, 30.3 ]
+    let csharp =     mk "C#"         [ 2017.0, 33.8; 2018.0, 34.4; 2019.0, 31.0; 2020.0, 31.4; 2021.0, 27.9; 2022.0, 28.0; 2023.0, 27.6; 2024.0, 27.1 ]
+    let typescript = mk "TypeScript" [ 2017.0,  9.4; 2018.0, 17.4; 2019.0, 21.2; 2020.0, 25.4; 2021.0, 30.2; 2022.0, 34.8; 2023.0, 38.9; 2024.0, 38.5 ]
+    let php =        mk "PHP"        [ 2017.0, 27.9; 2018.0, 30.7; 2019.0, 26.4; 2020.0, 26.2; 2021.0, 22.0; 2022.0, 20.9; 2023.0, 18.6; 2024.0, 18.2 ]
+    let go =         mk "Go"         [ 2017.0,  4.2; 2018.0,  7.1; 2019.0,  8.2; 2020.0,  8.8; 2021.0,  9.6; 2022.0, 11.2; 2023.0, 13.2; 2024.0, 13.5 ]
+    let ruby =       mk "Ruby"       [ 2017.0,  9.0; 2018.0, 10.1; 2019.0,  8.4; 2020.0,  7.1; 2021.0,  6.8; 2022.0,  6.1; 2023.0,  6.2; 2024.0,  5.2 ]
+    let allSeries = [ javascript; python; java; csharp; typescript; php; go; ruby ]
+    let xScale = Scale.linear (2017.0, 2024.0) (0.0, CommonMath.canvasSize)
+    let yScale = Scale.linear (-130.0, 130.0) (CommonMath.canvasSize, 0.0)
+    let rainbowScheme =
+        Theme.light
+        |> Theme.withPens [ Pen.red; Pen.orangeRed; Pen.goldenRod; Pen.limeGreen; Pen.mediumAquamarine; Pen.royalBlue; Pen.blueViolet; Pen.hotPink ]
+    Graph.create allSeries (2017.0, 2024.0) (-130.0, 130.0)
+    |> Graph.withTheme rainbowScheme
+    |> Graph.withTitle "Programming Language Popularity"
     |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
     |> Graph.withAxes (
-        Some (Axis.create Bottom xScale |> Axis.withSpine SpineStyle.Hidden |> Axis.withTicks 0),
+        Some (Axis.create Bottom xScale |> Axis.withTickInterval 1.0 |> Axis.withTickFormat (sprintf "%.0f") |> Axis.withSpine SpineStyle.Hidden),
         None)
     |> Graph.withLegend (Legend.create LegendBottom)
 
@@ -298,19 +315,19 @@ let examples =
         {
             FileName = "stacked-area.html"
             Title = "Stacked Area"
-            Description = "Absolute stacked area chart showing cumulative contribution of three product lines over 12 months."
+            Description = "US electricity generation 2014–2024 by source (EIA data): coal declining, natural gas dominant, wind and solar surging."
             Graph = stackedAreaGraph
         }
         {
             FileName = "stacked-area-percent.html"
-            Title = "100% Stacked Area"
-            Description = "Normalized stacked area chart showing each product's share of total units per month."
+            Title = "Normalized Stacked Area"
+            Description = "Same EIA electricity data normalized to 100%, showing each source's share of total generation over time."
             Graph = normalizedStackedAreaGraph
         }
         {
             FileName = "streamgraph.html"
             Title = "Streamgraph"
-            Description = "Four flowing streams symmetrically centered around y=0 using the wiggle baseline."
+            Description = "Programming language popularity 2017–2024 from Stack Overflow Developer Survey: JavaScript leads, Python rises, TypeScript emerges."
             Graph = streamgraphGraph
         }
         {
