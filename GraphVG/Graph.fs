@@ -3,6 +3,11 @@ namespace GraphVG
 open SharpVG
 open CommonMath
 
+type DomainPolicy =
+    | IncludeZero
+    | Tight
+    | Padded of float
+
 type Graph =
     {
         Series : Series list
@@ -15,6 +20,7 @@ type Graph =
         TitleStyle : TitleStyle
         Annotations : Annotation list
         Legend : Legend option
+        DomainPolicy : DomainPolicy
     }
 
 module Graph =
@@ -49,6 +55,18 @@ module Graph =
         Scale.linear domain (0.0, canvasSize),
         Scale.linear range (canvasSize, 0.0)
 
+    let private applyPolicy (policy : DomainPolicy) (lo, hi) =
+        let span = max (hi - lo) 1e-10
+        match policy with
+        | Tight -> lo, hi
+        | Padded f -> lo - span * f, hi + span * f
+        | IncludeZero ->
+            let lo' = min 0.0 lo
+            let hi' = max 0.0 hi
+            let span' = max (hi' - lo') 1e-10
+            let paddedLo = if lo' >= 0.0 then 0.0 else lo' - span' * 0.1
+            paddedLo, hi' + span' * 0.1
+
     // ── Coordinate transform ────────────────────────────────────────────────────
 
     let toScaledSvgCoordinates graph (x, y) =
@@ -70,16 +88,16 @@ module Graph =
             TitleStyle = TitleStyle.defaults
             Annotations = []
             Legend = None
+            DomainPolicy = Padded 0.1
         }
 
     let createWithSeries (series : Series) =
-        let domain, range = pointBounds [ series ]
-        let paddedDomain, paddedRange =
+        let policy =
             match series.Kind with
-            | Histogram | Bar -> padRange 0.1 domain, (0.0, snd range + (snd range - fst range) * 0.1)
-            | HorizontalBar -> (0.0, snd domain + (snd domain - fst domain) * 0.1), padRange 0.1 range
-            | _ -> padRange 0.1 domain, padRange 0.1 range
-        let xScale, yScale = buildScales paddedDomain paddedRange
+            | Histogram | Bar | HorizontalBar -> IncludeZero
+            | _ -> Padded 0.1
+        let domain, range = pointBounds [ series ]
+        let xScale, yScale = buildScales (applyPolicy policy domain) (applyPolicy policy range)
         let xAxis, yAxis = defaultAxes xScale yScale
         {
             Series = [ series ]
@@ -92,6 +110,7 @@ module Graph =
             TitleStyle = TitleStyle.defaults
             Annotations = []
             Legend = None
+            DomainPolicy = policy
         }
 
     // ── Bounds helpers ──────────────────────────────────────────────────────────
@@ -105,10 +124,10 @@ module Graph =
             XScale = withScaleDomain (domainMin - domainPadding, domainMax + domainPadding) graph.XScale
             YScale = withScaleDomain (rangeMin - rangePadding, rangeMax + rangePadding) graph.YScale }
 
-    let private recalcBounds padPercent graph =
+    let private recalcBounds graph =
         let domain, range = pointBounds graph.Series
-        let newXScale = Scale.linear (padRange padPercent domain) (pixelRangeOf graph.XScale)
-        let newYScale = Scale.linear (padRange padPercent range) (pixelRangeOf graph.YScale)
+        let newXScale = Scale.linear (applyPolicy graph.DomainPolicy domain) (pixelRangeOf graph.XScale)
+        let newYScale = Scale.linear (applyPolicy graph.DomainPolicy range) (pixelRangeOf graph.YScale)
         let xAxis, yAxis = defaultAxes newXScale newYScale
         {
             graph with
@@ -121,7 +140,10 @@ module Graph =
     // ── Builders ────────────────────────────────────────────────────────────────
 
     let addSeries series graph =
-        { graph with Series = graph.Series @ [ series ] } |> recalcBounds 0.1
+        { graph with Series = graph.Series @ [ series ] } |> recalcBounds
+
+    let withDomainPolicy policy graph =
+        { graph with DomainPolicy = policy } |> recalcBounds
 
     let withXScale xScale graph = { graph with XScale = xScale }
     let withYScale yScale graph = { graph with YScale = yScale }
@@ -137,6 +159,7 @@ module Graph =
         }
 
     let withTheme theme graph = { graph with Theme = theme }
+    let withDefaultTheme theme graph = { graph with Theme = theme }
     let withTitle title (graph : Graph) = { graph with Title = Some title }
     let withTitleStyle style (graph : Graph) = { graph with TitleStyle = style }
     let addAnnotation annotation (graph : Graph) = { graph with Annotations = graph.Annotations @ [ annotation ] }

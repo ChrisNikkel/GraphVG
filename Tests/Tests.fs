@@ -305,6 +305,58 @@ module ThemeTests =
         let count = theme.Pens.Length
         Theme.penForSeries i.Get theme = Theme.penForSeries (i.Get + count) theme
 
+module ThemePresetTests =
+
+    open SharpVG
+
+    [<Fact>]
+    let ``preset Light returns light theme`` () =
+        Assert.Equal(Theme.light, Theme.preset Light)
+
+    [<Fact>]
+    let ``preset Dark returns dark theme`` () =
+        Assert.Equal(Theme.dark, Theme.preset Dark)
+
+    [<Fact>]
+    let ``preset HighContrast returns highContrast theme`` () =
+        Assert.Equal(Theme.highContrast, Theme.preset HighContrast)
+
+    [<Fact>]
+    let ``highContrast has black background`` () =
+        Assert.Equal(Color.ofName Black, Theme.highContrast.Background)
+
+    [<Fact>]
+    let ``highContrast has grid pen`` () =
+        Assert.True Theme.highContrast.GridPen.IsSome
+
+    [<Fact>]
+    let ``highContrast has at least six pens`` () =
+        Assert.True(Theme.highContrast.Pens.Length >= 6)
+
+    [<Fact>]
+    let ``withDefaultTheme applies theme to graph`` () =
+        let pts = [ 0.0, 0.0; 1.0, 1.0 ]
+        let graph =
+            Graph.create [ Series.line pts ] (0.0, 1.0) (0.0, 1.0)
+            |> Graph.withDefaultTheme (Theme.preset HighContrast)
+        Assert.Equal(Theme.highContrast, graph.Theme)
+
+    [<Fact>]
+    let ``withDefaultTheme can be overridden by withTheme`` () =
+        let pts = [ 0.0, 0.0; 1.0, 1.0 ]
+        let graph =
+            Graph.create [ Series.line pts ] (0.0, 1.0) (0.0, 1.0)
+            |> Graph.withDefaultTheme (Theme.preset Dark)
+            |> Graph.withTheme Theme.light
+        Assert.Equal(Theme.light, graph.Theme)
+
+    [<Fact>]
+    let ``withDefaultTheme does not mutate original graph`` () =
+        let pts = [ 0.0, 0.0; 1.0, 1.0 ]
+        let original = Graph.create [ Series.line pts ] (0.0, 1.0) (0.0, 1.0)
+        let _ = original |> Graph.withDefaultTheme (Theme.preset HighContrast)
+        Assert.Equal(Theme.empty, original.Theme)
+
 module AxisTests =
 
     let private xScale = Scale.linear (0.0, 10.0) (0.0, 1000.0)
@@ -1390,3 +1442,105 @@ module BarChartTests =
         let s = Series.bar pts
         let graph = Graph.create [ s ] (-100.0, 100.0) (0.0, 200.0)
         Graph.drawSeries graph |> List.length = pts.Length
+
+module DomainPolicyTests =
+
+    open FsCheck
+
+    let private scatterSeries pts = Series.scatter pts
+
+    let private domainOf (graph : Graph) = Scale.domain graph.XScale
+    let private rangeOf (graph : Graph) = Scale.domain graph.YScale
+
+    [<Fact>]
+    let ``Tight policy keeps exact data bounds`` () =
+        let s = scatterSeries [ 1.0, 2.0; 3.0, 4.0 ]
+        let graph = Graph.createWithSeries s |> Graph.withDomainPolicy Tight
+        let xLo, xHi = domainOf graph
+        let yLo, yHi = rangeOf graph
+        Assert.Equal(1.0, xLo)
+        Assert.Equal(3.0, xHi)
+        Assert.Equal(2.0, yLo)
+        Assert.Equal(4.0, yHi)
+
+    [<Fact>]
+    let ``Padded policy expands bounds by fraction`` () =
+        let s = scatterSeries [ 0.0, 0.0; 10.0, 10.0 ]
+        let graph = Graph.createWithSeries s |> Graph.withDomainPolicy (Padded 0.1)
+        let _, xHi = domainOf graph
+        let yLo, yHi = rangeOf graph
+        Assert.True(xHi > 10.0)
+        Assert.True(yLo < 0.0 || yLo = 0.0)
+        Assert.True(yHi > 10.0)
+
+    [<Fact>]
+    let ``Padded policy pads symmetrically even when lo is zero`` () =
+        let s = scatterSeries [ 0.0, 0.0; 5.0, 5.0 ]
+        let graph = Graph.createWithSeries s |> Graph.withDomainPolicy (Padded 0.1)
+        let xLo, xHi = domainOf graph
+        let yLo, yHi = rangeOf graph
+        Assert.True(xLo < 0.0, "Padded should expand below zero")
+        Assert.True(xHi > 5.0, "Padded should expand above data max")
+        Assert.True(yLo < 0.0, "Padded should expand below zero")
+        Assert.True(yHi > 5.0, "Padded should expand above data max")
+
+    [<Fact>]
+    let ``IncludeZero policy pulls lo to zero for positive data`` () =
+        let s = scatterSeries [ 5.0, 10.0; 8.0, 20.0 ]
+        let graph = Graph.createWithSeries s |> Graph.withDomainPolicy IncludeZero
+        let xLo, _ = domainOf graph
+        let yLo, _ = rangeOf graph
+        Assert.Equal(0.0, xLo)
+        Assert.Equal(0.0, yLo)
+
+    [<Fact>]
+    let ``IncludeZero policy pulls hi to zero for all-negative data`` () =
+        let s = scatterSeries [ -8.0, -20.0; -5.0, -10.0 ]
+        let graph = Graph.createWithSeries s |> Graph.withDomainPolicy IncludeZero
+        let _, xHi = domainOf graph
+        let _, yHi = rangeOf graph
+        Assert.True(xHi >= 0.0)
+        Assert.True(yHi >= 0.0)
+
+    [<Fact>]
+    let ``withDomainPolicy recalculates bounds`` () =
+        let s = scatterSeries [ 5.0, 10.0; 8.0, 20.0 ]
+        let graphPadded = Graph.createWithSeries s
+        let graphTight = graphPadded |> Graph.withDomainPolicy Tight
+        let paddedXHi = snd (domainOf graphPadded)
+        let tightXHi = snd (domainOf graphTight)
+        Assert.True(paddedXHi > tightXHi)
+
+    [<Fact>]
+    let ``addSeries respects DomainPolicy`` () =
+        let s1 = scatterSeries [ 1.0, 1.0; 3.0, 3.0 ]
+        let s2 = scatterSeries [ 4.0, 4.0; 6.0, 6.0 ]
+        let graph =
+            Graph.createWithSeries s1
+            |> Graph.withDomainPolicy Tight
+            |> Graph.addSeries s2
+        let xLo, xHi = domainOf graph
+        Assert.Equal(1.0, xLo)
+        Assert.Equal(6.0, xHi)
+
+    [<Property>]
+    let ``Tight bounds equal exact data extent`` (pts : FsCheck.NonEmptyArray<NormalFloat * NormalFloat>) =
+        let points = pts.Get |> Array.map (fun (x, y) -> x.Get, y.Get) |> Array.toList
+        let s = scatterSeries points
+        let graph = Graph.createWithSeries s |> Graph.withDomainPolicy Tight
+        let xLo, xHi = domainOf graph
+        let yLo, yHi = rangeOf graph
+        xLo = (points |> List.map fst |> List.min) &&
+        xHi = (points |> List.map fst |> List.max) &&
+        yLo = (points |> List.map snd |> List.min) &&
+        yHi = (points |> List.map snd |> List.max)
+
+    [<Property>]
+    let ``Padded bounds are at least as wide as Tight bounds`` (pts : FsCheck.NonEmptyArray<NormalFloat * NormalFloat>) =
+        let points = pts.Get |> Array.map (fun (x, y) -> x.Get, y.Get) |> Array.toList
+        let s = scatterSeries points
+        let tight = Graph.createWithSeries s |> Graph.withDomainPolicy Tight
+        let padded = Graph.createWithSeries s |> Graph.withDomainPolicy (Padded 0.1)
+        let tightXLo, tightXHi = domainOf tight
+        let paddedXLo, paddedXHi = domainOf padded
+        paddedXLo <= tightXLo && paddedXHi >= tightXHi

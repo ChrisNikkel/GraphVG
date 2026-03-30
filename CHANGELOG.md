@@ -5,6 +5,10 @@ All notable changes to GraphVG will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- `ThemePreset` type: `Light | Dark | HighContrast`; resolve to a `Theme` via `Theme.preset`
+- `Theme.highContrast`: black background with bright primary-color pens and a subtle white grid
+- `Graph.withDefaultTheme`: apply a preset or baseline theme with the same pipeline API as `withTheme`
+- `DomainPolicy` type: `Padded of float | Tight | IncludeZero` controls how auto-bounds are computed; set via `Graph.withDomainPolicy`
 - `Bar` series kind: `Series.bar` renders vertical grouped bars; multiple `Bar` series at the same x positions are automatically laid out side-by-side
 - `HorizontalBar` series kind: `Series.horizontalBar` renders horizontal bars with values on the x-axis and categories on the y-axis; multiple series group automatically
 - `Histogram` series kind: `Series.histogram` and `Series.histogramWithBins` create bar charts from raw float values using automatic or explicit bin counts (Sturges' rule by default)

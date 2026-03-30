@@ -72,43 +72,6 @@ val withTooltip : (float * float -> string) -> Series -> Series
 
 ---
 
-## REQ-28: Theme Presets and Global Defaults
-
-Support reusable style templates and configurable defaults.
-
-```fsharp
-type ThemePreset = Light | Dark | HighContrast
-
-val preset : ThemePreset -> Theme
-val withDefaultTheme : Theme -> Graph -> Graph
-```
-
-**Acceptance criteria:**
-
-- Presets provide coherent, tested pen/background/grid combinations.
-- Per-graph overrides remain possible after preset application.
-- Existing default theme behavior remains backward-compatible.
-
----
-
-## REQ-29: Domain Policy for Auto-Bounds
-
-Control how automatic domain/range bounds are computed.
-
-```fsharp
-type DomainPolicy = IncludeZero | Tight | Padded of float
-
-val withDomainPolicy : DomainPolicy -> Graph -> Graph
-```
-
-**Acceptance criteria:**
-
-- Auto-bounds honor selected domain policy consistently.
-- Policy interacts predictably with `addSeries` and `createWithSeries`.
-- Manual domain/range settings still take precedence when explicitly provided.
-
----
-
 ## REQ-30: Layout Spacing Configuration
 
 Expose graph layout spacing controls instead of relying on internal fixed margins for titles, axes, and labels.
