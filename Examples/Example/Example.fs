@@ -31,6 +31,18 @@ let examples =
             Graph = LineCharts.styledSeriesGraph
         }
         {
+            FileName = "step-line.html"
+            Title = "Step Line"
+            Description = "Electricity rate tiers that change at fixed hours — three step modes (After, Before, Mid) overlaid so you can compare the geometry."
+            Graph = LineCharts.stepLineGraph
+        }
+        {
+            FileName = "confidence-band.html"
+            Title = "Confidence Band"
+            Description = "Monthly mean temperature with a ±1σ uncertainty band layered under the mean line — a common pattern for showing forecast ranges or confidence intervals."
+            Graph = LineCharts.bandGraph
+        }
+        {
             FileName = "log-scale.html"
             Title = "Log Scale"
             Description = "Logarithmic x-axis with explicit axis configuration and tick formatting."
@@ -134,7 +146,7 @@ let galleryHtml pages =
     + "<body>\n"
     + "<main class=\"wrap\">\n"
     + "<h1>GraphVG Example Gallery</h1>\n"
-    + "<p class=\"intro\">A collection of focused examples covering line charts, stacked and normalized area, streamgraphs, bar charts, bubble charts, histograms, and box plots.</p>\n"
+    + "<p class=\"intro\">A collection of focused examples covering line, step line, area, stacked and normalized area, streamgraphs, bar, bubble, heatmap, histogram, box plot, and confidence band charts.</p>\n"
     + "<section class=\"grid\">\n"
     + cards + "\n"
     + "</section>\n"
@@ -196,28 +208,45 @@ writtenPages |> List.iter (printfn "  %s")
 let repoRoot = Directory.GetCurrentDirectory()
 let docsExamplesDir = Path.Combine(repoRoot, "docs", "examples")
 
+let private convertSvgToPng (svgPath : string) =
+    let pngPath = Path.ChangeExtension(svgPath, ".png")
+    // sips (macOS native renderer) ignores fill-opacity="0" and renders default black fill.
+    // Replace it with fill="none" which sips does respect.
+    let svgContent = File.ReadAllText(svgPath)
+    let fixedContent = svgContent.Replace(" fill-opacity=\"0\"", " fill=\"none\"")
+    let tempSvgPath = Path.ChangeExtension(svgPath, ".tmp.svg")
+    File.WriteAllText(tempSvgPath, fixedContent)
+    let psi = System.Diagnostics.ProcessStartInfo("sips", sprintf "-s format png \"%s\" --out \"%s\"" tempSvgPath pngPath)
+    psi.RedirectStandardOutput <- true
+    psi.RedirectStandardError <- true
+    psi.UseShellExecute <- false
+    use proc = System.Diagnostics.Process.Start(psi)
+    proc.WaitForExit()
+    File.Delete(tempSvgPath)
+    pngPath
+
 let readmeGallery () =
     Directory.CreateDirectory(docsExamplesDir) |> ignore
-    let svgNames =
+    let pngNames =
         examples
         |> List.map (fun page ->
-            let svgFileName = Path.GetFileNameWithoutExtension(page.FileName) + ".svg"
-            let svgPath = Path.Combine(docsExamplesDir, svgFileName)
+            let stem = Path.GetFileNameWithoutExtension(page.FileName)
+            let svgPath = Path.Combine(docsExamplesDir, stem + ".svg")
             File.WriteAllText(svgPath, GraphVG.toSvg page.Graph)
-            svgFileName, page.Title)
+            let pngPath = convertSvgToPng svgPath
+            Path.GetFileName(pngPath), page.Title)
     let cols = 3
     let rows =
-        svgNames
+        pngNames
         |> List.chunkBySize cols
         |> List.map (fun rowItems ->
             let cells =
                 rowItems
-                |> List.map (fun (svgFileName, title) ->
+                |> List.map (fun (pngFileName, title) ->
                     "<td align=\"center\" width=\"320\">"
-                    + "<img src=\"docs/examples/" + svgFileName + "\" width=\"280\" alt=\"" + title + "\" />"
+                    + "<img src=\"docs/examples/" + pngFileName + "\" width=\"280\" alt=\"" + title + "\" />"
                     + "<br /><b>" + title + "</b>"
                     + "</td>")
-            // pad to full width so the table is always uniform
             let padded = cells @ List.replicate (cols - cells.Length) "<td></td>"
             "<tr>" + String.concat "" padded + "</tr>")
     let table = "<table>\n" + String.concat "\n" rows + "\n</table>"

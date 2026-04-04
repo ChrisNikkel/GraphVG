@@ -5,6 +5,7 @@ All notable changes to GraphVG will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- `Band` series kind: `Series.band` takes `(x, yLow, yHigh)` triples and renders a filled region between the two bounds; fill defaults to 0.3 opacity; stroke added via `withStrokeWidth`; auto-bounds cover both yLow and yHigh values
 - `StepLine` series kind: `Series.stepLine` connects points with horizontal-then-vertical segments; `Series.withStepMode` accepts `After` (default), `Before`, or `Mid`; compatible with `withStrokeDash`, `withStrokeWidth`, and all other series modifiers
 - `Heatmap` series kind: `Series.heatmap` takes `(col, row, value)` triples and renders a grid of colored rectangles; `Series.withColorScale` accepts a custom `float -> Color` mapping; default palette interpolates white → steelblue; a color ramp with min/max labels is rendered automatically alongside the graph; cell size is inferred from grid spacing
 - `Theme.defaultHeatmapColorScale`: built-in white-to-steelblue color scale exposed for use in custom pipelines

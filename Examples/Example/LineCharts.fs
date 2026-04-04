@@ -110,6 +110,72 @@ let styledSeriesGraph =
     |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
     |> Graph.withLegend (Legend.create LegendRight)
 
+let stepLineGraph =
+    // Utility electricity rate tiers that change at fixed hours — a classic step function.
+    // All three step modes (After, Before, Mid) are overlaid so you can compare their geometry.
+    let hourlyRates =
+        [ 0.0, 0.08; 6.0, 0.11; 9.0, 0.22; 17.0, 0.18; 21.0, 0.11; 24.0, 0.08 ]
+    let after =
+        hourlyRates
+        |> Series.stepLine
+        |> Series.withLabel "After (default)"
+        |> Series.withStrokeWidth (Length.ofFloat 3.0)
+    let before =
+        hourlyRates
+        |> Series.stepLine
+        |> Series.withStepMode Before
+        |> Series.withLabel "Before"
+        |> Series.withStrokeWidth (Length.ofFloat 2.0)
+        |> Series.withStrokeDash Dashed
+    let mid =
+        hourlyRates
+        |> Series.stepLine
+        |> Series.withStepMode Mid
+        |> Series.withLabel "Mid"
+        |> Series.withStrokeWidth (Length.ofFloat 2.0)
+        |> Series.withStrokeDash Dotted
+    let xScale = Scale.linear (0.0, 24.0) (0.0, CommonMath.canvasSize)
+    let yScale = Scale.linear (0.0, 0.28) (CommonMath.canvasSize, 0.0)
+    Graph.create [ after; before; mid ] (0.0, 24.0) (0.0, 0.28)
+    |> Graph.withTheme (Theme.light |> Theme.withPens [ Pen.steelBlue; Pen.tomato; Pen.seaGreen ])
+    |> Graph.withTitle "Step Line"
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withAxes (
+        Some (Axis.create Bottom xScale |> Axis.withTickInterval 6.0 |> Axis.withTickFormat (fun v -> sprintf "%.0fh" v) |> Axis.withLabel "Hour of Day"),
+        Some (Axis.create Left yScale |> Axis.withTicks 5 |> Axis.withTickFormat (sprintf "$%.2f") |> Axis.withLabel "Rate ($/kWh)"))
+    |> Graph.withLegend (Legend.create LegendRight)
+
+let bandGraph =
+    // Monthly mean temperature with ±1σ uncertainty band, layered so the band renders below the line.
+    let months = [ 1.0 .. 12.0 ]
+    let means  = [ 3.2; 4.1; 7.8; 12.5; 17.3; 21.0; 23.4; 22.8; 18.6; 12.9; 7.2; 4.0 ]
+    let stds   = [ 3.5; 3.2; 3.0; 2.8; 2.5; 2.2; 2.0; 2.2; 2.5; 3.0; 3.5; 3.8 ]
+    let bandTriples = List.map3 (fun x m s -> x, m - s, m + s) months means stds
+    let uncertainty =
+        bandTriples
+        |> Series.band
+        |> Series.withLabel "±1σ"
+    let meanLine =
+        List.zip months means
+        |> Series.line
+        |> Series.withLabel "Mean"
+        |> Series.withStrokeWidth (Length.ofFloat 3.5)
+    let xScale = Scale.linear (1.0, 12.0) (0.0, CommonMath.canvasSize)
+    let yScale = Scale.linear (-5.0, 30.0) (CommonMath.canvasSize, 0.0)
+    let monthFormatter value =
+        [ 1.0, "Jan"; 2.0, "Feb"; 3.0, "Mar"; 4.0, "Apr"; 5.0, "May"; 6.0, "Jun"
+          7.0, "Jul"; 8.0, "Aug"; 9.0, "Sep"; 10.0, "Oct"; 11.0, "Nov"; 12.0, "Dec" ]
+        |> List.tryPick (fun (v, l) -> if CommonMath.isNear v value then Some l else None)
+        |> Option.defaultValue ""
+    Graph.create [ uncertainty; meanLine ] (1.0, 12.0) (-5.0, 30.0)
+    |> Graph.withTheme (Theme.light |> Theme.withPens [ Pen.steelBlue; Pen.steelBlue ])
+    |> Graph.withTitle "Confidence Band"
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withAxes (
+        Some (Axis.create Bottom xScale |> Axis.withTicks 12 |> Axis.withTickFormat monthFormatter |> Axis.hideBoundsTick |> Axis.hideBoundsLabel),
+        Some (Axis.create Left yScale |> Axis.withTicks 7 |> Axis.withTickFormat (sprintf "%.0f°C") |> Axis.withLabel "Temperature"))
+    |> Graph.withLegend (Legend.create LegendRight)
+
 let logScaleGraph =
     let responsePoints =
         [ 1.0, 1.0; 2.0, 1.4; 5.0, 2.0; 10.0, 2.6; 20.0, 3.2; 50.0, 4.0; 100.0, 4.7; 200.0, 5.2; 500.0, 6.0; 1000.0, 6.6 ]

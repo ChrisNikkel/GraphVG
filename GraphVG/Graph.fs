@@ -327,6 +327,24 @@ module Graph =
                         |> Style.withFillPen strokePen
                         |> applyDash series.StrokeDash
                     [ Polygon.ofList (series.Points |> List.map toSvgPoint) |> Element.createWithStyle style ]
+                | Band ->
+                    let bandHighs = series.BandHighs |> Option.defaultValue []
+                    if List.isEmpty bandHighs then []
+                    else
+                        let xs = series.Points |> List.map fst
+                        let yLows = series.Points |> List.map snd
+                        let fillPen = seriesPen |> Pen.withOpacity (series.Opacity * 0.3)
+                        let baseStyle =
+                            Style.empty
+                            |> Style.withFillPen fillPen
+                            |> applyDash series.StrokeDash
+                        let style =
+                            match series.StrokeWidth with
+                            | Some w -> baseStyle |> Style.withStrokePen (seriesPen |> Pen.withWidth w)
+                            | None -> baseStyle
+                        let topPts = List.map2 (fun x yHigh -> toSvgPoint (x, yHigh)) xs bandHighs
+                        let botPts = List.map2 (fun x yLow -> toSvgPoint (x, yLow)) xs yLows
+                        [ Polygon.ofList (topPts @ List.rev botPts) |> Element.createWithStyle style ]
                 | SeriesKind.Histogram ->
                     let binWidth = series.BinWidth |> Option.defaultValue 1.0
                     let fillStyle = Style.createWithPen seriesPen |> Style.withFillPen seriesPen

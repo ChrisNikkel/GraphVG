@@ -17,6 +17,7 @@ type SeriesKind =
     | HorizontalBar
     | Bubble
     | Heatmap
+    | Band
 
 type PointShape = Circle | Square | Diamond | Cross | Triangle
 
@@ -44,6 +45,7 @@ type Series =
         BubbleSizes : float list option
         HeatValues : float list option
         ColorScale : (float -> Color) option
+        BandHighs : float list option
     }
 
 module Series =
@@ -64,6 +66,7 @@ module Series =
             BubbleSizes = None
             HeatValues = None
             ColorScale = None
+            BandHighs = None
         }
 
     let scatter points =
@@ -108,6 +111,11 @@ module Series =
         let points = triples |> List.map (fun (col, row, _) -> col, row)
         let values = triples |> List.map (fun (_, _, v) -> v)
         { create Heatmap points with HeatValues = Some values }
+
+    let band (triples : (float * float * float) list) =
+        let points = triples |> List.map (fun (x, yLow, _) -> x, yLow)
+        let highs = triples |> List.map (fun (_, _, yHigh) -> yHigh)
+        { create Band points with BandHighs = Some highs }
 
     let withColorScale (scale : float -> Color) (series : Series) =
         { series with ColorScale = Some scale }
@@ -218,6 +226,10 @@ module Series =
                 | _ -> 0.5
             (List.min xs - halfSpan xs, List.max xs + halfSpan xs),
             (List.min ys - halfSpan ys, List.max ys + halfSpan ys)
+        | Band ->
+            let xs, yLows = series.Points |> List.unzip
+            let yHighs = series.BandHighs |> Option.defaultValue yLows
+            (List.min xs, List.max xs), (List.min yLows, List.max yHighs)
         | _ ->
             let xs, ys = series.Points |> List.unzip
             (List.min xs, List.max xs), (List.min ys, List.max ys)

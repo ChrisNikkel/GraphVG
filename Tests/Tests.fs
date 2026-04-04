@@ -707,6 +707,41 @@ module GraphTests =
         let graph = Graph.create [ Series.stepLine pts ] (0.0, float (n.Get - 1)) (0.0, float (n.Get - 1))
         Graph.drawSeries graph |> List.length = 1
 
+    // Band – REQ-33
+
+    let private bandTriples = [ 0.0, 1.0, 3.0; 2.0, 2.0, 5.0; 4.0, 0.5, 2.5 ]
+
+    [<Fact>]
+    let ``drawSeries band produces exactly one polygon element`` () =
+        let graph = Graph.create [ Series.band bandTriples ] (0.0, 4.0) (0.0, 6.0)
+        Assert.Equal(1, Graph.drawSeries graph |> List.length)
+
+    [<Fact>]
+    let ``drawSeries band with stroke width produces different SVG than without`` () =
+        let noStroke = Graph.create [ Series.band bandTriples ] (0.0, 4.0) (0.0, 6.0) |> GraphVG.toSvg
+        let withStroke = Graph.create [ Series.band bandTriples |> Series.withStrokeWidth (SharpVG.Length.ofFloat 2.0) ] (0.0, 4.0) (0.0, 6.0) |> GraphVG.toSvg
+        Assert.True(noStroke <> withStroke)
+
+    [<Fact>]
+    let ``drawSeries band with reduced opacity produces different SVG than default`` () =
+        let defaultSvg = Graph.create [ Series.band bandTriples ] (0.0, 4.0) (0.0, 6.0) |> GraphVG.toSvg
+        let dimSvg = Graph.create [ Series.band bandTriples |> Series.withOpacity 0.5 ] (0.0, 4.0) (0.0, 6.0) |> GraphVG.toSvg
+        Assert.True(defaultSvg <> dimSvg)
+
+    [<Fact>]
+    let ``createWithSeries band includes both yLow and yHigh in auto-bounds`` () =
+        // yLow range 1..2, yHigh range 3..5 — y domain should cover at least 1..5
+        let graph = Graph.createWithSeries (Series.band bandTriples)
+        let yMin, yMax = Scale.domain graph.YScale
+        Assert.True(yMin < 1.0)
+        Assert.True(yMax > 5.0)
+
+    [<Property>]
+    let ``drawSeries band always produces exactly one element for any nonempty list`` (n: FsCheck.PositiveInt) =
+        let triples = List.init n.Get (fun i -> float i, 0.0, 1.0)
+        let graph = Graph.create [ Series.band triples ] (0.0, float (n.Get - 1)) (0.0, 1.0)
+        Graph.drawSeries graph |> List.length = 1
+
 module GraphVGTests =
 
     let private points = [ 0.0, 0.0; 2.0, 4.0; 4.0, 2.0 ]

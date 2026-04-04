@@ -96,24 +96,6 @@ val withLayoutSpacing : LayoutSpacing -> Graph -> Graph
 
 ---
 
-## REQ-33: Range / Band Series
-
-Shaded region between two y-value boundaries at each x. Used for confidence intervals, min/max envelopes, and forecast ranges.
-
-```fsharp
-// Points are (x, yLow, yHigh)
-val band : (float * float * float) list -> Series
-```
-
-**Acceptance criteria:**
-
-- Band series renders a filled polygon spanning `yLow` to `yHigh` at each x.
-- Fill uses the series color at reduced opacity (default ~0.3) with no stroke, or stroke can be added via `withStrokeWidth`.
-- Can be layered under a `Line` series to show a mean ± confidence envelope.
-- Auto-bounds include both `yLow` and `yHigh` values.
-
----
-
 ## REQ-35: Violin Plot
 
 A distribution visualization that shows a mirrored kernel density estimate (KDE) alongside optional box-plot summary statistics. Natural companion to the existing `Box` series.
