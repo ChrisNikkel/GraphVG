@@ -208,43 +208,25 @@ writtenPages |> List.iter (printfn "  %s")
 let repoRoot = Directory.GetCurrentDirectory()
 let docsExamplesDir = Path.Combine(repoRoot, "docs", "examples")
 
-let private convertSvgToPng (svgPath : string) =
-    let pngPath = Path.ChangeExtension(svgPath, ".png")
-    // sips (macOS native renderer) ignores fill-opacity="0" and renders default black fill.
-    // Replace it with fill="none" which sips does respect.
-    let svgContent = File.ReadAllText(svgPath)
-    let fixedContent = svgContent.Replace(" fill-opacity=\"0\"", " fill=\"none\"")
-    let tempSvgPath = Path.ChangeExtension(svgPath, ".tmp.svg")
-    File.WriteAllText(tempSvgPath, fixedContent)
-    let psi = System.Diagnostics.ProcessStartInfo("sips", sprintf "-s format png \"%s\" --out \"%s\"" tempSvgPath pngPath)
-    psi.RedirectStandardOutput <- true
-    psi.RedirectStandardError <- true
-    psi.UseShellExecute <- false
-    use proc = System.Diagnostics.Process.Start(psi)
-    proc.WaitForExit()
-    File.Delete(tempSvgPath)
-    pngPath
-
 let readmeGallery () =
     Directory.CreateDirectory(docsExamplesDir) |> ignore
-    let pngNames =
+    let svgNames =
         examples
         |> List.map (fun page ->
-            let stem = Path.GetFileNameWithoutExtension(page.FileName)
-            let svgPath = Path.Combine(docsExamplesDir, stem + ".svg")
+            let svgFileName = Path.GetFileNameWithoutExtension(page.FileName) + ".svg"
+            let svgPath = Path.Combine(docsExamplesDir, svgFileName)
             File.WriteAllText(svgPath, GraphVG.toSvg page.Graph)
-            let pngPath = convertSvgToPng svgPath
-            Path.GetFileName(pngPath), page.Title)
+            svgFileName, page.Title)
     let cols = 3
     let rows =
-        pngNames
+        svgNames
         |> List.chunkBySize cols
         |> List.map (fun rowItems ->
             let cells =
                 rowItems
-                |> List.map (fun (pngFileName, title) ->
+                |> List.map (fun (svgFileName, title) ->
                     "<td align=\"center\" width=\"320\">"
-                    + "<img src=\"docs/examples/" + pngFileName + "\" width=\"280\" alt=\"" + title + "\" />"
+                    + "<img src=\"docs/examples/" + svgFileName + "\" width=\"280\" alt=\"" + title + "\" />"
                     + "<br /><b>" + title + "</b>"
                     + "</td>")
             let padded = cells @ List.replicate (cols - cells.Length) "<td></td>"
