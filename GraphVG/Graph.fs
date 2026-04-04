@@ -312,6 +312,14 @@ module Graph =
                         |> Style.withFillOpacity 0.0
                         |> applyDash series.StrokeDash
                     [ Polyline.ofList (series.Points |> List.map toSvgPoint) |> Element.createWithStyle style ]
+                | SeriesKind.StepLine ->
+                    let strokePen = series.StrokeWidth |> Option.map (fun width -> seriesPen |> Pen.withWidth width) |> Option.defaultValue seriesPen
+                    let style =
+                        Style.createWithPen strokePen
+                        |> Style.withFillOpacity 0.0
+                        |> applyDash series.StrokeDash
+                    let stepPoints = expandStepPoints series.StepMode series.Points
+                    [ Polyline.ofList (stepPoints |> List.map toSvgPoint) |> Element.createWithStyle style ]
                 | Area ->
                     let strokePen = series.StrokeWidth |> Option.map (fun width -> seriesPen |> Pen.withWidth width) |> Option.defaultValue seriesPen
                     let style =

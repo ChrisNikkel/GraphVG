@@ -5,6 +5,7 @@ All notable changes to GraphVG will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- `StepLine` series kind: `Series.stepLine` connects points with horizontal-then-vertical segments; `Series.withStepMode` accepts `After` (default), `Before`, or `Mid`; compatible with `withStrokeDash`, `withStrokeWidth`, and all other series modifiers
 - `Heatmap` series kind: `Series.heatmap` takes `(col, row, value)` triples and renders a grid of colored rectangles; `Series.withColorScale` accepts a custom `float -> Color` mapping; default palette interpolates white → steelblue; a color ramp with min/max labels is rendered automatically alongside the graph; cell size is inferred from grid spacing
 - `Theme.defaultHeatmapColorScale`: built-in white-to-steelblue color scale exposed for use in custom pipelines
 - `Bubble` series kind: `Series.bubble` takes `(x, y, size)` triples and renders area-proportional circles; `Series.withBubbleSizes` attaches sizes to an existing series; zero or negative sizes render as invisible; legend swatch is a circle

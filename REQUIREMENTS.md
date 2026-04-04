@@ -96,26 +96,6 @@ val withLayoutSpacing : LayoutSpacing -> Graph -> Graph
 
 ---
 
-## REQ-32: Stepped Line
-
-A line series that connects points with horizontal-then-vertical steps rather than diagonal segments. Useful for time-series data where values change discretely (step functions, state machines, inventory levels).
-
-```fsharp
-type StepMode = Before | After | Mid
-
-val stepLine : (float * float) list -> Series
-val withStepMode : StepMode -> Series -> Series
-```
-
-**Acceptance criteria:**
-
-- `StepLine` renders horizontal segment then vertical segment between consecutive points (default: `After` — horizontal first).
-- `Before` steps vertically first; `Mid` places the vertical segment at the midpoint between x values.
-- Works with `withStrokeDash`, `withStrokeWidth`, and all existing series modifiers.
-- No visual change to existing `Line` series.
-
----
-
 ## REQ-33: Range / Band Series
 
 Shaded region between two y-value boundaries at each x. Used for confidence intervals, min/max envelopes, and forecast ranges.

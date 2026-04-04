@@ -670,6 +670,43 @@ module GraphTests =
         let after = (graph |> Graph.addSeries (Series.line pts)).Series.Length
         after = graph.Series.Length + 1
 
+    // StepLine – REQ-32
+
+    [<Fact>]
+    let ``drawSeries stepLine produces exactly one polyline element`` () =
+        let graph = Graph.create [ Series.stepLine points ] (0.0, 4.0) (0.0, 4.0)
+        Assert.Equal(1, Graph.drawSeries graph |> List.length)
+
+    [<Fact>]
+    let ``drawSeries stepLine produces different SVG than line`` () =
+        let lineSvg = Graph.create [ Series.line points ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
+        let stepSvg = Graph.create [ Series.stepLine points ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
+        Assert.True(lineSvg <> stepSvg)
+
+    [<Fact>]
+    let ``drawSeries stepLine withStepMode Before produces different SVG than After`` () =
+        let afterSvg = Graph.create [ Series.stepLine points ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
+        let beforeSvg = Graph.create [ Series.stepLine points |> Series.withStepMode Before ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
+        Assert.True(afterSvg <> beforeSvg)
+
+    [<Fact>]
+    let ``drawSeries stepLine withStepMode Mid produces different SVG than After`` () =
+        let afterSvg = Graph.create [ Series.stepLine points ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
+        let midSvg = Graph.create [ Series.stepLine points |> Series.withStepMode Mid ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
+        Assert.True(afterSvg <> midSvg)
+
+    [<Fact>]
+    let ``drawSeries stepLine respects withStrokeDash`` () =
+        let solidSvg = Graph.create [ Series.stepLine points ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
+        let dashedSvg = Graph.create [ Series.stepLine points |> Series.withStrokeDash Dashed ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
+        Assert.True(solidSvg <> dashedSvg)
+
+    [<Property>]
+    let ``drawSeries stepLine always produces exactly one element for any nonempty point list`` (n: FsCheck.PositiveInt) =
+        let pts = List.init n.Get (fun i -> float i, float i)
+        let graph = Graph.create [ Series.stepLine pts ] (0.0, float (n.Get - 1)) (0.0, float (n.Get - 1))
+        Graph.drawSeries graph |> List.length = 1
+
 module GraphVGTests =
 
     let private points = [ 0.0, 0.0; 2.0, 4.0; 4.0, 2.0 ]
