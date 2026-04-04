@@ -36,26 +36,6 @@ val withPanel : row : int * col : int -> Series -> Series
 
 ---
 
-## REQ-24: Error Bars
-
-Support uncertainty visualization for scatter and line series.
-
-```fsharp
-type ErrorBar =
-    | Symmetric of float list
-    | Asymmetric of low : float list * high : float list
-
-val withErrorBars : ErrorBar -> Series -> Series
-```
-
-**Acceptance criteria:**
-
-- Error bars render correctly for each point.
-- Length mismatches are handled explicitly (e.g., result/error return).
-- No visual change when error bars are not configured.
-
----
-
 ## REQ-26: Tooltip Metadata for HTML Output
 
 Allow optional per-point tooltip content when rendering to HTML.

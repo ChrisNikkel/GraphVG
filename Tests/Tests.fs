@@ -1826,3 +1826,75 @@ module HeatmapTests =
         let s = Series.heatmap data
         let graph = Graph.createWithSeries s
         Graph.drawSeries graph |> List.length = count
+
+module ErrorBarTests =
+
+    open FsCheck
+
+    let private points3 = [ 0.0, 1.0; 1.0, 2.0; 2.0, 3.0 ]
+    let private scatter3 = Series.scatter points3
+    let private errors3 = [ 0.1; 0.2; 0.3 ]
+    let private lows3 = [ 0.1; 0.2; 0.1 ]
+    let private highs3 = [ 0.3; 0.1; 0.2 ]
+
+    [<Fact>]
+    let ``withErrorBars Symmetric returns Ok for matching length`` () =
+        Assert.True(Result.isOk (Series.withErrorBars (Symmetric errors3) scatter3))
+
+    [<Fact>]
+    let ``withErrorBars Symmetric returns Error for mismatching length`` () =
+        Assert.True(Result.isError (Series.withErrorBars (Symmetric [ 0.1 ]) scatter3))
+
+    [<Fact>]
+    let ``withErrorBars Asymmetric returns Ok for matching lengths`` () =
+        Assert.True(Result.isOk (Series.withErrorBars (Asymmetric (lows3, highs3)) scatter3))
+
+    [<Fact>]
+    let ``withErrorBars Asymmetric returns Error if lows length mismatches`` () =
+        Assert.True(Result.isError (Series.withErrorBars (Asymmetric ([ 0.1 ], highs3)) scatter3))
+
+    [<Fact>]
+    let ``withErrorBars Asymmetric returns Error if highs length mismatches`` () =
+        Assert.True(Result.isError (Series.withErrorBars (Asymmetric (lows3, [ 0.1 ])) scatter3))
+
+    [<Fact>]
+    let ``series without error bars is unchanged by render`` () =
+        let graph = Graph.create [ scatter3 ] (0.0, 2.0) (0.0, 4.0)
+        let without = Graph.drawSeries graph |> List.length
+        Assert.Equal(3, without)
+
+    [<Fact>]
+    let ``drawSeries with Symmetric error bars adds 3 elements per point`` () =
+        let s = Series.withErrorBars (Symmetric errors3) scatter3 |> function Ok v -> v | Error e -> failwith e
+        let graph = Graph.create [ s ] (0.0, 2.0) (0.0, 4.0)
+        // 3 scatter circles + 3 points × 3 elements (line + 2 caps) = 12
+        Assert.Equal(12, Graph.drawSeries graph |> List.length)
+
+    [<Fact>]
+    let ``drawSeries with Asymmetric error bars adds 3 elements per point`` () =
+        let s = Series.withErrorBars (Asymmetric (lows3, highs3)) scatter3 |> function Ok v -> v | Error e -> failwith e
+        let graph = Graph.create [ s ] (0.0, 2.0) (0.0, 4.0)
+        Assert.Equal(12, Graph.drawSeries graph |> List.length)
+
+    [<Fact>]
+    let ``withErrorBars Symmetric expands y bounds`` () =
+        let s = Series.withErrorBars (Symmetric [ 1.0; 1.0; 1.0 ]) scatter3 |> function Ok v -> v | Error e -> failwith e
+        let _, (yMin, yMax) = Series.bounds s
+        // y values are 1, 2, 3; errors are all 1.0
+        // yMin = 1.0 - 1.0 = 0.0; yMax = 3.0 + 1.0 = 4.0
+        Assert.Equal(0.0, yMin, 10)
+        Assert.Equal(4.0, yMax, 10)
+
+    [<Property>]
+    let ``error bar element count is 3n for n points with Symmetric errors`` (n : PositiveInt) =
+        let count = min n.Get 50
+        let pts = List.init count (fun i -> float i, float i)
+        let errs = List.replicate count 0.1
+        let scatter = Series.scatter pts
+        match Series.withErrorBars (Symmetric errs) scatter with
+        | Error _ -> false
+        | Ok s ->
+            let graph = Graph.create [ s ] (0.0, float count) (0.0, float count)
+            let scatterCount = count   // one circle per point
+            let errorCount = count * 3 // one line + two caps per point
+            Graph.drawSeries graph |> List.length = scatterCount + errorCount

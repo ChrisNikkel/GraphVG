@@ -276,6 +276,33 @@ module Graph =
         | Dotted -> style |> Style.withStrokeDashArray [ 3.0; 6.0 ]
         | DashDot -> style |> Style.withStrokeDashArray [ 12.0; 6.0; 3.0; 6.0 ]
 
+    let private errorBarElements (pen : Pen) (points : (float * float) list) (errorBar : ErrorBar) (graph : Graph) =
+        let capHalfWidth = 5.0
+        let style = Style.createWithPen pen
+        let errorsFor i =
+            match errorBar with
+            | Symmetric errors ->
+                let e = errors |> List.tryItem i |> Option.defaultValue 0.0
+                e, e
+            | Asymmetric (lows, highs) ->
+                lows |> List.tryItem i |> Option.defaultValue 0.0,
+                highs |> List.tryItem i |> Option.defaultValue 0.0
+        points
+        |> List.mapi (fun i (x, y) ->
+            let errLow, errHigh = errorsFor i
+            let svgX, _ = toScaledSvgCoordinates graph (x, y)
+            let _, svgYBottom = toScaledSvgCoordinates graph (x, y - errLow)
+            let _, svgYTop = toScaledSvgCoordinates graph (x, y + errHigh)
+            [
+                Line.create (Point.ofFloats (svgX, svgYBottom)) (Point.ofFloats (svgX, svgYTop))
+                |> Element.createWithStyle style
+                Line.create (Point.ofFloats (svgX - capHalfWidth, svgYBottom)) (Point.ofFloats (svgX + capHalfWidth, svgYBottom))
+                |> Element.createWithStyle style
+                Line.create (Point.ofFloats (svgX - capHalfWidth, svgYTop)) (Point.ofFloats (svgX + capHalfWidth, svgYTop))
+                |> Element.createWithStyle style
+            ])
+        |> List.concat
+
     let drawSeries graph =
         let toSvgPoint point = point |> toScaledSvgCoordinates graph |> Point.ofFloats
         let stackingMap = computeStacking graph.Series
@@ -476,4 +503,15 @@ module Graph =
                         let basePts = List.map2 toSvgXY xValues baselines
                         [ Polygon.ofList (topPts @ List.rev basePts) |> Element.createWithStyle style ]
             else []
-        graph.Series |> List.mapi seriesToElements |> List.concat
+        let errorElements =
+            graph.Series
+            |> List.mapi (fun i series ->
+                if series.Visible then
+                    match series.ErrorBars with
+                    | None -> []
+                    | Some errorBar ->
+                        let seriesPen = Theme.penForSeries i graph.Theme |> Pen.withOpacity series.Opacity
+                        errorBarElements seriesPen series.Points errorBar graph
+                else [])
+            |> List.concat
+        (graph.Series |> List.mapi seriesToElements |> List.concat) @ errorElements

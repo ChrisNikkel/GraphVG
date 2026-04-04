@@ -13,6 +13,10 @@ type StrokeDash =
 
 type StepMode = Before | After | Mid
 
+type ErrorBar =
+    | Symmetric of float list
+    | Asymmetric of low: float list * high: float list
+
 type SeriesKind =
     | Scatter
     | Line
@@ -41,6 +45,7 @@ type Series =
         Visible : bool
         Opacity : float
         ColorScale : (float -> Color) option
+        ErrorBars : ErrorBar option
     }
 
 module Series =
@@ -57,6 +62,7 @@ module Series =
             Visible = true
             Opacity = 1.0
             ColorScale = None
+            ErrorBars = None
         }
 
     let scatter points =
@@ -132,6 +138,18 @@ module Series =
 
     let withOpacity opacity (series : Series) =
         { series with Opacity = max 0.0 (min 1.0 opacity) }
+
+    let withErrorBars (errorBar : ErrorBar) (series : Series) : Result<Series, string> =
+        let n = series.Points.Length
+        match errorBar with
+        | Symmetric errors when errors.Length <> n ->
+            Error (sprintf "Symmetric error list length %d does not match point count %d" errors.Length n)
+        | Asymmetric (lows, _) when lows.Length <> n ->
+            Error (sprintf "Asymmetric low list length %d does not match point count %d" lows.Length n)
+        | Asymmetric (_, highs) when highs.Length <> n ->
+            Error (sprintf "Asymmetric high list length %d does not match point count %d" highs.Length n)
+        | _ ->
+            Ok { series with ErrorBars = Some errorBar }
 
     let ofFunction kind (f: float -> float * float) tMin tMax samples =
         let points =
@@ -222,4 +240,14 @@ module Series =
             (List.min xs, List.max xs), (List.min yLows, List.max highs)
         | _ ->
             let xs, ys = series.Points |> List.unzip
-            (List.min xs, List.max xs), (List.min ys, List.max ys)
+            let yMin, yMax =
+                match series.ErrorBars with
+                | None ->
+                    List.min ys, List.max ys
+                | Some (Symmetric errors) ->
+                    List.map2 (fun y e -> y - e) ys errors |> List.min,
+                    List.map2 (fun y e -> y + e) ys errors |> List.max
+                | Some (Asymmetric (lows, highs)) ->
+                    List.map2 (fun y lo -> y - lo) ys lows |> List.min,
+                    List.map2 (fun y hi -> y + hi) ys highs |> List.max
+            (List.min xs, List.max xs), (yMin, yMax)

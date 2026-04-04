@@ -5,6 +5,8 @@ All notable changes to GraphVG will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- `ErrorBar` type and `Series.withErrorBars`: attach symmetric or asymmetric Y error bars to any series; returns `Result<Series, string>` on length mismatch; auto-bounds expand to cover the full error extent; each point renders as a vertical line with horizontal caps
+- `LayoutSpacing` type and `Graph.withLayoutSpacing`: configure outer margin, title padding, axis-label padding, and tick-label padding per graph while preserving the previous built-in defaults
 - `Band` series kind: `Series.band` takes `(x, yLow, yHigh)` triples and renders a filled region between the two bounds; fill defaults to 0.3 opacity; stroke added via `withStrokeWidth`; auto-bounds cover both yLow and yHigh values
 - `StepLine` series kind: `Series.stepLine` connects points with horizontal-then-vertical segments; `Series.withStepMode` accepts `After` (default), `Before`, or `Mid`; compatible with `withStrokeDash`, `withStrokeWidth`, and all other series modifiers
 - `Heatmap` series kind: `Series.heatmap` takes `(col, row, value)` triples and renders a grid of colored rectangles; `Series.withColorScale` accepts a custom `float -> Color` mapping; default palette interpolates white → steelblue; a color ramp with min/max labels is rendered automatically alongside the graph; cell size is inferred from grid spacing
