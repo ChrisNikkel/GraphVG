@@ -983,6 +983,51 @@ module TitleStyleTests =
         let svg = GraphVG.toSvg graph
         Assert.Contains("viewBox=\"-20,-66 1040,1086\"", svg)
 
+module LayoutSpacingTests =
+
+    let private series = Series.line [ 0.0, 0.0; 1.0, 1.0 ]
+
+    [<Fact>]
+    let ``default layout spacing preserves historical defaults`` () =
+        let graph = Graph.create [ series ] (0.0, 1.0) (0.0, 1.0)
+        Assert.Equal(LayoutSpacing.defaults, graph.LayoutSpacing)
+
+    [<Fact>]
+    let ``withLayoutSpacing sets graph spacing`` () =
+        let spacing = LayoutSpacing.create 32.0 24.0 12.0 8.0
+        let graph = Graph.create [ series ] (0.0, 1.0) (0.0, 1.0) |> Graph.withLayoutSpacing spacing
+        Assert.Equal(spacing, graph.LayoutSpacing)
+
+    [<Fact>]
+    let ``custom outer margin expands viewBox even without title or axes labels`` () =
+        let spacing = { LayoutSpacing.defaults with OuterMargin = 40.0 }
+        let svg =
+            Graph.create [ series ] (0.0, 1.0) (0.0, 1.0)
+            |> Graph.withAxes Axis.none
+            |> Graph.withLayoutSpacing spacing
+            |> GraphVG.toSvg
+        Assert.Contains("viewBox=\"-40,-40 1080,1080\"", svg)
+
+    [<Fact>]
+    let ``custom title padding expands top viewBox for titled graph`` () =
+        let spacing = { LayoutSpacing.defaults with TitlePadding = 30.0 }
+        let svg =
+            Graph.create [ series ] (0.0, 1.0) (0.0, 1.0)
+            |> Graph.withTitle "Hello"
+            |> Graph.withLayoutSpacing spacing
+            |> GraphVG.toSvg
+        Assert.Contains("viewBox=\"-20,-46 1040,1066\"", svg)
+
+    [<Fact>]
+    let ``custom tick and axis label padding expands bottom viewBox for labeled bottom axis`` () =
+        let spacing = { LayoutSpacing.defaults with TickLabelPadding = 10.0; AxisLabelPadding = 14.0 }
+        let svg =
+            Graph.create [ series ] (0.0, 1.0) (0.0, 1.0)
+            |> Graph.withXAxis (Some (Axis.create Bottom (Scale.linear (0.0, 1.0) (0.0, CommonMath.canvasSize)) |> Axis.withLabel "x"))
+            |> Graph.withLayoutSpacing spacing
+            |> GraphVG.toSvg
+        Assert.Contains("viewBox=\"-20,-20 1040,1066\"", svg)
+
 module PointShapeTests =
 
     let private pts = [ 0.0, 0.0; 1.0, 1.0; 2.0, 0.0 ]
@@ -1350,12 +1395,7 @@ module HistogramTests =
     [<Fact>]
     let ``histogram creates Histogram kind series`` () =
         let s = Series.histogram values
-        Assert.Equal(Histogram, s.Kind)
-
-    [<Fact>]
-    let ``histogram stores BinWidth`` () =
-        let s = Series.histogram values
-        Assert.True(s.BinWidth.IsSome)
+        Assert.True(match s.Kind with | Histogram _ -> true | _ -> false)
 
     [<Fact>]
     let ``histogramWithBins creates requested number of bins`` () =
@@ -1372,7 +1412,7 @@ module HistogramTests =
     let ``histogram bounds x max includes right edge of last bin`` () =
         let s = Series.histogramWithBins 5 values
         let (_, xMax), _ = Series.bounds s
-        let binWidth = s.BinWidth.Value
+        let binWidth = match s.Kind with | Histogram bw -> bw | _ -> failwith "expected Histogram kind"
         let lastBinLeft = s.Points |> List.map fst |> List.max
         Assert.Equal(lastBinLeft + binWidth, xMax, 10)
 
@@ -1626,7 +1666,7 @@ module BubbleChartTests =
     [<Fact>]
     let ``bubble creates Bubble kind series`` () =
         let s = Series.bubble triples
-        Assert.Equal(Bubble, s.Kind)
+        Assert.True(match s.Kind with | Bubble _ -> true | _ -> false)
 
     [<Fact>]
     let ``bubble splits triples into Points`` () =
@@ -1634,20 +1674,23 @@ module BubbleChartTests =
         Assert.Equal<(float * float) list>([ 1.0, 2.0; 3.0, 4.0; 5.0, 6.0 ], s.Points)
 
     [<Fact>]
-    let ``bubble stores BubbleSizes`` () =
+    let ``bubble stores sizes in kind`` () =
         let s = Series.bubble triples
-        Assert.Equal(Some [ 10.0; 40.0; 0.0 ], s.BubbleSizes)
+        let sizes = match s.Kind with | Bubble sz -> sz | _ -> failwith "expected Bubble kind"
+        Assert.Equal<float list>([ 10.0; 40.0; 0.0 ], sizes)
 
     [<Fact>]
     let ``withBubbleSizes attaches sizes to existing series`` () =
         let sizes = [ 5.0; 15.0 ]
         let s = Series.scatter [ 0.0, 0.0; 1.0, 1.0 ] |> Series.withBubbleSizes sizes
-        Assert.Equal(Some sizes, s.BubbleSizes)
+        let storedSizes = match s.Kind with | Bubble sz -> sz | _ -> failwith "expected Bubble kind"
+        Assert.Equal<float list>(sizes, storedSizes)
 
     [<Fact>]
-    let ``bubble BubbleSizes has same length as Points`` () =
+    let ``bubble sizes has same length as Points`` () =
         let s = Series.bubble triples
-        Assert.Equal(s.Points.Length, s.BubbleSizes.Value.Length)
+        let sizes = match s.Kind with | Bubble sz -> sz | _ -> failwith "expected Bubble kind"
+        Assert.Equal(s.Points.Length, sizes.Length)
 
     [<Fact>]
     let ``bubble bounds use only x and y coordinates`` () =
@@ -1685,7 +1728,9 @@ module BubbleChartTests =
     let ``bubble sizes length always matches points length`` (triples : FsCheck.NonEmptyArray<NormalFloat * NormalFloat * NormalFloat>) =
         let data = triples.Get |> Array.map (fun (x, y, s) -> x.Get, y.Get, abs s.Get) |> Array.toList
         let s = Series.bubble data
-        s.Points.Length = s.BubbleSizes.Value.Length
+        match s.Kind with
+        | Bubble sizes -> s.Points.Length = sizes.Length
+        | _ -> false
 
 module HeatmapTests =
 
@@ -1697,7 +1742,7 @@ module HeatmapTests =
     [<Fact>]
     let ``heatmap creates Heatmap kind series`` () =
         let s = Series.heatmap cells
-        Assert.Equal(Heatmap, s.Kind)
+        Assert.True(match s.Kind with | Heatmap _ -> true | _ -> false)
 
     [<Fact>]
     let ``heatmap splits triples into Points`` () =
@@ -1705,14 +1750,16 @@ module HeatmapTests =
         Assert.Equal<(float * float) list>([ 0.0, 0.0; 1.0, 0.0; 0.0, 1.0; 1.0, 1.0 ], s.Points)
 
     [<Fact>]
-    let ``heatmap stores HeatValues`` () =
+    let ``heatmap stores values in kind`` () =
         let s = Series.heatmap cells
-        Assert.Equal(Some [ 1.0; 2.0; 3.0; 4.0 ], s.HeatValues)
+        let values = match s.Kind with | Heatmap v -> v | _ -> failwith "expected Heatmap kind"
+        Assert.Equal<float list>([ 1.0; 2.0; 3.0; 4.0 ], values)
 
     [<Fact>]
-    let ``heatmap HeatValues length matches Points length`` () =
+    let ``heatmap values length matches Points length`` () =
         let s = Series.heatmap cells
-        Assert.Equal(s.Points.Length, s.HeatValues.Value.Length)
+        let values = match s.Kind with | Heatmap v -> v | _ -> failwith "expected Heatmap kind"
+        Assert.Equal(s.Points.Length, values.Length)
 
     [<Fact>]
     let ``withColorScale stores custom function`` () =
@@ -1765,10 +1812,12 @@ module HeatmapTests =
         Assert.Equal("rgb(163,193,218)", color.ToString())
 
     [<Property>]
-    let ``heatmap HeatValues length always matches Points length`` (triples : NonEmptyArray<NormalFloat * NormalFloat * NormalFloat>) =
+    let ``heatmap values length always matches Points length`` (triples : NonEmptyArray<NormalFloat * NormalFloat * NormalFloat>) =
         let data = triples.Get |> Array.map (fun (x, y, v) -> x.Get, y.Get, v.Get) |> Array.toList
         let s = Series.heatmap data
-        s.Points.Length = s.HeatValues.Value.Length
+        match s.Kind with
+        | Heatmap values -> s.Points.Length = values.Length
+        | _ -> false
 
     [<Property>]
     let ``drawSeries heatmap element count equals cell count`` (n : PositiveInt) =

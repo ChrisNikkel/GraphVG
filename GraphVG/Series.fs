@@ -3,22 +3,6 @@ namespace GraphVG
 open SharpVG
 open CommonMath
 
-type SeriesKind =
-    | Scatter
-    | Line
-    | StepLine
-    | Area
-    | StackedArea
-    | NormalizedStackedArea
-    | Streamgraph
-    | Histogram
-    | Box
-    | Bar
-    | HorizontalBar
-    | Bubble
-    | Heatmap
-    | Band
-
 type PointShape = Circle | Square | Diamond | Cross | Triangle
 
 type StrokeDash =
@@ -29,6 +13,22 @@ type StrokeDash =
 
 type StepMode = Before | After | Mid
 
+type SeriesKind =
+    | Scatter
+    | Line
+    | StepLine of StepMode
+    | Area
+    | StackedArea
+    | NormalizedStackedArea
+    | Streamgraph
+    | Histogram of binWidth: float
+    | Box
+    | Bar
+    | HorizontalBar
+    | Bubble of sizes: float list
+    | Heatmap of values: float list
+    | Band of highs: float list
+
 type Series =
     {
         Points : (float * float) list
@@ -38,14 +38,9 @@ type Series =
         PointRadius : Length option
         PointShape : PointShape
         StrokeDash : StrokeDash
-        StepMode : StepMode
         Visible : bool
         Opacity : float
-        BinWidth : float option
-        BubbleSizes : float list option
-        HeatValues : float list option
         ColorScale : (float -> Color) option
-        BandHighs : float list option
     }
 
 module Series =
@@ -59,14 +54,9 @@ module Series =
             PointRadius = None
             PointShape = Circle
             StrokeDash = Solid
-            StepMode = After
             Visible = true
             Opacity = 1.0
-            BinWidth = None
-            BubbleSizes = None
-            HeatValues = None
             ColorScale = None
-            BandHighs = None
         }
 
     let scatter points =
@@ -76,10 +66,12 @@ module Series =
         create Line points
 
     let stepLine points =
-        create StepLine points
+        create (StepLine After) points
 
     let withStepMode mode (series : Series) =
-        { series with StepMode = mode }
+        match series.Kind with
+        | StepLine _ -> { series with Kind = StepLine mode }
+        | _ -> series
 
     let area points =
         create Area points
@@ -102,23 +94,23 @@ module Series =
     let bubble (triples : (float * float * float) list) =
         let points = triples |> List.map (fun (x, y, _) -> x, y)
         let sizes = triples |> List.map (fun (_, _, s) -> s)
-        { create Bubble points with BubbleSizes = Some sizes }
+        create (Bubble sizes) points
 
     let withBubbleSizes (sizes : float list) (series : Series) =
-        { series with BubbleSizes = Some sizes }
+        { series with Kind = Bubble sizes }
 
     let heatmap (triples : (float * float * float) list) =
         let points = triples |> List.map (fun (col, row, _) -> col, row)
         let values = triples |> List.map (fun (_, _, v) -> v)
-        { create Heatmap points with HeatValues = Some values }
+        create (Heatmap values) points
+
+    let withColorScale (colorScale : float -> Color) (series : Series) =
+        { series with ColorScale = Some colorScale }
 
     let band (triples : (float * float * float) list) =
         let points = triples |> List.map (fun (x, yLow, _) -> x, yLow)
         let highs = triples |> List.map (fun (_, _, yHigh) -> yHigh)
-        { create Band points with BandHighs = Some highs }
-
-    let withColorScale (scale : float -> Color) (series : Series) =
-        { series with ColorScale = Some scale }
+        create (Band highs) points
 
     let withLabel label series =
         { series with Label = Some label }
@@ -171,7 +163,7 @@ module Series =
                 let right = if i = binCount - 1 then maximum + epsilon else left + binWidth
                 let count = values |> List.filter (fun v -> v >= left && v < right) |> List.length
                 left, float count)
-        { create Histogram bins with BinWidth = Some binWidth }
+        create (Histogram binWidth) bins
 
     let histogram (values : float list) =
         histogramWithBins (defaultBinCount values) values
@@ -203,9 +195,8 @@ module Series =
     /// the right edge of the last bin; Box gives a unit x span around the position.
     let bounds (series : Series) =
         match series.Kind with
-        | Histogram ->
+        | Histogram binWidth ->
             let xs, ys = series.Points |> List.unzip
-            let binWidth = series.BinWidth |> Option.defaultValue 0.0
             (List.min xs, List.max xs + binWidth), (0.0, List.fold max 0.0 ys)
         | Box ->
             let xs, ys = series.Points |> List.unzip
@@ -217,7 +208,7 @@ module Series =
         | HorizontalBar ->
             let xs, ys = series.Points |> List.unzip
             (min 0.0 (List.min xs), List.max xs), (List.min ys - 0.5, List.max ys + 0.5)
-        | Heatmap ->
+        | Heatmap _ ->
             let xs, ys = series.Points |> List.unzip
             let halfSpan values =
                 let sorted = values |> List.sort |> List.distinct
@@ -226,10 +217,9 @@ module Series =
                 | _ -> 0.5
             (List.min xs - halfSpan xs, List.max xs + halfSpan xs),
             (List.min ys - halfSpan ys, List.max ys + halfSpan ys)
-        | Band ->
+        | Band highs ->
             let xs, yLows = series.Points |> List.unzip
-            let yHighs = series.BandHighs |> Option.defaultValue yLows
-            (List.min xs, List.max xs), (List.min yLows, List.max yHighs)
+            (List.min xs, List.max xs), (List.min yLows, List.max highs)
         | _ ->
             let xs, ys = series.Points |> List.unzip
             (List.min xs, List.max xs), (List.min ys, List.max ys)

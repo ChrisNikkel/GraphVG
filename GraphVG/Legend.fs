@@ -45,7 +45,7 @@ module Legend =
                 let pen = penForSeries seriesIndex
                 let swatch =
                     match kind with
-                    | Bubble ->
+                    | Bubble _ ->
                         let cx = swatchX + swatchWidth / 2.0
                         let cy = swatchY + swatchHeight / 2.0
                         Circle.create

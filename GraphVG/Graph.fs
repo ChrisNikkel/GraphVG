@@ -21,6 +21,7 @@ type Graph =
         Annotations : Annotation list
         Legend : Legend option
         DomainPolicy : DomainPolicy
+        LayoutSpacing : LayoutSpacing
     }
 
 module Graph =
@@ -89,13 +90,14 @@ module Graph =
             Annotations = []
             Legend = None
             DomainPolicy = Padded 0.1
+            LayoutSpacing = LayoutSpacing.defaults
         }
 
     let createWithSeries (series : Series) =
         let policy =
             match series.Kind with
-            | Histogram | Bar | HorizontalBar -> IncludeZero
-            | Heatmap -> Tight
+            | Histogram _ | Bar | HorizontalBar -> IncludeZero
+            | Heatmap _ -> Tight
             | _ -> Padded 0.1
         let domain, range = pointBounds [ series ]
         let xScale, yScale = buildScales (applyPolicy policy domain) (applyPolicy policy range)
@@ -112,6 +114,7 @@ module Graph =
             Annotations = []
             Legend = None
             DomainPolicy = policy
+            LayoutSpacing = LayoutSpacing.defaults
         }
 
     // ── Bounds helpers ──────────────────────────────────────────────────────────
@@ -165,6 +168,7 @@ module Graph =
     let withTitleStyle style (graph : Graph) = { graph with TitleStyle = style }
     let addAnnotation annotation (graph : Graph) = { graph with Annotations = graph.Annotations @ [ annotation ] }
     let withLegend legend (graph : Graph) = { graph with Legend = Some legend }
+    let withLayoutSpacing spacing (graph : Graph) = { graph with LayoutSpacing = spacing }
 
     // ── Rendering ───────────────────────────────────────────────────────────────
 
@@ -312,13 +316,13 @@ module Graph =
                         |> Style.withFillOpacity 0.0
                         |> applyDash series.StrokeDash
                     [ Polyline.ofList (series.Points |> List.map toSvgPoint) |> Element.createWithStyle style ]
-                | SeriesKind.StepLine ->
+                | StepLine mode ->
                     let strokePen = series.StrokeWidth |> Option.map (fun width -> seriesPen |> Pen.withWidth width) |> Option.defaultValue seriesPen
                     let style =
                         Style.createWithPen strokePen
                         |> Style.withFillOpacity 0.0
                         |> applyDash series.StrokeDash
-                    let stepPoints = expandStepPoints series.StepMode series.Points
+                    let stepPoints = expandStepPoints mode series.Points
                     [ Polyline.ofList (stepPoints |> List.map toSvgPoint) |> Element.createWithStyle style ]
                 | Area ->
                     let strokePen = series.StrokeWidth |> Option.map (fun width -> seriesPen |> Pen.withWidth width) |> Option.defaultValue seriesPen
@@ -327,26 +331,22 @@ module Graph =
                         |> Style.withFillPen strokePen
                         |> applyDash series.StrokeDash
                     [ Polygon.ofList (series.Points |> List.map toSvgPoint) |> Element.createWithStyle style ]
-                | Band ->
-                    let bandHighs = series.BandHighs |> Option.defaultValue []
-                    if List.isEmpty bandHighs then []
-                    else
-                        let xs = series.Points |> List.map fst
-                        let yLows = series.Points |> List.map snd
-                        let fillPen = seriesPen |> Pen.withOpacity (series.Opacity * 0.3)
-                        let baseStyle =
-                            Style.empty
-                            |> Style.withFillPen fillPen
-                            |> applyDash series.StrokeDash
-                        let style =
-                            match series.StrokeWidth with
-                            | Some w -> baseStyle |> Style.withStrokePen (seriesPen |> Pen.withWidth w)
-                            | None -> baseStyle
-                        let topPts = List.map2 (fun x yHigh -> toSvgPoint (x, yHigh)) xs bandHighs
-                        let botPts = List.map2 (fun x yLow -> toSvgPoint (x, yLow)) xs yLows
-                        [ Polygon.ofList (topPts @ List.rev botPts) |> Element.createWithStyle style ]
-                | SeriesKind.Histogram ->
-                    let binWidth = series.BinWidth |> Option.defaultValue 1.0
+                | Band highs ->
+                    let xs = series.Points |> List.map fst
+                    let yLows = series.Points |> List.map snd
+                    let fillPen = seriesPen |> Pen.withOpacity (series.Opacity * 0.3)
+                    let baseStyle =
+                        Style.empty
+                        |> Style.withFillPen fillPen
+                        |> applyDash series.StrokeDash
+                    let style =
+                        match series.StrokeWidth with
+                        | Some w -> baseStyle |> Style.withStrokePen (seriesPen |> Pen.withWidth w)
+                        | None -> baseStyle
+                    let topPts = List.map2 (fun x yHigh -> toSvgPoint (x, yHigh)) xs highs
+                    let botPts = List.map2 (fun x yLow -> toSvgPoint (x, yLow)) xs yLows
+                    [ Polygon.ofList (topPts @ List.rev botPts) |> Element.createWithStyle style ]
+                | Histogram binWidth ->
                     let fillStyle = Style.createWithPen seriesPen |> Style.withFillPen seriesPen
                     series.Points
                     |> List.map (fun (binLeft, count) ->
@@ -394,7 +394,7 @@ module Graph =
                     | None -> []
                     | Some (groupIdx, groupCount) ->
                         let fillStyle = Style.createWithPen seriesPen |> Style.withFillPen seriesPen
-                        let groupWidth = series.BinWidth |> Option.defaultValue (inferMinSpacing (series.Points |> List.map fst))
+                        let groupWidth = inferMinSpacing (series.Points |> List.map fst)
                         let barWidth = groupWidth / float groupCount
                         let xOffset = (float groupIdx - float (groupCount - 1) / 2.0) * barWidth
                         series.Points
@@ -410,7 +410,7 @@ module Graph =
                     | None -> []
                     | Some (groupIdx, groupCount) ->
                         let fillStyle = Style.createWithPen seriesPen |> Style.withFillPen seriesPen
-                        let groupHeight = series.BinWidth |> Option.defaultValue (inferMinSpacing (series.Points |> List.map snd))
+                        let groupHeight = inferMinSpacing (series.Points |> List.map snd)
                         let barHeight = groupHeight / float groupCount
                         let yOffset = (float groupIdx - float (groupCount - 1) / 2.0) * barHeight
                         series.Points
@@ -421,25 +421,22 @@ module Graph =
                                 (Point.ofFloats (min svgX1 svgX2, min svgY1 svgY2))
                                 (Area.ofFloats (abs (svgX2 - svgX1), abs (svgY2 - svgY1)))
                             |> Element.createWithStyle fillStyle)
-                | Heatmap ->
-                    let heatValues = series.HeatValues |> Option.defaultValue []
-                    if List.isEmpty heatValues then []
+                | Heatmap values ->
+                    if List.isEmpty values then []
                     else
-                        let minVal = List.min heatValues
-                        let maxVal = List.max heatValues
-                        let colorScale =
-                            series.ColorScale
-                            |> Option.defaultValue (Theme.defaultHeatmapColorScale minVal maxVal)
+                        let minVal = List.min values
+                        let maxVal = List.max values
+                        let colorScale = series.ColorScale |> Option.defaultValue (Theme.defaultHeatmapColorScale minVal maxVal)
                         let xs = series.Points |> List.map fst
                         let ys = series.Points |> List.map snd
-                        let minSpacing values =
-                            let sorted = values |> List.sort |> List.distinct
+                        let minSpacing vs =
+                            let sorted = vs |> List.sort |> List.distinct
                             match sorted |> List.pairwise |> List.map (fun (a, b) -> b - a) with
                             | spacings when not spacings.IsEmpty -> List.min spacings
                             | _ -> 1.0
                         let cellWidth = minSpacing xs
                         let cellHeight = minSpacing ys
-                        List.zip series.Points heatValues
+                        List.zip series.Points values
                         |> List.map (fun ((col, row), value) ->
                             let svgX1, svgY1 = toScaledSvgCoordinates graph (col - cellWidth / 2.0, row + cellHeight / 2.0)
                             let svgX2, svgY2 = toScaledSvgCoordinates graph (col + cellWidth / 2.0, row - cellHeight / 2.0)
@@ -448,10 +445,9 @@ module Graph =
                                 (Point.ofFloats (min svgX1 svgX2, min svgY1 svgY2))
                                 (Area.ofFloats (abs (svgX2 - svgX1) + 1.0, abs (svgY2 - svgY1) + 1.0))
                             |> Element.createWithStyle (Style.empty |> Style.withFill color |> Style.withFillOpacity series.Opacity))
-                | Bubble ->
+                | Bubble sizes ->
                     // Radius is area-proportional: a point with twice the size value renders with twice the area.
                     // The largest bubble has radius maxRadiusPx (default 40 px, or set via withPointRadius).
-                    let sizes = series.BubbleSizes |> Option.defaultValue (List.replicate series.Points.Length 10.0)
                     let maxSize = sizes |> List.fold max 0.0
                     let maxRadiusPx = series.PointRadius |> Option.map Length.toFloat |> Option.defaultValue 40.0
                     let fillStyle = Style.empty |> Style.withFillPen seriesPen |> Style.withFillOpacity 0.5

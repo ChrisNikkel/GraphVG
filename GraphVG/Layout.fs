@@ -20,12 +20,20 @@ module Layout =
 
     // ── Axis padding ──────────────────────────────────────────────────────────
 
-    let private defaultOuterMargin = 20.0
-    let private topTickLabelGap = 3.0
-    let private bottomTickLabelGap = 2.0
-    let private topAxisLabelGap = 4.0
-    let private bottomAxisLabelGap = 6.0
-    let private verticalTickLabelGap = 4.0
+    let private topTickLabelGap (spacing : LayoutSpacing) =
+        spacing.TickLabelPadding - 1.0
+
+    let private bottomTickLabelGap (spacing : LayoutSpacing) =
+        spacing.TickLabelPadding - 2.0
+
+    let private topAxisLabelGap (spacing : LayoutSpacing) =
+        spacing.AxisLabelPadding
+
+    let private bottomAxisLabelGap (spacing : LayoutSpacing) =
+        spacing.AxisLabelPadding + 2.0
+
+    let private verticalTickLabelGap (spacing : LayoutSpacing) =
+        spacing.TickLabelPadding
 
     let private horizontalTickExtent tickLabelGap (axis : Axis) =
         axis.TickLength + axis.FontSize + tickLabelGap
@@ -35,42 +43,42 @@ module Layout =
         |> Option.map (fun _ -> axis.TickLength + 2.0 * axis.FontSize + axisLabelGap)
         |> Option.defaultValue tickExtent
 
-    let private verticalTickExtent maximumTickLabelWidth (axis : Axis) =
-        axis.TickLength + verticalTickLabelGap + maximumTickLabelWidth
+    let private verticalTickExtent tickLabelGap maximumTickLabelWidth (axis : Axis) =
+        axis.TickLength + tickLabelGap + maximumTickLabelWidth
 
-    let private verticalLabelExtent maximumTickLabelWidth tickExtent (axis : Axis) =
+    let private verticalLabelExtent tickLabelGap axisLabelGap maximumTickLabelWidth tickExtent (axis : Axis) =
         axis.Label
-        |> Option.map (fun _ -> axis.TickLength + verticalTickLabelGap + maximumTickLabelWidth + axis.FontSize + verticalTickLabelGap)
+        |> Option.map (fun _ -> axis.TickLength + tickLabelGap + maximumTickLabelWidth + axis.FontSize + axisLabelGap)
         |> Option.defaultValue tickExtent
 
-    let private axisPadding (axis : Axis) =
+    let private axisPadding (spacing : LayoutSpacing) (axis : Axis) =
         let maximumTickLabelWidth =
             Axis.formattedTickLabels axis
             |> List.map (estimatedTextWidth axis.FontSize)
             |> List.fold max 0.0
         match axis.Position with
         | Top ->
-            let tickExtent = horizontalTickExtent topTickLabelGap axis
-            max tickExtent (horizontalLabelExtent topAxisLabelGap tickExtent axis) |> paddingWithTop
+            let tickExtent = horizontalTickExtent (topTickLabelGap spacing) axis
+            max tickExtent (horizontalLabelExtent (topAxisLabelGap spacing) tickExtent axis) |> paddingWithTop
         | Bottom ->
-            let tickExtent = horizontalTickExtent bottomTickLabelGap axis
-            max tickExtent (horizontalLabelExtent bottomAxisLabelGap tickExtent axis) |> paddingWithBottom
+            let tickExtent = horizontalTickExtent (bottomTickLabelGap spacing) axis
+            max tickExtent (horizontalLabelExtent (bottomAxisLabelGap spacing) tickExtent axis) |> paddingWithBottom
         | Left ->
-            let tickExtent = verticalTickExtent maximumTickLabelWidth axis
-            max tickExtent (verticalLabelExtent maximumTickLabelWidth tickExtent axis) |> paddingWithLeft
+            let tickGap = verticalTickLabelGap spacing
+            let tickExtent = verticalTickExtent tickGap maximumTickLabelWidth axis
+            max tickExtent (verticalLabelExtent tickGap spacing.AxisLabelPadding maximumTickLabelWidth tickExtent axis) |> paddingWithLeft
         | Right ->
-            let tickExtent = verticalTickExtent maximumTickLabelWidth axis
-            max tickExtent (verticalLabelExtent maximumTickLabelWidth tickExtent axis) |> paddingWithRight
+            let tickGap = verticalTickLabelGap spacing
+            let tickExtent = verticalTickExtent tickGap maximumTickLabelWidth axis
+            max tickExtent (verticalLabelExtent tickGap spacing.AxisLabelPadding maximumTickLabelWidth tickExtent axis) |> paddingWithRight
         | HorizontalAt _
         | VerticalAt _ -> emptyPadding
 
     // ── Title padding ─────────────────────────────────────────────────────────
 
-    let private defaultTitlePadding = 16.0
-
     let private titlePadding (graph : Graph) =
         graph.Title
-        |> Option.map (fun _ -> graph.TitleStyle.FontSize + defaultTitlePadding)
+        |> Option.map (fun _ -> graph.TitleStyle.FontSize + graph.LayoutSpacing.TitlePadding)
         |> Option.defaultValue 0.0
         |> paddingWithTop
 
@@ -108,7 +116,7 @@ module Layout =
     let private rampSegments = 20
 
     let private heatSeries (graph : Graph) =
-        graph.Series |> List.filter (fun s -> s.Kind = Heatmap)
+        graph.Series |> List.filter (fun s -> match s.Kind with | Heatmap _ -> true | _ -> false)
 
     let private formatRampValue (v : float) =
         if v = 0.0 then "0"
@@ -119,7 +127,7 @@ module Layout =
         match heatSeries graph with
         | [] -> emptyPadding
         | first :: _ ->
-            let heatValues = first.HeatValues |> Option.defaultValue []
+            let heatValues = match first.Kind with | Heatmap values -> values | _ -> []
             let minVal = if List.isEmpty heatValues then 0.0 else List.min heatValues
             let maxVal = if List.isEmpty heatValues then 1.0 else List.max heatValues
             let maxLabelWidth =
@@ -133,12 +141,10 @@ module Layout =
         match heatSeries graph with
         | [] -> []
         | first :: _ ->
-            let heatValues = first.HeatValues |> Option.defaultValue []
+            let heatValues = match first.Kind with | Heatmap values -> values | _ -> []
             let minVal = if List.isEmpty heatValues then 0.0 else List.min heatValues
             let maxVal = if List.isEmpty heatValues then 1.0 else List.max heatValues
-            let colorScale =
-                first.ColorScale
-                |> Option.defaultValue (Theme.defaultHeatmapColorScale minVal maxVal)
+            let colorScale = first.ColorScale |> Option.defaultValue (Theme.defaultHeatmapColorScale minVal maxVal)
             let rampX = canvasSize + rampMargin
             let labelX = rampX + rampBarWidth + rampLabelGap
             let segH = canvasSize / float rampSegments
@@ -172,16 +178,16 @@ module Layout =
         let fromAxes =
             [ graph.XAxis; graph.YAxis ]
             |> List.choose id
-            |> List.map axisPadding
+            |> List.map (axisPadding graph.LayoutSpacing)
             |> List.fold sumPadding emptyPadding
         let raw =
             [ fromAxes; titlePadding graph; legendPadding graph; heatmapRampPadding graph ]
             |> List.fold sumPadding emptyPadding
         {
-            Top = max defaultOuterMargin raw.Top
-            Right = max defaultOuterMargin raw.Right
-            Bottom = max defaultOuterMargin raw.Bottom
-            Left = max defaultOuterMargin raw.Left
+            Top = max graph.LayoutSpacing.OuterMargin raw.Top
+            Right = max graph.LayoutSpacing.OuterMargin raw.Right
+            Bottom = max graph.LayoutSpacing.OuterMargin raw.Bottom
+            Left = max graph.LayoutSpacing.OuterMargin raw.Left
         }
 
     // ── SVG element primitives ────────────────────────────────────────────────
