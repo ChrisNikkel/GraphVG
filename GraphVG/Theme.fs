@@ -81,3 +81,11 @@ module Theme =
         | Light -> light
         | Dark -> dark
         | HighContrast -> highContrast
+
+    /// Default sequential color scale: white (low) → steelblue (high).
+    /// Takes the series min and max values and returns a function mapping a raw data value to a Color.
+    let defaultHeatmapColorScale (minVal : float) (maxVal : float) (value : float) : Color =
+        let t = if maxVal = minVal then 0.5 else (value - minVal) / (maxVal - minVal) |> max 0.0 |> min 1.0
+        // White (255, 255, 255) → SteelBlue (70, 130, 180)
+        let lerp lo hi = byte (int lo + int (t * float (int hi - int lo)))
+        Color.ofValues (lerp 255uy 70uy, lerp 255uy 130uy, lerp 255uy 180uy)

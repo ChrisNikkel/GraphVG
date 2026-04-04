@@ -8,6 +8,7 @@
     <Compile Include="AreaCharts.fs" />
     <Compile Include="BarCharts.fs" />
     <Compile Include="DistributionCharts.fs" />
+    <Compile Include="ScatterCharts.fs" />
     <Compile Include="Example.fs" />
   </ItemGroup>
   <ItemGroup>

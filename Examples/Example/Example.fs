@@ -67,6 +67,18 @@ let examples =
             Graph = BarCharts.horizontalBarGraph
         }
         {
+            FileName = "bubble-chart.html"
+            Title = "Bubble Chart"
+            Description = "GDP per capita vs life expectancy for 16 countries across four continents — bubble area encodes population size."
+            Graph = ScatterCharts.bubbleChartGraph
+        }
+        {
+            FileName = "heatmap.html"
+            Title = "Heatmap"
+            Description = "Weekly step counts by hour of day — white-to-steelblue color scale shows morning and evening activity peaks with a muted weekend pattern."
+            Graph = ScatterCharts.heatmapGraph
+        }
+        {
             FileName = "histogram.html"
             Title = "Histogram"
             Description = "300 normally distributed samples binned automatically using Sturges' rule."
@@ -122,7 +134,7 @@ let galleryHtml pages =
     + "<body>\n"
     + "<main class=\"wrap\">\n"
     + "<h1>GraphVG Example Gallery</h1>\n"
-    + "<p class=\"intro\">A collection of focused examples covering line charts, stacked and normalized area, streamgraphs, bar charts, histograms, and box plots.</p>\n"
+    + "<p class=\"intro\">A collection of focused examples covering line charts, stacked and normalized area, streamgraphs, bar charts, bubble charts, histograms, and box plots.</p>\n"
     + "<section class=\"grid\">\n"
     + cards + "\n"
     + "</section>\n"
@@ -179,3 +191,49 @@ File.WriteAllText(galleryPath, galleryHtml examples)
 printfn "\nGallery written to:\n  %s" galleryPath
 printfn "\nExample pages:"
 writtenPages |> List.iter (printfn "  %s")
+
+// Write SVG thumbnails to docs/examples/ and update README.md gallery section
+let repoRoot = Directory.GetCurrentDirectory()
+let docsExamplesDir = Path.Combine(repoRoot, "docs", "examples")
+
+let readmeGallery () =
+    Directory.CreateDirectory(docsExamplesDir) |> ignore
+    let svgNames =
+        examples
+        |> List.map (fun page ->
+            let svgFileName = Path.GetFileNameWithoutExtension(page.FileName) + ".svg"
+            let svgPath = Path.Combine(docsExamplesDir, svgFileName)
+            File.WriteAllText(svgPath, GraphVG.toSvg page.Graph)
+            svgFileName, page.Title)
+    let cols = 3
+    let rows =
+        svgNames
+        |> List.chunkBySize cols
+        |> List.map (fun rowItems ->
+            let cells =
+                rowItems
+                |> List.map (fun (svgFileName, title) ->
+                    "<td align=\"center\" width=\"320\">"
+                    + "<img src=\"docs/examples/" + svgFileName + "\" width=\"280\" alt=\"" + title + "\" />"
+                    + "<br /><b>" + title + "</b>"
+                    + "</td>")
+            // pad to full width so the table is always uniform
+            let padded = cells @ List.replicate (cols - cells.Length) "<td></td>"
+            "<tr>" + String.concat "" padded + "</tr>")
+    let table = "<table>\n" + String.concat "\n" rows + "\n</table>"
+    let readmePath = Path.Combine(repoRoot, "README.md")
+    let readme = File.ReadAllText(readmePath)
+    let startMarker = "<!-- GALLERY:START -->"
+    let endMarker = "<!-- GALLERY:END -->"
+    let startIdx = readme.IndexOf(startMarker)
+    let endIdx = readme.IndexOf(endMarker)
+    if startIdx >= 0 && endIdx > startIdx then
+        let before = readme.[0 .. startIdx + startMarker.Length - 1]
+        let after = readme.[endIdx ..]
+        let updated = before + "\n" + table + "\n" + after
+        File.WriteAllText(readmePath, updated)
+        printfn "\nREADME.md gallery updated (%d charts)" examples.Length
+    else
+        printfn "\nWARNING: README.md gallery markers not found — skipping README update"
+
+readmeGallery ()

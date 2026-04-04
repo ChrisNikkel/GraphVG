@@ -1544,3 +1544,164 @@ module DomainPolicyTests =
         let tightXLo, tightXHi = domainOf tight
         let paddedXLo, paddedXHi = domainOf padded
         paddedXLo <= tightXLo && paddedXHi >= tightXHi
+
+module BubbleChartTests =
+
+    open FsCheck
+
+    let private triples = [ 1.0, 2.0, 10.0; 3.0, 4.0, 40.0; 5.0, 6.0, 0.0 ]
+
+    [<Fact>]
+    let ``bubble creates Bubble kind series`` () =
+        let s = Series.bubble triples
+        Assert.Equal(Bubble, s.Kind)
+
+    [<Fact>]
+    let ``bubble splits triples into Points`` () =
+        let s = Series.bubble triples
+        Assert.Equal<(float * float) list>([ 1.0, 2.0; 3.0, 4.0; 5.0, 6.0 ], s.Points)
+
+    [<Fact>]
+    let ``bubble stores BubbleSizes`` () =
+        let s = Series.bubble triples
+        Assert.Equal(Some [ 10.0; 40.0; 0.0 ], s.BubbleSizes)
+
+    [<Fact>]
+    let ``withBubbleSizes attaches sizes to existing series`` () =
+        let sizes = [ 5.0; 15.0 ]
+        let s = Series.scatter [ 0.0, 0.0; 1.0, 1.0 ] |> Series.withBubbleSizes sizes
+        Assert.Equal(Some sizes, s.BubbleSizes)
+
+    [<Fact>]
+    let ``bubble BubbleSizes has same length as Points`` () =
+        let s = Series.bubble triples
+        Assert.Equal(s.Points.Length, s.BubbleSizes.Value.Length)
+
+    [<Fact>]
+    let ``bubble bounds use only x and y coordinates`` () =
+        let s = Series.bubble triples
+        let (xMin, xMax), (yMin, yMax) = Series.bounds s
+        Assert.Equal(1.0, xMin)
+        Assert.Equal(5.0, xMax)
+        Assert.Equal(2.0, yMin)
+        Assert.Equal(6.0, yMax)
+
+    [<Fact>]
+    let ``drawSeries bubble renders one circle per positive-size point`` () =
+        // triples has sizes 10, 40, 0 — the zero-size point produces no element
+        let s = Series.bubble triples
+        let graph = Graph.create [ s ] (0.0, 6.0) (0.0, 8.0)
+        let elements = Graph.drawSeries graph
+        Assert.Equal(2, elements.Length)
+
+    [<Fact>]
+    let ``drawSeries bubble with all positive sizes renders one circle per point`` () =
+        let s = Series.bubble [ 0.0, 0.0, 5.0; 1.0, 1.0, 10.0; 2.0, 2.0, 20.0 ]
+        let graph = Graph.create [ s ] (0.0, 3.0) (0.0, 3.0)
+        let elements = Graph.drawSeries graph
+        Assert.Equal(3, elements.Length)
+
+    [<Fact>]
+    let ``bubble createWithSeries produces valid SVG containing circles`` () =
+        let svg =
+            Series.bubble [ 0.0, 0.0, 5.0; 1.0, 1.0, 10.0 ]
+            |> Graph.createWithSeries
+            |> GraphVG.toSvg
+        Assert.Contains("<circle", svg)
+
+    [<Property>]
+    let ``bubble sizes length always matches points length`` (triples : FsCheck.NonEmptyArray<NormalFloat * NormalFloat * NormalFloat>) =
+        let data = triples.Get |> Array.map (fun (x, y, s) -> x.Get, y.Get, abs s.Get) |> Array.toList
+        let s = Series.bubble data
+        s.Points.Length = s.BubbleSizes.Value.Length
+
+module HeatmapTests =
+
+    open FsCheck
+    open SharpVG
+
+    let private cells = [ 0.0, 0.0, 1.0; 1.0, 0.0, 2.0; 0.0, 1.0, 3.0; 1.0, 1.0, 4.0 ]
+
+    [<Fact>]
+    let ``heatmap creates Heatmap kind series`` () =
+        let s = Series.heatmap cells
+        Assert.Equal(Heatmap, s.Kind)
+
+    [<Fact>]
+    let ``heatmap splits triples into Points`` () =
+        let s = Series.heatmap cells
+        Assert.Equal<(float * float) list>([ 0.0, 0.0; 1.0, 0.0; 0.0, 1.0; 1.0, 1.0 ], s.Points)
+
+    [<Fact>]
+    let ``heatmap stores HeatValues`` () =
+        let s = Series.heatmap cells
+        Assert.Equal(Some [ 1.0; 2.0; 3.0; 4.0 ], s.HeatValues)
+
+    [<Fact>]
+    let ``heatmap HeatValues length matches Points length`` () =
+        let s = Series.heatmap cells
+        Assert.Equal(s.Points.Length, s.HeatValues.Value.Length)
+
+    [<Fact>]
+    let ``withColorScale stores custom function`` () =
+        let scale = fun (_ : float) -> Color.ofName Colors.Blue
+        let s = Series.heatmap cells |> Series.withColorScale scale
+        Assert.True(s.ColorScale.IsSome)
+
+    [<Fact>]
+    let ``heatmap bounds includes half-cell padding`` () =
+        let s = Series.heatmap cells
+        let (xMin, xMax), (yMin, yMax) = Series.bounds s
+        Assert.Equal(-0.5, xMin, 10)
+        Assert.Equal(1.5, xMax, 10)
+        Assert.Equal(-0.5, yMin, 10)
+        Assert.Equal(1.5, yMax, 10)
+
+    [<Fact>]
+    let ``drawSeries heatmap renders one rect per cell`` () =
+        let s = Series.heatmap cells
+        let graph = Graph.createWithSeries s
+        let elements = Graph.drawSeries graph
+        Assert.Equal(4, elements.Length)
+
+    [<Fact>]
+    let ``heatmap createWithSeries produces valid SVG`` () =
+        let svg = Series.heatmap cells |> Graph.createWithSeries |> GraphVG.toSvg
+        Assert.Contains("<rect", svg)
+
+    [<Fact>]
+    let ``heatmap empty series renders no elements`` () =
+        let s = Series.heatmap []
+        let graph = Graph.create [ s ] (0.0, 1.0) (0.0, 1.0)
+        let elements = Graph.drawSeries graph
+        Assert.Equal(0, elements.Length)
+
+    [<Fact>]
+    let ``defaultHeatmapColorScale min value maps to white`` () =
+        let color = Theme.defaultHeatmapColorScale 0.0 10.0 0.0
+        Assert.Equal("rgb(255,255,255)", color.ToString())
+
+    [<Fact>]
+    let ``defaultHeatmapColorScale max value maps to steelblue`` () =
+        let color = Theme.defaultHeatmapColorScale 0.0 10.0 10.0
+        Assert.Equal("rgb(70,130,180)", color.ToString())
+
+    [<Fact>]
+    let ``defaultHeatmapColorScale equal min and max returns midpoint color`` () =
+        let color = Theme.defaultHeatmapColorScale 5.0 5.0 5.0
+        // t = 0.5; F# int truncates toward zero so int(-92.5)=-92, giving (163,193,218)
+        Assert.Equal("rgb(163,193,218)", color.ToString())
+
+    [<Property>]
+    let ``heatmap HeatValues length always matches Points length`` (triples : NonEmptyArray<NormalFloat * NormalFloat * NormalFloat>) =
+        let data = triples.Get |> Array.map (fun (x, y, v) -> x.Get, y.Get, v.Get) |> Array.toList
+        let s = Series.heatmap data
+        s.Points.Length = s.HeatValues.Value.Length
+
+    [<Property>]
+    let ``drawSeries heatmap element count equals cell count`` (n : PositiveInt) =
+        let count = min n.Get 50
+        let data = [ for i in 0 .. count - 1 -> float i, 0.0, float i ]
+        let s = Series.heatmap data
+        let graph = Graph.createWithSeries s
+        Graph.drawSeries graph |> List.length = count

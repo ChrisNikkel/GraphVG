@@ -95,6 +95,7 @@ module Graph =
         let policy =
             match series.Kind with
             | Histogram | Bar | HorizontalBar -> IncludeZero
+            | Heatmap -> Tight
             | _ -> Padded 0.1
         let domain, range = pointBounds [ series ]
         let xScale, yScale = buildScales (applyPolicy policy domain) (applyPolicy policy range)
@@ -248,6 +249,22 @@ module Graph =
         |> List.collect Map.toList
         |> Map.ofList
 
+    let private expandStepPoints (mode : StepMode) (points : (float * float) list) =
+        match points with
+        | [] | [_] -> points
+        | _ ->
+            let intermediate =
+                points
+                |> List.pairwise
+                |> List.collect (fun ((x1, y1), (x2, y2)) ->
+                    match mode with
+                    | After -> [ (x1, y1); (x2, y1) ]
+                    | Before -> [ (x1, y1); (x1, y2) ]
+                    | Mid ->
+                        let xMid = (x1 + x2) / 2.0
+                        [ (x1, y1); (xMid, y1); (xMid, y2) ])
+            intermediate @ [ List.last points ]
+
     let private applyDash dash style =
         match dash with
         | Solid -> style
@@ -378,6 +395,51 @@ module Graph =
                                 (Point.ofFloats (min svgX1 svgX2, min svgY1 svgY2))
                                 (Area.ofFloats (abs (svgX2 - svgX1), abs (svgY2 - svgY1)))
                             |> Element.createWithStyle fillStyle)
+                | Heatmap ->
+                    let heatValues = series.HeatValues |> Option.defaultValue []
+                    if List.isEmpty heatValues then []
+                    else
+                        let minVal = List.min heatValues
+                        let maxVal = List.max heatValues
+                        let colorScale =
+                            series.ColorScale
+                            |> Option.defaultValue (Theme.defaultHeatmapColorScale minVal maxVal)
+                        let xs = series.Points |> List.map fst
+                        let ys = series.Points |> List.map snd
+                        let minSpacing values =
+                            let sorted = values |> List.sort |> List.distinct
+                            match sorted |> List.pairwise |> List.map (fun (a, b) -> b - a) with
+                            | spacings when not spacings.IsEmpty -> List.min spacings
+                            | _ -> 1.0
+                        let cellWidth = minSpacing xs
+                        let cellHeight = minSpacing ys
+                        List.zip series.Points heatValues
+                        |> List.map (fun ((col, row), value) ->
+                            let svgX1, svgY1 = toScaledSvgCoordinates graph (col - cellWidth / 2.0, row + cellHeight / 2.0)
+                            let svgX2, svgY2 = toScaledSvgCoordinates graph (col + cellWidth / 2.0, row - cellHeight / 2.0)
+                            let color = colorScale value
+                            Rect.create
+                                (Point.ofFloats (min svgX1 svgX2, min svgY1 svgY2))
+                                (Area.ofFloats (abs (svgX2 - svgX1) + 1.0, abs (svgY2 - svgY1) + 1.0))
+                            |> Element.createWithStyle (Style.empty |> Style.withFill color |> Style.withFillOpacity series.Opacity))
+                | Bubble ->
+                    // Radius is area-proportional: a point with twice the size value renders with twice the area.
+                    // The largest bubble has radius maxRadiusPx (default 40 px, or set via withPointRadius).
+                    let sizes = series.BubbleSizes |> Option.defaultValue (List.replicate series.Points.Length 10.0)
+                    let maxSize = sizes |> List.fold max 0.0
+                    let maxRadiusPx = series.PointRadius |> Option.map Length.toFloat |> Option.defaultValue 40.0
+                    let fillStyle = Style.empty |> Style.withFillPen seriesPen |> Style.withFillOpacity 0.5
+                    series.Points
+                    |> List.mapi (fun idx pt ->
+                        let svgPt = toSvgPoint pt
+                        let size = sizes |> List.tryItem idx |> Option.defaultValue 0.0
+                        let radius =
+                            if maxSize <= 0.0 || size <= 0.0 then 0.0
+                            else maxRadiusPx * sqrt (size / maxSize)
+                        if radius > 0.0 then
+                            [ Circle.create svgPt (Length.ofFloat radius) |> Element.createWithStyle fillStyle ]
+                        else [])
+                    |> List.concat
                 | StackedArea | NormalizedStackedArea | Streamgraph ->
                     match Map.tryFind i stackingMap with
                     | None -> []

@@ -99,6 +99,73 @@ module Layout =
                     Legend.legendOuterMargin + Legend.swatchHeight + Legend.legendOuterMargin
                     |> paddingWithBottom
 
+    // ── Heatmap color ramp ────────────────────────────────────────────────────
+
+    let private rampMargin = 16.0
+    let private rampBarWidth = 16.0
+    let private rampLabelGap = 6.0
+    let private rampFontSize = 11.0
+    let private rampSegments = 20
+
+    let private heatSeries (graph : Graph) =
+        graph.Series |> List.filter (fun s -> s.Kind = Heatmap)
+
+    let private formatRampValue (v : float) =
+        if v = 0.0 then "0"
+        elif abs v >= 1000.0 || (abs v < 0.01 && v <> 0.0) then sprintf "%.2g" v
+        else sprintf "%.3g" v
+
+    let private heatmapRampPadding (graph : Graph) =
+        match heatSeries graph with
+        | [] -> emptyPadding
+        | first :: _ ->
+            let heatValues = first.HeatValues |> Option.defaultValue []
+            let minVal = if List.isEmpty heatValues then 0.0 else List.min heatValues
+            let maxVal = if List.isEmpty heatValues then 1.0 else List.max heatValues
+            let maxLabelWidth =
+                [ formatRampValue minVal; formatRampValue maxVal ]
+                |> List.map (estimatedTextWidth rampFontSize)
+                |> List.max
+            rampMargin + rampBarWidth + rampLabelGap + maxLabelWidth + rampMargin
+            |> paddingWithRight
+
+    let heatmapRampElements (axisPen : Pen) (graph : Graph) : Element list =
+        match heatSeries graph with
+        | [] -> []
+        | first :: _ ->
+            let heatValues = first.HeatValues |> Option.defaultValue []
+            let minVal = if List.isEmpty heatValues then 0.0 else List.min heatValues
+            let maxVal = if List.isEmpty heatValues then 1.0 else List.max heatValues
+            let colorScale =
+                first.ColorScale
+                |> Option.defaultValue (Theme.defaultHeatmapColorScale minVal maxVal)
+            let rampX = canvasSize + rampMargin
+            let labelX = rampX + rampBarWidth + rampLabelGap
+            let segH = canvasSize / float rampSegments
+            let rampEls =
+                [ 0 .. rampSegments - 1 ]
+                |> List.map (fun i ->
+                    // i=0 is the top segment (max value); i=rampSegments-1 is the bottom (min value)
+                    let t = float (rampSegments - 1 - i) / float (rampSegments - 1)
+                    let value = minVal + t * (maxVal - minVal)
+                    let color = colorScale value
+                    Rect.create
+                        (Point.ofFloats (rampX, float i * segH))
+                        (Area.ofFloats (rampBarWidth, segH + 1.0))
+                    |> Element.createWithStyle (Style.empty |> Style.withFill color))
+            let textStyle = Style.empty |> Style.withFillPen axisPen
+            let maxLabel =
+                Text.create (Point.ofFloats (labelX, segH / 2.0)) (formatRampValue maxVal)
+                |> Text.withFontSize rampFontSize
+                |> Text.withBaseline CentralBaseline
+                |> Element.createWithStyle textStyle
+            let minLabel =
+                Text.create (Point.ofFloats (labelX, canvasSize - segH / 2.0)) (formatRampValue minVal)
+                |> Text.withFontSize rampFontSize
+                |> Text.withBaseline CentralBaseline
+                |> Element.createWithStyle textStyle
+            rampEls @ [ maxLabel; minLabel ]
+
     // ── Combined padding ──────────────────────────────────────────────────────
 
     let graphPadding (graph : Graph) =
@@ -108,7 +175,7 @@ module Layout =
             |> List.map axisPadding
             |> List.fold sumPadding emptyPadding
         let raw =
-            [ fromAxes; titlePadding graph; legendPadding graph ]
+            [ fromAxes; titlePadding graph; legendPadding graph; heatmapRampPadding graph ]
             |> List.fold sumPadding emptyPadding
         {
             Top = max defaultOuterMargin raw.Top

@@ -6,6 +6,7 @@ open CommonMath
 type SeriesKind =
     | Scatter
     | Line
+    | StepLine
     | Area
     | StackedArea
     | NormalizedStackedArea
@@ -14,6 +15,8 @@ type SeriesKind =
     | Box
     | Bar
     | HorizontalBar
+    | Bubble
+    | Heatmap
 
 type PointShape = Circle | Square | Diamond | Cross | Triangle
 
@@ -22,6 +25,8 @@ type StrokeDash =
     | Dashed
     | Dotted
     | DashDot
+
+type StepMode = Before | After | Mid
 
 type Series =
     {
@@ -32,9 +37,13 @@ type Series =
         PointRadius : Length option
         PointShape : PointShape
         StrokeDash : StrokeDash
+        StepMode : StepMode
         Visible : bool
         Opacity : float
         BinWidth : float option
+        BubbleSizes : float list option
+        HeatValues : float list option
+        ColorScale : (float -> Color) option
     }
 
 module Series =
@@ -48,9 +57,13 @@ module Series =
             PointRadius = None
             PointShape = Circle
             StrokeDash = Solid
+            StepMode = After
             Visible = true
             Opacity = 1.0
             BinWidth = None
+            BubbleSizes = None
+            HeatValues = None
+            ColorScale = None
         }
 
     let scatter points =
@@ -58,6 +71,12 @@ module Series =
 
     let line points =
         create Line points
+
+    let stepLine points =
+        create StepLine points
+
+    let withStepMode mode (series : Series) =
+        { series with StepMode = mode }
 
     let area points =
         create Area points
@@ -76,6 +95,22 @@ module Series =
 
     let horizontalBar points =
         create HorizontalBar points
+
+    let bubble (triples : (float * float * float) list) =
+        let points = triples |> List.map (fun (x, y, _) -> x, y)
+        let sizes = triples |> List.map (fun (_, _, s) -> s)
+        { create Bubble points with BubbleSizes = Some sizes }
+
+    let withBubbleSizes (sizes : float list) (series : Series) =
+        { series with BubbleSizes = Some sizes }
+
+    let heatmap (triples : (float * float * float) list) =
+        let points = triples |> List.map (fun (col, row, _) -> col, row)
+        let values = triples |> List.map (fun (_, _, v) -> v)
+        { create Heatmap points with HeatValues = Some values }
+
+    let withColorScale (scale : float -> Color) (series : Series) =
+        { series with ColorScale = Some scale }
 
     let withLabel label series =
         { series with Label = Some label }
@@ -174,6 +209,15 @@ module Series =
         | HorizontalBar ->
             let xs, ys = series.Points |> List.unzip
             (min 0.0 (List.min xs), List.max xs), (List.min ys - 0.5, List.max ys + 0.5)
+        | Heatmap ->
+            let xs, ys = series.Points |> List.unzip
+            let halfSpan values =
+                let sorted = values |> List.sort |> List.distinct
+                match sorted |> List.pairwise |> List.map (fun (a, b) -> b - a) with
+                | spacings when not spacings.IsEmpty -> List.min spacings / 2.0
+                | _ -> 0.5
+            (List.min xs - halfSpan xs, List.max xs + halfSpan xs),
+            (List.min ys - halfSpan ys, List.max ys + halfSpan ys)
         | _ ->
             let xs, ys = series.Points |> List.unzip
             (List.min xs, List.max xs), (List.min ys, List.max ys)

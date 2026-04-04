@@ -27,6 +27,7 @@ module GraphVG =
                     legend
                     padding)
             |> Option.defaultValue []
+            Layout.heatmapRampElements graph.Theme.AxisPen graph
             axisElements
             graph.Title |> Option.map (fun title -> titleElement title graph.TitleStyle.FontSize graph.TitleStyle.Alignment padding) |> Option.toList
         ]
