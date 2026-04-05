@@ -5,6 +5,7 @@ All notable changes to GraphVG will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- `Series.withTooltip`: attach a `(float * float -> string)` function to any series; renders per-point SVG `<title>` elements as invisible hit-target circles; works in both `toSvg` and `toHtml` with no JavaScript; tooltip text is automatically XML-escaped
 - `Violin` series kind: `Series.violin` and `Series.violinAt` take raw float values and render a symmetric KDE outline with a box-plot overlay (IQR box, median line, whiskers); bandwidth is chosen automatically via Silverman's rule; violin width is configurable via `withPointRadius`; `CommonMath.silvermanBandwidth` and `CommonMath.gaussianKde` are public helpers
 - `Waterfall` series kind: `Series.waterfall` takes `(x, delta)` pairs and renders a cumulative bridge chart; `Series.withTotalAt` marks x positions as total bars that draw from zero; positive deltas use `Theme.UpColor`, negative use `DownColor`, totals use the axis pen color; dashed connector lines link consecutive bar tops; auto-bounds cover the full running-total range
 - `PriceBar` type and `Candlestick`/`StockBar` series kinds: `Series.candlestick` renders filled bodies between open and close with wicks to high and low; `Series.stockBar` renders the classic bar form (wick + open/close ticks); body color follows `Theme.UpColor`/`DownColor`; `Theme.withUpColor`/`withDownColor` allow overrides; auto-bounds cover all four price values

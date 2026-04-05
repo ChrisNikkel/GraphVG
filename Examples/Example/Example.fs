@@ -79,10 +79,28 @@ let examples =
             Graph = BarCharts.waterfallGraph
         }
         {
+            FileName = "pie-chart.html"
+            Title = "Pie Chart"
+            Description = "Global electricity generation mix in 2023 — six sources sized by share, with inside labels."
+            Graph = BarCharts.pieChartGraph
+        }
+        {
+            FileName = "parallel-sets.html"
+            Title = "Parallel Sets"
+            Description = "Fictional retail traffic across three categorical dimensions — acquisition source, device type, and purchase outcome — with curved ribbons sized by visitor count."
+            Graph = BarCharts.parallelSetsGraph
+        }
+        {
             FileName = "horizontal-bar.html"
             Title = "Horizontal Bar Chart"
             Description = "Average daily screen time by app category, sorted by usage — horizontal bars for easy label reading."
             Graph = BarCharts.horizontalBarGraph
+        }
+        {
+            FileName = "tooltips.html"
+            Title = "Tooltips"
+            Description = "Scatter chart with per-point SVG title tooltips — hover any point to see temperature and pressure values. No JavaScript required."
+            Graph = ScatterCharts.tooltipScatterGraph
         }
         {
             FileName = "bubble-chart.html"

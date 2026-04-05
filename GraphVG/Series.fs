@@ -26,6 +26,12 @@ type PriceBar =
         Close : float
     }
 
+type ParallelFlow =
+    {
+        Path : string list
+        Weight : float
+    }
+
 type SeriesKind =
     | Scatter
     | Line
@@ -45,6 +51,8 @@ type SeriesKind =
     | StockBar of bars: PriceBar list
     | Violin of values: float list
     | Waterfall of totals: float list
+    | ParallelSets of dimensions: string list * flows: ParallelFlow list
+    | Pie of labels: string option list
 
 type Series =
     {
@@ -59,6 +67,7 @@ type Series =
         Opacity : float
         ColorScale : (float -> Color) option
         ErrorBars : ErrorBar option
+        Tooltip : (float * float -> string) option
     }
 
 module Series =
@@ -76,6 +85,7 @@ module Series =
             Opacity = 1.0
             ColorScale = None
             ErrorBars = None
+            Tooltip = None
         }
 
     let scatter points =
@@ -180,6 +190,9 @@ module Series =
         | _ ->
             Ok { series with ErrorBars = Some errorBar }
 
+    let withTooltip (f : float * float -> string) (series : Series) =
+        { series with Tooltip = Some f }
+
     let ofFunction kind (f: float -> float * float) tMin tMax samples =
         let points =
             if samples <= 1 then
@@ -243,6 +256,19 @@ module Series =
     let violin (values : float list) =
         violinAt 0.5 values
 
+    let parallelSets (dimensions : string list) (flows : (string list * float) list) =
+        let parallelFlows = flows |> List.map (fun (path, weight) -> { Path = path; Weight = weight })
+        create (ParallelSets(dimensions, parallelFlows)) []
+
+    let pie (values : float list) =
+        let points = values |> List.mapi (fun i v -> float i, v)
+        create (Pie (List.replicate values.Length None)) points
+
+    let withSliceLabels (labels : string list) (series : Series) =
+        match series.Kind with
+        | Pie _ -> { series with Kind = Pie (labels |> List.map Some) }
+        | _ -> series
+
     // ── Bounds ────────────────────────────────────────────────────────────────
 
     /// Data-aware bounds for auto-scaling. Histogram extends x domain to cover
@@ -283,6 +309,8 @@ module Series =
             let yMin = bars |> List.map (fun b -> b.Low) |> List.min
             let yMax = bars |> List.map (fun b -> b.High) |> List.max
             (List.min xs, List.max xs), (yMin, yMax)
+        | ParallelSets _ | Pie _ ->
+            (0.0, 1.0), (0.0, 1.0)
         | _ ->
             let xs, ys = series.Points |> List.unzip
             let yMin, yMax =

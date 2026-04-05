@@ -36,22 +36,6 @@ val withPanel : row : int * col : int -> Series -> Series
 
 ---
 
-## REQ-26: Tooltip Metadata for HTML Output
-
-Allow optional per-point tooltip content when rendering to HTML.
-
-```fsharp
-val withTooltip : (float * float -> string) -> Series -> Series
-```
-
-**Acceptance criteria:**
-
-- `toHtml` includes hoverable tooltip content for configured series.
-- Raw `render` output remains valid SVG with no required JS runtime.
-- Default remains no tooltip output unless explicitly configured.
-
----
-
 ## REQ-38: Pie / Donut Chart
 
 Proportional area chart showing parts of a whole as circular sectors. Requires a polar rendering path separate from the XY `Graph` API.

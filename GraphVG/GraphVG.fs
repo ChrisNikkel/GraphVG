@@ -6,6 +6,28 @@ open Layout
 
 module GraphVG =
 
+    let private escapeXml (s : string) =
+        s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;")
+
+    let private tooltipHitTargets (graph : Graph) : Element list =
+        let toSvgCoord = Graph.toScaledSvgCoordinates graph
+        graph.Series
+        |> List.collect (fun series ->
+            match series.Tooltip with
+            | None -> []
+            | Some tooltipFn ->
+                series.Points
+                |> List.map (fun (x, y) ->
+                    let svgX, svgY = toSvgCoord (x, y)
+                    let text = tooltipFn (x, y)
+                    let hitStyle = Style.empty |> Style.withFillOpacity 0.0
+                    let el = Circle.create (Point.ofFloats (svgX, svgY)) (Length.ofFloat 8.0) |> Element.createWithStyle hitStyle
+                    { el with
+                        BaseTag =
+                            el.BaseTag
+                            |> Tag.insertAttribute (Attribute.createXML "pointer-events" "all")
+                            |> Tag.addBody ("<title>" + escapeXml text + "</title>") }))
+
     let private buildSvg (graph : Graph) =
         let padding = graphPadding graph
         let axes = [ graph.XAxis; graph.YAxis ] |> List.choose id
@@ -30,6 +52,7 @@ module GraphVG =
             Layout.heatmapRampElements graph.Theme.AxisPen graph
             axisElements
             graph.Title |> Option.map (fun title -> titleElement title graph.TitleStyle.FontSize graph.TitleStyle.Alignment padding) |> Option.toList
+            tooltipHitTargets graph
         ]
         |> List.concat
         |> Svg.ofList

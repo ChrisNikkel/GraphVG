@@ -62,6 +62,15 @@ let html =
     |> GraphVG.toHtml
 ```
 
+## Example Data Policy
+
+Example data in `Examples/` must come from one of two sources only:
+
+1. **Invented / fictional data** — made-up but plausible numbers (e.g., fictional company revenue, invented temperature readings). Preferred for most examples.
+2. **Public domain datasets** — government or institutional statistics that predate any visualization library (e.g., US Census, EIA energy data, NOAA weather, World Bank). Cite the source in a comment.
+
+**Never copy data or scenarios from visualization library examples** (D3, xplot, Vega, Observable notebooks, Chart.js demos, etc.), even if the dataset itself is public. The goal is an original gallery.
+
 ## Coding Standards
 
 ### SharpVG — source and usage
@@ -94,6 +103,23 @@ GraphVG builds on SharpVG — match its style throughout so the two feel like on
           Width: Length;
       }
   ```
+
+- **Record construction**: `Field = value` with one space on each side of `=`. Opening `{` always on its own line; closing `}` always on its own line. Never put a multi-field record on one line.
+
+  ```fsharp
+  // wrong
+  let p = { X = 1.0; Y = 2.0; Z = 3.0 }
+
+  // correct
+  let p =
+      {
+          X = 1.0
+          Y = 2.0
+          Z = 3.0
+      }
+  ```
+
+  Single-field records may stay on one line when the intent is genuinely compact (`{ series with Label = Some label }`).
 
 - **No alignment padding**: Do not pad anything to align columns — this applies to field names, `=` signs, `|` match arms, function arguments, and pipeline operators (`|>`). Use a single space everywhere. Aligned columns look tidy but create noisy diffs and must be maintained manually.
 

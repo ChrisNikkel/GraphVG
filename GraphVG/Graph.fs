@@ -97,11 +97,14 @@ module Graph =
         let policy =
             match series.Kind with
             | Histogram _ | Bar | HorizontalBar | Waterfall _ -> IncludeZero
-            | Heatmap _ -> Tight
+            | Heatmap _ | ParallelSets _ | Pie _ -> Tight
             | _ -> Padded 0.1
         let domain, range = pointBounds [ series ]
         let xScale, yScale = buildScales (applyPolicy policy domain) (applyPolicy policy range)
-        let xAxis, yAxis = defaultAxes xScale yScale
+        let xAxis, yAxis =
+            match series.Kind with
+            | ParallelSets _ | Pie _ -> None, None
+            | _ -> defaultAxes xScale yScale
         {
             Series = [ series ]
             XScale = xScale
@@ -647,6 +650,214 @@ module Graph =
                         let topPts = List.map2 toSvgXY xValues tops
                         let basePts = List.map2 toSvgXY xValues baselines
                         [ Polygon.ofList (topPts @ List.rev basePts) |> Element.createWithStyle style ]
+                | ParallelSets(dimensions, flows) ->
+                    let numDims = dimensions.Length
+                    if numDims < 2 || flows.IsEmpty then []
+                    else
+                        let nodeWidth = 12.0
+                        let nodeGap = 6.0
+                        let labelGap = 6.0
+                        let labelFontSize = 11.0
+                        let titleFontSize = 12.0
+
+                        let dimX d = canvasSize * float d / float (numDims - 1)
+
+                        let dimCategories =
+                            [| for d in 0 .. numDims - 1 ->
+                                flows
+                                |> List.choose (fun f -> if d < f.Path.Length then Some f.Path.[d] else None)
+                                |> List.distinct |]
+
+                        let dimCatWeight d cat =
+                            flows |> List.sumBy (fun f ->
+                                if d < f.Path.Length && f.Path.[d] = cat then f.Weight else 0.0)
+
+                        let dimNodePositions =
+                            [| for d in 0 .. numDims - 1 ->
+                                let cats = dimCategories.[d]
+                                let total = cats |> List.sumBy (dimCatWeight d)
+                                let available = canvasSize - float (max 0 (cats.Length - 1)) * nodeGap
+                                cats
+                                |> List.mapFold (fun y cat ->
+                                    let h = if total > 0.0 then dimCatWeight d cat / total * available else 0.0
+                                    (cat, y, y + h), y + h + nodeGap) 0.0
+                                |> fst |]
+
+                        let nodeTop d cat =
+                            dimNodePositions.[d]
+                            |> List.tryFind (fun (c, _, _) -> c = cat)
+                            |> Option.map (fun (_, t, _) -> t)
+                            |> Option.defaultValue 0.0
+
+                        let nodeHeight d cat =
+                            dimNodePositions.[d]
+                            |> List.tryFind (fun (c, _, _) -> c = cat)
+                            |> Option.map (fun (_, t, b) -> b - t)
+                            |> Option.defaultValue 0.0
+
+                        let sourceCategories = dimCategories.[0]
+                        let colorForFlow (flow : ParallelFlow) =
+                            let sourceCat = if not flow.Path.IsEmpty then flow.Path.[0] else ""
+                            let idx = sourceCategories |> List.tryFindIndex (fun c -> c = sourceCat) |> Option.defaultValue 0
+                            (Theme.penForSeries idx graph.Theme).Color
+
+                        let textStyle = Style.empty |> Style.withFillPen graph.Theme.AxisPen
+
+                        let nodeElements =
+                            [ for d in 0 .. numDims - 1 do
+                                let x = dimX d
+                                for (cat, yTop, yBottom) in dimNodePositions.[d] do
+                                    let h = yBottom - yTop
+                                    if h > 0.0 then
+                                        let nodeStyle =
+                                            Style.empty
+                                            |> Style.withFill graph.Theme.AxisPen.Color
+                                            |> Style.withFillOpacity 0.85
+                                        yield Rect.create
+                                            (Point.ofFloats (x - nodeWidth / 2.0, yTop))
+                                            (Area.ofFloats (nodeWidth, h))
+                                          |> Element.createWithStyle nodeStyle
+                                        let labelX, anchor =
+                                            if d = 0 then x - nodeWidth / 2.0 - labelGap, End
+                                            else x + nodeWidth / 2.0 + labelGap, Start
+                                        yield Text.create (Point.ofFloats (labelX, yTop + h / 2.0)) cat
+                                            |> Text.withFontSize labelFontSize
+                                            |> Text.withBaseline CentralBaseline
+                                            |> Text.withAnchor anchor
+                                            |> Element.createWithStyle textStyle ]
+
+                        let titleElements =
+                            [ for d in 0 .. numDims - 1 do
+                                let x = dimX d
+                                yield Text.create (Point.ofFloats (x, -titleFontSize - 4.0)) dimensions.[d]
+                                    |> Text.withFontSize titleFontSize
+                                    |> Text.withAnchor Middle
+                                    |> Text.withBaseline HangingBaseline
+                                    |> Element.createWithStyle textStyle ]
+
+                        let ribbonElements =
+                            [ for d in 0 .. numDims - 2 do
+                                let xLeft = dimX d + nodeWidth / 2.0
+                                let xRight = dimX (d + 1) - nodeWidth / 2.0
+                                let midX = (xLeft + xRight) / 2.0
+
+                                let initLeftCursors =
+                                    dimCategories.[d] |> List.map (fun cat -> cat, nodeTop d cat) |> Map.ofList
+                                let initRightCursors =
+                                    dimCategories.[d + 1] |> List.map (fun cat -> cat, nodeTop (d + 1) cat) |> Map.ofList
+
+                                let sortedFlows =
+                                    flows
+                                    |> List.filter (fun f -> d + 1 < f.Path.Length)
+                                    |> List.sortBy (fun f ->
+                                        let li = dimCategories.[d] |> List.tryFindIndex (fun c -> c = f.Path.[d]) |> Option.defaultValue 0
+                                        let ri = dimCategories.[d + 1] |> List.tryFindIndex (fun c -> c = f.Path.[d + 1]) |> Option.defaultValue 0
+                                        li, ri)
+
+                                let ribbons, _ =
+                                    sortedFlows
+                                    |> List.mapFold (fun (leftCursors : Map<string, float>, rightCursors : Map<string, float>) flow ->
+                                        let leftCat = flow.Path.[d]
+                                        let rightCat = flow.Path.[d + 1]
+                                        let leftH = nodeHeight d leftCat
+                                        let rightH = nodeHeight (d + 1) rightCat
+                                        let leftTotal = dimCatWeight d leftCat
+                                        let rightTotal = dimCatWeight (d + 1) rightCat
+                                        if leftTotal <= 0.0 || rightTotal <= 0.0 || leftH <= 0.0 || rightH <= 0.0 then
+                                            None, (leftCursors, rightCursors)
+                                        else
+                                            let leftRibbonH = flow.Weight / leftTotal * leftH
+                                            let rightRibbonH = flow.Weight / rightTotal * rightH
+                                            let curL = Map.tryFind leftCat leftCursors |> Option.defaultValue (nodeTop d leftCat)
+                                            let curR = Map.tryFind rightCat rightCursors |> Option.defaultValue (nodeTop (d + 1) rightCat)
+                                            let newLeftCursors = Map.add leftCat (curL + leftRibbonH) leftCursors
+                                            let newRightCursors = Map.add rightCat (curR + rightRibbonH) rightCursors
+                                            Some (curL, curL + leftRibbonH, curR, curR + rightRibbonH, flow),
+                                            (newLeftCursors, newRightCursors)
+                                    ) (initLeftCursors, initRightCursors)
+
+                                for ribbonOpt in ribbons do
+                                    match ribbonOpt with
+                                    | None -> ()
+                                    | Some (yLT, yLB, yRT, yRB, flow) ->
+                                        let color = colorForFlow flow
+                                        let fillStyle =
+                                            Style.empty
+                                            |> Style.withFill color
+                                            |> Style.withFillOpacity (series.Opacity * 0.5)
+                                        let path =
+                                            Path.empty
+                                            |> Path.addMoveTo Absolute (Point.ofFloats (xLeft, yLT))
+                                            |> Path.addCubicBezierCurveTo Absolute
+                                                (Point.ofFloats (midX, yLT))
+                                                (Point.ofFloats (midX, yRT))
+                                                (Point.ofFloats (xRight, yRT))
+                                            |> Path.addLineTo Absolute (Point.ofFloats (xRight, yRB))
+                                            |> Path.addCubicBezierCurveTo Absolute
+                                                (Point.ofFloats (midX, yRB))
+                                                (Point.ofFloats (midX, yLB))
+                                                (Point.ofFloats (xLeft, yLB))
+                                            |> Path.addClosePath
+                                        yield path |> Element.createWithStyle fillStyle ]
+
+                        titleElements @ ribbonElements @ nodeElements
+                | Pie sliceLabels ->
+                    if series.Points.IsEmpty then []
+                    else
+                        let cx = canvasSize / 2.0
+                        let cy = canvasSize / 2.0
+                        let outerRadius = canvasSize * 0.42
+                        let values = series.Points |> List.map snd
+                        let total = List.sum values
+                        if total <= 0.0 then []
+                        else
+                            let tau = 2.0 * System.Math.PI
+                            let startOffset = -System.Math.PI / 2.0
+                            let cumulative = values |> List.scan (+) 0.0
+                            values
+                            |> List.mapi (fun sliceIdx v ->
+                                let startAngle = startOffset + cumulative.[sliceIdx] / total * tau
+                                let endAngle = startOffset + cumulative.[sliceIdx + 1] / total * tau
+                                let midAngle = (startAngle + endAngle) / 2.0
+                                let color = (Theme.penForSeries sliceIdx graph.Theme).Color
+                                let fillStyle =
+                                    Style.empty
+                                    |> Style.withFill color
+                                    |> Style.withFillOpacity series.Opacity
+                                let sliceEl =
+                                    if endAngle - startAngle >= tau - 0.0001 then
+                                        // Full circle: arc degenerates, use a circle element
+                                        Circle.create (Point.ofFloats (cx, cy)) (Length.ofFloat outerRadius)
+                                        |> Element.createWithStyle fillStyle
+                                    else
+                                        let sx = cx + outerRadius * cos startAngle
+                                        let sy = cy + outerRadius * sin startAngle
+                                        let ex = cx + outerRadius * cos endAngle
+                                        let ey = cy + outerRadius * sin endAngle
+                                        let largeArc = endAngle - startAngle > System.Math.PI
+                                        Path.empty
+                                        |> Path.addMoveTo Absolute (Point.ofFloats (cx, cy))
+                                        |> Path.addLineTo Absolute (Point.ofFloats (sx, sy))
+                                        |> Path.addEllipticalArcCurveTo Absolute
+                                            (Point.ofFloats (outerRadius, outerRadius)) 0.0
+                                            largeArc true (Point.ofFloats (ex, ey))
+                                        |> Path.addClosePath
+                                        |> Element.createWithStyle fillStyle
+                                let labelEls =
+                                    match sliceLabels |> List.tryItem sliceIdx |> Option.flatten with
+                                    | None -> []
+                                    | Some label ->
+                                        let labelRadius = outerRadius * 0.65
+                                        let lx = cx + labelRadius * cos midAngle
+                                        let ly = cy + labelRadius * sin midAngle
+                                        let labelStyle = Style.empty |> Style.withFill (Color.ofName White)
+                                        [ Text.create (Point.ofFloats (lx, ly)) label
+                                          |> Text.withFontSize 11.0
+                                          |> Text.withAnchor Middle
+                                          |> Text.withBaseline CentralBaseline
+                                          |> Element.createWithStyle labelStyle ]
+                                sliceEl :: labelEls)
+                            |> List.concat
             else []
         let errorElements =
             graph.Series

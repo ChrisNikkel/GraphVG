@@ -57,6 +57,39 @@ let waterfallGraph =
         Some (Axis.create Bottom xScale |> Axis.withTicks 7 |> Axis.withTickFormat labelFormatter |> Axis.hideBoundsTick |> Axis.hideBoundsLabel),
         Some (Axis.create Left yScale |> Axis.withTicks 5 |> Axis.withLabel "$M"))
 
+let parallelSetsGraph =
+    // Fictional online retailer: traffic source → device type → purchase outcome
+    let flows =
+        [ [ "Search";   "Desktop"; "Purchase"  ], 420.0
+          [ "Search";   "Desktop"; "Abandoned" ], 310.0
+          [ "Search";   "Mobile";  "Purchase"  ], 185.0
+          [ "Search";   "Mobile";  "Abandoned" ], 560.0
+          [ "Social";   "Desktop"; "Purchase"  ],  95.0
+          [ "Social";   "Desktop"; "Abandoned" ], 130.0
+          [ "Social";   "Mobile";  "Purchase"  ], 240.0
+          [ "Social";   "Mobile";  "Abandoned" ], 480.0
+          [ "Direct";   "Desktop"; "Purchase"  ], 310.0
+          [ "Direct";   "Desktop"; "Abandoned" ], 140.0
+          [ "Direct";   "Mobile";  "Purchase"  ], 120.0
+          [ "Direct";   "Mobile";  "Abandoned" ], 175.0 ]
+    Series.parallelSets [ "Source"; "Device"; "Outcome" ] flows
+    |> Graph.createWithSeries
+    |> Graph.withTheme Theme.light
+    |> Graph.withTitle "Retail Traffic: Source, Device, Outcome"
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Center)
+
+let pieChartGraph =
+    // Global electricity generation mix (approximate IEA 2023 data)
+    let values = [ 36.4; 22.5; 14.3; 9.4; 7.5; 9.9 ]
+    let labels = [ "Coal"; "Natural Gas"; "Hydro"; "Nuclear"; "Wind & Solar"; "Other" ]
+    Series.pie values
+    |> Series.withSliceLabels labels
+    |> Series.withLabel "Energy Mix"
+    |> Graph.createWithSeries
+    |> Graph.withTheme Theme.light
+    |> Graph.withTitle "Global Electricity Generation 2023"
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Center)
+
 let horizontalBarGraph =
     // Average daily screen time (hours) by app category — Statista 2024 approximate
     let categories = [ 7.0; 6.0; 5.0; 4.0; 3.0; 2.0; 1.0 ]

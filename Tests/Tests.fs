@@ -1827,6 +1827,83 @@ module HeatmapTests =
         let graph = Graph.createWithSeries s
         Graph.drawSeries graph |> List.length = count
 
+module TooltipTests =
+
+    let private points = [ 0.0, 1.0; 1.0, 2.0; 2.0, 3.0 ]
+    let private tooltipFn (x, y) = sprintf "(%.1f, %.1f)" x y
+
+    [<Fact>]
+    let ``withTooltip sets Tooltip field`` () =
+        let s = Series.scatter points |> Series.withTooltip tooltipFn
+        Assert.True(s.Tooltip.IsSome)
+
+    [<Fact>]
+    let ``no tooltip by default`` () =
+        let s = Series.scatter points
+        Assert.True(s.Tooltip.IsNone)
+
+    [<Fact>]
+    let ``toSvg with tooltip contains title elements`` () =
+        let graph =
+            Series.scatter points
+            |> Series.withTooltip tooltipFn
+            |> Graph.createWithSeries
+        let svg = GraphVG.toSvg graph
+        Assert.Contains("<title>", svg)
+
+    [<Fact>]
+    let ``toSvg without tooltip has no title elements`` () =
+        let graph = Series.scatter points |> Graph.createWithSeries
+        let svg = GraphVG.toSvg graph
+        Assert.DoesNotContain("<title>", svg)
+
+    [<Fact>]
+    let ``title count matches point count`` () =
+        let graph =
+            Series.scatter points
+            |> Series.withTooltip tooltipFn
+            |> Graph.createWithSeries
+        let svg = GraphVG.toSvg graph
+        let count = System.Text.RegularExpressions.Regex.Matches(svg, "<title>").Count
+        Assert.Equal(points.Length, count)
+
+    [<Fact>]
+    let ``tooltip text uses data coordinates not svg coordinates`` () =
+        let graph =
+            Series.scatter [ 5.0, 10.0 ]
+            |> Series.withTooltip (fun (x, y) -> sprintf "x=%g y=%g" x y)
+            |> Graph.createWithSeries
+        let svg = GraphVG.toSvg graph
+        Assert.Contains("x=5 y=10", svg)
+
+    [<Fact>]
+    let ``ampersand in tooltip text is escaped`` () =
+        let graph =
+            Series.scatter [ 1.0, 1.0 ]
+            |> Series.withTooltip (fun _ -> "Q1 & Q2")
+            |> Graph.createWithSeries
+        let svg = GraphVG.toSvg graph
+        Assert.Contains("Q1 &amp; Q2", svg)
+        Assert.DoesNotContain("Q1 & Q2", svg)
+
+    [<Fact>]
+    let ``angle brackets in tooltip text are escaped`` () =
+        let graph =
+            Series.scatter [ 1.0, 1.0 ]
+            |> Series.withTooltip (fun _ -> "<value>")
+            |> Graph.createWithSeries
+        let svg = GraphVG.toSvg graph
+        Assert.Contains("&lt;value&gt;", svg)
+
+    [<Fact>]
+    let ``pointer-events attribute is set on hit targets`` () =
+        let graph =
+            Series.scatter points
+            |> Series.withTooltip tooltipFn
+            |> Graph.createWithSeries
+        let svg = GraphVG.toSvg graph
+        Assert.Contains("pointer-events", svg)
+
 module ErrorBarTests =
 
     open FsCheck
@@ -2115,3 +2192,163 @@ module ViolinTests =
     let ``silvermanBandwidth is always positive for non-empty list`` (head : NormalFloat) (tail : NormalFloat list) =
         let floats = head.Get :: (tail |> List.map (fun v -> v.Get))
         CommonMath.silvermanBandwidth floats > 0.0
+
+module PieChartTests =
+
+    open FsCheck
+
+    let private values = [ 30.0; 25.0; 20.0; 15.0; 10.0 ]
+
+    [<Fact>]
+    let ``pie creates Pie kind`` () =
+        let s = Series.pie values
+        match s.Kind with
+        | Pie _ -> ()
+        | _ -> Assert.True(false, "Expected Pie kind")
+
+    [<Fact>]
+    let ``pie stores one point per value`` () =
+        let s = Series.pie values
+        Assert.Equal(values.Length, s.Points.Length)
+
+    [<Fact>]
+    let ``pie point y values match input`` () =
+        let s = Series.pie values
+        let ys = s.Points |> List.map snd
+        Assert.Equal<float list>(values, ys)
+
+    [<Fact>]
+    let ``pie has no slice labels by default`` () =
+        let s = Series.pie values
+        match s.Kind with
+        | Pie labels -> Assert.True(labels |> List.forall Option.isNone)
+        | _ -> Assert.True(false)
+
+    [<Fact>]
+    let ``withSliceLabels sets labels`` () =
+        let labels = [ "A"; "B"; "C"; "D"; "E" ]
+        let s = Series.pie values |> Series.withSliceLabels labels
+        match s.Kind with
+        | Pie ls -> Assert.Equal(Some "A", ls.[0])
+        | _ -> Assert.True(false)
+
+    [<Fact>]
+    let ``createWithSeries with Pie has no axes`` () =
+        let graph = Series.pie values |> Graph.createWithSeries
+        Assert.True(graph.XAxis.IsNone)
+        Assert.True(graph.YAxis.IsNone)
+
+    [<Fact>]
+    let ``drawSeries returns one element per slice when no labels`` () =
+        let graph = Series.pie values |> Graph.createWithSeries
+        Assert.Equal(values.Length, Graph.drawSeries graph |> List.length)
+
+    [<Fact>]
+    let ``drawSeries with labels returns two elements per slice`` () =
+        let labels = List.replicate values.Length "L"
+        let graph = Series.pie values |> Series.withSliceLabels labels |> Graph.createWithSeries
+        Assert.Equal(values.Length * 2, Graph.drawSeries graph |> List.length)
+
+    [<Fact>]
+    let ``drawSeries with empty values returns empty`` () =
+        let graph = Series.pie [] |> Graph.createWithSeries
+        Assert.Empty(Graph.drawSeries graph)
+
+    [<Fact>]
+    let ``single slice renders as full circle`` () =
+        let graph = Series.pie [ 1.0 ] |> Graph.createWithSeries
+        Assert.Equal(1, Graph.drawSeries graph |> List.length)
+
+    [<Fact>]
+    let ``withVisible false suppresses output`` () =
+        let graph = Series.pie values |> Series.withVisible false |> Graph.createWithSeries
+        Assert.Empty(Graph.drawSeries graph)
+
+    [<Property>]
+    let ``element count equals slice count for unlabeled pie`` (n : PositiveInt) =
+        let count = min n.Get 20 + 1
+        let vs = List.init count (fun i -> float (i + 1))
+        let graph = Series.pie vs |> Graph.createWithSeries
+        Graph.drawSeries graph |> List.length = count
+
+module ParallelSetsTests =
+
+    let private dims = [ "A"; "B" ]
+    let private flows =
+        [ [ "X"; "P" ], 10.0
+          [ "X"; "Q" ], 5.0
+          [ "Y"; "P" ], 3.0
+          [ "Y"; "Q" ], 7.0 ]
+
+    [<Fact>]
+    let ``parallelSets creates ParallelSets kind`` () =
+        let s = Series.parallelSets dims flows
+        match s.Kind with
+        | ParallelSets(_, _) -> ()
+        | _ -> Assert.True(false, "Expected ParallelSets kind")
+
+    [<Fact>]
+    let ``parallelSets stores dimensions and flows`` () =
+        let s = Series.parallelSets dims flows
+        match s.Kind with
+        | ParallelSets(d, fs) ->
+            Assert.Equal(2, d.Length)
+            Assert.Equal(4, fs.Length)
+        | _ -> Assert.True(false)
+
+    [<Fact>]
+    let ``parallelSets creates series with empty Points`` () =
+        let s = Series.parallelSets dims flows
+        Assert.Empty(s.Points)
+
+    [<Fact>]
+    let ``createWithSeries with ParallelSets has no axes`` () =
+        let graph = Series.parallelSets dims flows |> Graph.createWithSeries
+        Assert.True(graph.XAxis.IsNone)
+        Assert.True(graph.YAxis.IsNone)
+
+    [<Fact>]
+    let ``drawSeries with valid data returns elements`` () =
+        let graph = Series.parallelSets dims flows |> Graph.createWithSeries
+        let elements = Graph.drawSeries graph
+        Assert.True(elements.Length > 0)
+
+    [<Fact>]
+    let ``drawSeries with empty flows returns empty list`` () =
+        let s = Series.parallelSets dims []
+        let graph = s |> Graph.createWithSeries
+        let elements = Graph.drawSeries graph
+        Assert.Empty(elements)
+
+    [<Fact>]
+    let ``drawSeries with fewer than 2 dimensions returns empty list`` () =
+        let s = Series.parallelSets [ "A" ] [ [ "X" ], 5.0 ]
+        let graph = s |> Graph.createWithSeries
+        let elements = Graph.drawSeries graph
+        Assert.Empty(elements)
+
+    [<Fact>]
+    let ``bounds for ParallelSets returns unit range`` () =
+        let s = Series.parallelSets dims flows
+        let (x0, x1), (y0, y1) = Series.bounds s
+        Assert.Equal(0.0, x0)
+        Assert.Equal(1.0, x1)
+        Assert.Equal(0.0, y0)
+        Assert.Equal(1.0, y1)
+
+    [<Fact>]
+    let ``drawSeries element count grows with more flows`` () =
+        // More non-empty flows should produce at least as many elements
+        let s1 = Series.parallelSets dims (flows |> List.take 2)
+        let s2 = Series.parallelSets dims flows
+        let g1 = s1 |> Graph.createWithSeries
+        let g2 = s2 |> Graph.createWithSeries
+        let n1 = Graph.drawSeries g1 |> List.length
+        let n2 = Graph.drawSeries g2 |> List.length
+        Assert.True(n1 <= n2)
+
+    [<Fact>]
+    let ``withVisible false suppresses output`` () =
+        let s = Series.parallelSets dims flows |> Series.withVisible false
+        let graph = s |> Graph.createWithSeries
+        Assert.Empty(Graph.drawSeries graph)
