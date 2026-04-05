@@ -17,6 +17,15 @@ type ErrorBar =
     | Symmetric of float list
     | Asymmetric of low: float list * high: float list
 
+type OhlcPoint =
+    {
+        X : float
+        Open : float
+        High : float
+        Low : float
+        Close : float
+    }
+
 type SeriesKind =
     | Scatter
     | Line
@@ -32,6 +41,8 @@ type SeriesKind =
     | Bubble of sizes: float list
     | Heatmap of values: float list
     | Band of highs: float list
+    | Candlestick of ohlc: OhlcPoint list
+    | Ohlc of ohlc: OhlcPoint list
 
 type Series =
     {
@@ -117,6 +128,14 @@ module Series =
         let points = triples |> List.map (fun (x, yLow, _) -> x, yLow)
         let highs = triples |> List.map (fun (_, _, yHigh) -> yHigh)
         create (Band highs) points
+
+    let candlestick (bars : OhlcPoint list) =
+        let points = bars |> List.map (fun b -> b.X, b.Close)
+        create (Candlestick bars) points
+
+    let ohlc (bars : OhlcPoint list) =
+        let points = bars |> List.map (fun b -> b.X, b.Close)
+        create (Ohlc bars) points
 
     let withLabel label series =
         { series with Label = Some label }
@@ -238,6 +257,11 @@ module Series =
         | Band highs ->
             let xs, yLows = series.Points |> List.unzip
             (List.min xs, List.max xs), (List.min yLows, List.max highs)
+        | Candlestick bars | Ohlc bars ->
+            let xs = bars |> List.map (fun b -> b.X)
+            let yMin = bars |> List.map (fun b -> b.Low) |> List.min
+            let yMax = bars |> List.map (fun b -> b.High) |> List.max
+            (List.min xs, List.max xs), (yMin, yMax)
         | _ ->
             let xs, ys = series.Points |> List.unzip
             let yMin, yMax =

@@ -1898,3 +1898,76 @@ module ErrorBarTests =
             let scatterCount = count   // one circle per point
             let errorCount = count * 3 // one line + two caps per point
             Graph.drawSeries graph |> List.length = scatterCount + errorCount
+
+module CandlestickTests =
+
+    open FsCheck
+
+    let private bar x o h l c = { X = x; Open = o; High = h; Low = l; Close = c }
+
+    let private bars = [
+        bar 1.0 100.0 110.0  90.0 105.0   // up bar
+        bar 2.0 105.0 115.0  95.0  98.0   // down bar
+        bar 3.0  98.0 108.0  85.0 107.0   // up bar
+    ]
+
+    [<Fact>]
+    let ``candlestick creates Candlestick kind`` () =
+        let s = Series.candlestick bars
+        Assert.True(match s.Kind with | Candlestick _ -> true | _ -> false)
+
+    [<Fact>]
+    let ``ohlc creates Ohlc kind`` () =
+        let s = Series.ohlc bars
+        Assert.True(match s.Kind with | Ohlc _ -> true | _ -> false)
+
+    [<Fact>]
+    let ``candlestick Points are (x, close) pairs`` () =
+        let s = Series.candlestick bars
+        Assert.Equal<(float * float) list>([ 1.0, 105.0; 2.0, 98.0; 3.0, 107.0 ], s.Points)
+
+    [<Fact>]
+    let ``candlestick bounds covers high and low`` () =
+        let s = Series.candlestick bars
+        let (xMin, xMax), (yMin, yMax) = Series.bounds s
+        Assert.Equal(1.0, xMin)
+        Assert.Equal(3.0, xMax)
+        Assert.Equal(85.0, yMin)
+        Assert.Equal(115.0, yMax)
+
+    [<Fact>]
+    let ``candlestick renders 3 elements per bar (2 wicks + body)`` () =
+        let s = Series.candlestick bars
+        let graph = Graph.create [ s ] (0.0, 4.0) (80.0, 120.0)
+        Assert.Equal(9, Graph.drawSeries graph |> List.length)
+
+    [<Fact>]
+    let ``ohlc renders 3 elements per bar (wick + open tick + close tick)`` () =
+        let s = Series.ohlc bars
+        let graph = Graph.create [ s ] (0.0, 4.0) (80.0, 120.0)
+        Assert.Equal(9, Graph.drawSeries graph |> List.length)
+
+    [<Fact>]
+    let ``candlestick createWithSeries produces SVG with rects`` () =
+        let svg = Series.candlestick bars |> Graph.createWithSeries |> GraphVG.toSvg
+        Assert.Contains("<rect", svg)
+
+    [<Fact>]
+    let ``ohlc createWithSeries produces SVG with lines`` () =
+        let svg = Series.ohlc bars |> Graph.createWithSeries |> GraphVG.toSvg
+        Assert.Contains("<line", svg)
+
+    [<Fact>]
+    let ``candlestick and ohlc SVG differ`` () =
+        let candleSvg = Series.candlestick bars |> Graph.createWithSeries |> GraphVG.toSvg
+        let ohlcSvg = Series.ohlc bars |> Graph.createWithSeries |> GraphVG.toSvg
+        Assert.True(candleSvg <> ohlcSvg)
+
+    [<Property>]
+    let ``candlestick element count is 3n for n bars`` (n : PositiveInt) =
+        let count = min n.Get 50
+        let testBars = List.init count (fun i ->
+            { X = float i; Open = 100.0; High = 110.0; Low = 90.0; Close = 105.0 })
+        let s = Series.candlestick testBars
+        let graph = Graph.create [ s ] (-1.0, float count) (80.0, 120.0)
+        Graph.drawSeries graph |> List.length = count * 3

@@ -489,6 +489,48 @@ module Graph =
                             [ Circle.create svgPt (Length.ofFloat radius) |> Element.createWithStyle fillStyle ]
                         else [])
                     |> List.concat
+                | Candlestick ohlcData | Ohlc ohlcData ->
+                    if List.isEmpty ohlcData then []
+                    else
+                        let isOhlcStyle = match series.Kind with | Ohlc _ -> true | _ -> false
+                        let halfBar = ohlcData |> List.map (fun b -> b.X) |> inferMinSpacing |> fun s -> s * 0.4
+                        let wickWidth = series.StrokeWidth |> Option.defaultValue (Length.ofFloat 1.5)
+                        ohlcData
+                        |> List.collect (fun bar ->
+                            let svgCX, _ = toScaledSvgCoordinates graph (bar.X, 0.0)
+                            let svgLeft, _ = toScaledSvgCoordinates graph (bar.X - halfBar, 0.0)
+                            let svgRight, _ = toScaledSvgCoordinates graph (bar.X + halfBar, 0.0)
+                            let svgOpen = snd (toScaledSvgCoordinates graph (0.0, bar.Open))
+                            let svgClose = snd (toScaledSvgCoordinates graph (0.0, bar.Close))
+                            let svgHigh = snd (toScaledSvgCoordinates graph (0.0, bar.High))
+                            let svgLow = snd (toScaledSvgCoordinates graph (0.0, bar.Low))
+                            let fillColor = if bar.Close >= bar.Open then graph.Theme.UpColor else graph.Theme.DownColor
+                            let colorPen = Pen.create fillColor |> Pen.withOpacity series.Opacity
+                            let wickStyle = Style.createWithPen (colorPen |> Pen.withWidth wickWidth) |> Style.withFillOpacity 0.0
+                            if isOhlcStyle then
+                                [
+                                    Line.create (Point.ofFloats (svgCX, svgHigh)) (Point.ofFloats (svgCX, svgLow))
+                                    |> Element.createWithStyle wickStyle
+                                    Line.create (Point.ofFloats (svgLeft, svgOpen)) (Point.ofFloats (svgCX, svgOpen))
+                                    |> Element.createWithStyle wickStyle
+                                    Line.create (Point.ofFloats (svgCX, svgClose)) (Point.ofFloats (svgRight, svgClose))
+                                    |> Element.createWithStyle wickStyle
+                                ]
+                            else
+                                let svgBodyTop = min svgOpen svgClose
+                                let svgBodyBottom = max svgOpen svgClose
+                                let bodyHeight = max 1.0 (svgBodyBottom - svgBodyTop)
+                                let bodyStyle = Style.empty |> Style.withFill fillColor |> Style.withFillOpacity series.Opacity
+                                [
+                                    Line.create (Point.ofFloats (svgCX, svgHigh)) (Point.ofFloats (svgCX, svgBodyTop))
+                                    |> Element.createWithStyle wickStyle
+                                    Line.create (Point.ofFloats (svgCX, svgBodyBottom)) (Point.ofFloats (svgCX, svgLow))
+                                    |> Element.createWithStyle wickStyle
+                                    Rect.create
+                                        (Point.ofFloats (svgLeft, svgBodyTop))
+                                        (Area.ofFloats (svgRight - svgLeft, bodyHeight))
+                                    |> Element.createWithStyle bodyStyle
+                                ])
                 | StackedArea | NormalizedStackedArea | Streamgraph ->
                     match Map.tryFind i stackingMap with
                     | None -> []

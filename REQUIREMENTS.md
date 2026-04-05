@@ -72,27 +72,6 @@ val violin : float list -> Series
 
 ---
 
-## REQ-36: Candlestick / OHLC
-
-Financial price-action chart showing open, high, low, and close values per time period.
-
-```fsharp
-// Points are (x, open, high, low, close)
-type OhlcPoint = { X : float; Open : float; High : float; Low : float; Close : float }
-
-val candlestick : OhlcPoint list -> Series
-val ohlc : OhlcPoint list -> Series          // classic bar form, no filled body
-```
-
-**Acceptance criteria:**
-
-- `Candlestick` renders a filled rectangle between open and close (green if close ≥ open, red otherwise) with wicks to high and low.
-- `Ohlc` renders a vertical line from low to high with left tick (open) and right tick (close).
-- Colors follow the active theme's up/down palette, overridable via `withTheme`.
-- Auto-bounds cover all four OHLC values.
-
----
-
 ## REQ-37: Waterfall Chart
 
 A cumulative bar chart where each bar shows the incremental change from the previous total. Used for financial statements, cost breakdowns, and bridge charts.

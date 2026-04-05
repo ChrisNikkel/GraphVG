@@ -14,6 +14,8 @@ type Theme =
         Pens : Pen list
         AxisPen : Pen
         GridPen : Pen option
+        UpColor : Color
+        DownColor : Color
     }
 
 module Theme =
@@ -33,6 +35,12 @@ module Theme =
     let withGridPen gridPen theme =
         { theme with GridPen = Some gridPen }
 
+    let withUpColor color theme =
+        { theme with UpColor = color }
+
+    let withDownColor color theme =
+        { theme with DownColor = color }
+
     let penForSeries index theme =
         theme.Pens.[index % theme.Pens.Length]
 
@@ -42,6 +50,8 @@ module Theme =
         Pens = [ Pen.steelBlue; Pen.orange; Pen.green; Pen.red; Pen.purple ]
         AxisPen = Pen.gray
         GridPen = None
+        UpColor = Color.ofName SeaGreen
+        DownColor = Color.ofName Crimson
     }
 
     let light = {
@@ -50,6 +60,8 @@ module Theme =
         Pens = [ Pen.steelBlue; Pen.coral; Pen.seaGreen; Pen.tomato; Pen.mediumPurple; Pen.goldenRod ]
         AxisPen = Pen.dimGray
         GridPen = Some Pen.lightGray
+        UpColor = Color.ofName SeaGreen
+        DownColor = Color.ofName Crimson
     }
 
     let dark = {
@@ -58,6 +70,8 @@ module Theme =
         Pens = [ Pen.cornflowerBlue; Pen.coral; Pen.limeGreen; Pen.tomato; Pen.violet; Pen.gold ]
         AxisPen = Pen.lightGray
         GridPen = Some (Pen.dimGray |> Pen.withOpacity 0.5)
+        UpColor = Color.ofName LimeGreen
+        DownColor = Color.ofName Crimson
     }
 
     let highContrast = {
@@ -66,6 +80,8 @@ module Theme =
         Pens = [ Pen.yellow; Pen.cyan; Pen.magenta; Pen.lime; Pen.orangeRed; Pen.white ]
         AxisPen = Pen.white
         GridPen = Some (Pen.white |> Pen.withOpacity 0.25)
+        UpColor = Color.ofName Lime
+        DownColor = Color.ofName Red
     }
 
     let turtle = {
@@ -74,6 +90,8 @@ module Theme =
         Pens = [ Pen.green ]
         AxisPen = Pen.green
         GridPen = None
+        UpColor = Color.ofName Green
+        DownColor = Color.ofName Red
     }
 
     let preset (themePreset : ThemePreset) =
