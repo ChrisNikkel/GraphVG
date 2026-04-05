@@ -93,6 +93,18 @@ let html =
     |> GraphVG.toHtml
 ```
 
+Layout spacing is configurable per graph:
+
+```fsharp
+let spacious =
+    LayoutSpacing.create 28.0 24.0 10.0 6.0
+
+let svg =
+    Graph.create [ response; samples ] (1.0, 100.0) (0.0, 5.0)
+    |> Graph.withLayoutSpacing spacious
+    |> GraphVG.toSvg
+```
+
 ## Building GraphVG
 
 Clone the repository:

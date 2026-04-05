@@ -10,7 +10,7 @@ module GraphVG =
         let padding = graphPadding graph
         let axes = [ graph.XAxis; graph.YAxis ] |> List.choose id
         let gridElements = axes |> List.collect (Axis.toGridElements graph.Theme)
-        let axisElements = axes |> List.collect (Axis.toElements graph.Theme)
+        let axisElements = axes |> List.collect (Axis.toElementsWithSpacing graph.Theme graph.LayoutSpacing)
         let toSvgCoord = Graph.toScaledSvgCoordinates graph
         [
             [ backgroundElement graph.Theme.Background padding ]

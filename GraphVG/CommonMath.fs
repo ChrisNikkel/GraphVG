@@ -12,6 +12,27 @@ module CommonMath =
             Left : float
         }
 
+    type LayoutSpacing =
+        {
+            OuterMargin : float
+            TitlePadding : float
+            AxisLabelPadding : float
+            TickLabelPadding : float
+        }
+
+    module LayoutSpacing =
+
+        let create outerMargin titlePadding axisLabelPadding tickLabelPadding =
+            {
+                OuterMargin = outerMargin
+                TitlePadding = titlePadding
+                AxisLabelPadding = axisLabelPadding
+                TickLabelPadding = tickLabelPadding
+            }
+
+        let defaults =
+            create 20.0 16.0 4.0 4.0
+
     let estimatedTextWidth fontSize (text : string) =
         float text.Length * fontSize * 0.6
 
