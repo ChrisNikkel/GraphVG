@@ -5,7 +5,7 @@ open CommonMath
 
 type Scale =
     | Linear of domain:(float * float) * range:(float * float)
-    | Log    of domain:(float * float) * range:(float * float) * base':float
+    | Log of domain:(float * float) * range:(float * float) * base':float
 
 module Scale =
 
@@ -34,8 +34,8 @@ module Scale =
 
     let domain scale =
         match scale with
-        | Linear((d1, d2), _)    -> d1, d2
-        | Log((d1, d2), _, _)    -> d1, d2
+        | Linear((d1, d2), _) -> d1, d2
+        | Log((d1, d2), _, _) -> d1, d2
 
     let ticks scale count =
         match scale with
