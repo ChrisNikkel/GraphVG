@@ -73,6 +73,12 @@ let examples =
             Graph = BarCharts.barChartGraph
         }
         {
+            FileName = "waterfall.html"
+            Title = "Waterfall Chart"
+            Description = "Annual cash flow bridge showing starting balance, revenue inflows, and cost outflows — total bars drawn from zero, connector lines link consecutive bars."
+            Graph = BarCharts.waterfallGraph
+        }
+        {
             FileName = "horizontal-bar.html"
             Title = "Horizontal Bar Chart"
             Description = "Average daily screen time by app category, sorted by usage — horizontal bars for easy label reading."
@@ -95,6 +101,12 @@ let examples =
             Title = "Histogram"
             Description = "300 normally distributed samples binned automatically using Sturges' rule."
             Graph = DistributionCharts.histogramGraph
+        }
+        {
+            FileName = "violin-plot.html"
+            Title = "Violin Plot"
+            Description = "Three groups of 120 samples showing KDE shape, median, IQR box, and whiskers — wider regions are where data is more concentrated."
+            Graph = DistributionCharts.violinPlotGraph
         }
         {
             FileName = "box-plot.html"
@@ -146,7 +158,7 @@ let galleryHtml pages =
     + "<body>\n"
     + "<main class=\"wrap\">\n"
     + "<h1>GraphVG Example Gallery</h1>\n"
-    + "<p class=\"intro\">A collection of focused examples covering line, step line, area, stacked and normalized area, streamgraphs, bar, bubble, heatmap, histogram, box plot, and confidence band charts.</p>\n"
+    + "<p class=\"intro\">A collection of focused examples covering line, step line, area, stacked and normalized area, streamgraphs, bar, waterfall, bubble, heatmap, histogram, box plot, violin plot, and confidence band charts.</p>\n"
     + "<section class=\"grid\">\n"
     + cards + "\n"
     + "</section>\n"

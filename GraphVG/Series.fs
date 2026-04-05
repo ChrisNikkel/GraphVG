@@ -43,6 +43,8 @@ type SeriesKind =
     | Band of highs: float list
     | Candlestick of ohlc: OhlcPoint list
     | Ohlc of ohlc: OhlcPoint list
+    | Violin of values: float list
+    | Waterfall of totals: float list
 
 type Series =
     {
@@ -129,6 +131,14 @@ module Series =
         let highs = triples |> List.map (fun (_, _, yHigh) -> yHigh)
         create (Band highs) points
 
+    let waterfall (points : (float * float) list) =
+        create (Waterfall []) points
+
+    let withTotalAt (xValues : float list) (series : Series) =
+        match series.Kind with
+        | Waterfall _ -> { series with Kind = Waterfall xValues }
+        | _ -> series
+
     let candlestick (bars : OhlcPoint list) =
         let points = bars |> List.map (fun b -> b.X, b.Close)
         create (Candlestick bars) points
@@ -205,9 +215,9 @@ module Series =
     let histogram (values : float list) =
         histogramWithBins (defaultBinCount values) values
 
-    // ── Box plot ──────────────────────────────────────────────────────────────
+    // ── Box plot / Violin (shared summary) ────────────────────────────────────
 
-    let boxAt (position : float) (values : float list) =
+    let private boxSummaryPoints (position : float) (values : float list) =
         let sorted = values |> List.sort |> Array.ofList
         let n = Array.length sorted
         let percentile p =
@@ -215,16 +225,23 @@ module Series =
             let lower = int (floor idx)
             let upper = min (n - 1) (int (ceil idx))
             sorted.[lower] + (idx - float lower) * (float sorted.[upper] - float sorted.[lower])
-        let points =
-            [ position, sorted.[0]
-              position, percentile 0.25
-              position, percentile 0.50
-              position, percentile 0.75
-              position, sorted.[n - 1] ]
-        create Box points
+        [ position, sorted.[0]
+          position, percentile 0.25
+          position, percentile 0.50
+          position, percentile 0.75
+          position, sorted.[n - 1] ]
+
+    let boxAt (position : float) (values : float list) =
+        create Box (boxSummaryPoints position values)
 
     let box (values : float list) =
         boxAt 0.5 values
+
+    let violinAt (position : float) (values : float list) =
+        create (Violin values) (boxSummaryPoints position values)
+
+    let violin (values : float list) =
+        violinAt 0.5 values
 
     // ── Bounds ────────────────────────────────────────────────────────────────
 
@@ -235,7 +252,7 @@ module Series =
         | Histogram binWidth ->
             let xs, ys = series.Points |> List.unzip
             (List.min xs, List.max xs + binWidth), (0.0, List.fold max 0.0 ys)
-        | Box ->
+        | Box | Violin _ ->
             let xs, ys = series.Points |> List.unzip
             let position = List.min xs
             (position - 0.5, position + 0.5), (List.min ys, List.max ys)
@@ -257,6 +274,10 @@ module Series =
         | Band highs ->
             let xs, yLows = series.Points |> List.unzip
             (List.min xs, List.max xs), (List.min yLows, List.max highs)
+        | Waterfall _ ->
+            let xs, deltas = series.Points |> List.unzip
+            let runningTotals = deltas |> List.scan (+) 0.0
+            (List.min xs - 0.5, List.max xs + 0.5), (List.min runningTotals, List.max runningTotals)
         | Candlestick bars | Ohlc bars ->
             let xs = bars |> List.map (fun b -> b.X)
             let yMin = bars |> List.map (fun b -> b.Low) |> List.min

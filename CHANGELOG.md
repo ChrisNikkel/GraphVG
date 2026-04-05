@@ -5,6 +5,8 @@ All notable changes to GraphVG will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- `Violin` series kind: `Series.violin` and `Series.violinAt` take raw float values and render a symmetric KDE outline with a box-plot overlay (IQR box, median line, whiskers); bandwidth is chosen automatically via Silverman's rule; violin width is configurable via `withPointRadius`; `CommonMath.silvermanBandwidth` and `CommonMath.gaussianKde` are public helpers
+- `Waterfall` series kind: `Series.waterfall` takes `(x, delta)` pairs and renders a cumulative bridge chart; `Series.withTotalAt` marks x positions as total bars that draw from zero; positive deltas use `Theme.UpColor`, negative use `DownColor`, totals use the axis pen color; dashed connector lines link consecutive bar tops; auto-bounds cover the full running-total range
 - `OhlcPoint` type and `Candlestick`/`Ohlc` series kinds: `Series.candlestick` renders filled bodies between open and close with wicks to high and low; `Series.ohlc` renders the classic bar form (wick + open/close ticks); body color follows `Theme.UpColor`/`DownColor`; `Theme.withUpColor`/`withDownColor` allow overrides; auto-bounds cover all four OHLC values
 - `Theme.UpColor`/`DownColor` fields added to all built-in themes (SeaGreen/Crimson for light, LimeGreen/Crimson for dark, Lime/Red for high-contrast)
 - `ErrorBar` type and `Series.withErrorBars`: attach symmetric or asymmetric Y error bars to any series; returns `Result<Series, string>` on length mismatch; auto-bounds expand to cover the full error extent; each point renders as a vertical line with horizontal caps

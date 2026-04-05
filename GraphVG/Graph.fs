@@ -96,7 +96,7 @@ module Graph =
     let createWithSeries (series : Series) =
         let policy =
             match series.Kind with
-            | Histogram _ | Bar | HorizontalBar -> IncludeZero
+            | Histogram _ | Bar | HorizontalBar | Waterfall _ -> IncludeZero
             | Heatmap _ -> Tight
             | _ -> Padded 0.1
         let domain, range = pointBounds [ series ]
@@ -416,6 +416,59 @@ module Graph =
                             |> Element.createWithStyle strokeStyle
                         ]
                     | _ -> []
+                | Violin rawValues ->
+                    match series.Points with
+                    | [ (xPos, yMin); (_, q1); (_, median); (_, q3); (_, yMax) ] when not rawValues.IsEmpty ->
+                        let halfWidth = series.PointRadius |> Option.map Length.toFloat |> Option.defaultValue 40.0
+                        let bandwidth = silvermanBandwidth rawValues
+                        let nSamples = 100
+                        let extent = 2.0 * bandwidth
+                        let yStep = (yMax - yMin + 2.0 * extent) / float (nSamples - 1)
+                        let yStart = yMin - extent
+                        let ySamples = [ for k in 0 .. nSamples - 1 -> yStart + float k * yStep ]
+                        let densities = ySamples |> List.map (gaussianKde bandwidth rawValues)
+                        let maxDensity = densities |> List.max |> max epsilon
+                        let svgX = fst (toScaledSvgCoordinates graph (xPos, 0.0))
+                        let svgY y = snd (toScaledSvgCoordinates graph (0.0, y))
+                        let rightPts =
+                            List.map2 (fun y d ->
+                                Point.ofFloats (svgX + (d / maxDensity) * halfWidth, svgY y))
+                                ySamples densities
+                        let leftPts =
+                            List.map2 (fun y d ->
+                                Point.ofFloats (svgX - (d / maxDensity) * halfWidth, svgY y))
+                                ySamples densities
+                        let violinStyle =
+                            Style.empty
+                            |> Style.withFillPen seriesPen
+                            |> Style.withFillOpacity (series.Opacity * 0.3)
+                            |> Style.withStrokePen seriesPen
+                        let boxHalf = halfWidth * 0.25
+                        let svgYQ1 = svgY q1
+                        let svgYQ3 = svgY q3
+                        let svgYMedian = svgY median
+                        let svgYMin = svgY yMin
+                        let svgYMax = svgY yMax
+                        let strokeStyle = Style.createWithPen seriesPen
+                        let boxFillStyle =
+                            Style.createWithPen seriesPen
+                            |> Style.withFillPen seriesPen
+                            |> Style.withFillOpacity (series.Opacity * 0.6)
+                        [
+                            Polygon.ofList (rightPts @ List.rev leftPts)
+                            |> Element.createWithStyle violinStyle
+                            Rect.create
+                                (Point.ofFloats (svgX - boxHalf, svgYQ3))
+                                (Area.ofFloats (boxHalf * 2.0, svgYQ1 - svgYQ3))
+                            |> Element.createWithStyle boxFillStyle
+                            Line.create (Point.ofFloats (svgX - boxHalf, svgYMedian)) (Point.ofFloats (svgX + boxHalf, svgYMedian))
+                            |> Element.createWithStyle strokeStyle
+                            Line.create (Point.ofFloats (svgX, svgYQ1)) (Point.ofFloats (svgX, svgYMin))
+                            |> Element.createWithStyle strokeStyle
+                            Line.create (Point.ofFloats (svgX, svgYQ3)) (Point.ofFloats (svgX, svgYMax))
+                            |> Element.createWithStyle strokeStyle
+                        ]
+                    | _ -> []
                 | SeriesKind.Bar ->
                     match Map.tryFind i barLayouts with
                     | None -> []
@@ -531,6 +584,57 @@ module Graph =
                                         (Area.ofFloats (svgRight - svgLeft, bodyHeight))
                                     |> Element.createWithStyle bodyStyle
                                 ])
+                | Waterfall totalXValues ->
+                    if series.Points.IsEmpty then []
+                    else
+                        let totalSet = Set.ofList totalXValues
+                        let barHalfWidth =
+                            series.Points |> List.map fst |> inferMinSpacing |> fun s -> s * 0.4
+                        let barData, _ =
+                            series.Points
+                            |> List.mapFold (fun running (x, delta) ->
+                                let isTotal = Set.contains x totalSet
+                                let baseline = if isTotal then 0.0 else running
+                                let top = if isTotal then running else running + delta
+                                let next = if isTotal then running else running + delta
+                                (x, baseline, top, isTotal), next) 0.0
+                        let upColor = graph.Theme.UpColor
+                        let downColor = graph.Theme.DownColor
+                        let neutralPen = graph.Theme.AxisPen
+                        let barElements =
+                            barData
+                            |> List.collect (fun (x, baseline, top, isTotal) ->
+                                let svgX1, _ = toScaledSvgCoordinates graph (x - barHalfWidth, 0.0)
+                                let svgX2, _ = toScaledSvgCoordinates graph (x + barHalfWidth, 0.0)
+                                let _, svgTop = toScaledSvgCoordinates graph (0.0, max baseline top)
+                                let _, svgBottom = toScaledSvgCoordinates graph (0.0, min baseline top)
+                                let barHeight = max 1.0 (svgBottom - svgTop)
+                                let color =
+                                    if isTotal then neutralPen.Color
+                                    elif top >= baseline then upColor
+                                    else downColor
+                                let rectStyle =
+                                    Style.empty
+                                    |> Style.withFill color
+                                    |> Style.withFillOpacity series.Opacity
+                                [ Rect.create
+                                    (Point.ofFloats (min svgX1 svgX2, svgTop))
+                                    (Area.ofFloats (abs (svgX2 - svgX1), barHeight))
+                                  |> Element.createWithStyle rectStyle ])
+                        let connectorStyle =
+                            Style.createWithPen neutralPen
+                            |> Style.withFillOpacity 0.0
+                            |> Style.withStrokeDashArray [ 6.0; 4.0 ]
+                        let connectors =
+                            barData
+                            |> List.pairwise
+                            |> List.collect (fun ((x1, _, top1, _), (x2, _, _, _)) ->
+                                let _, svgY = toScaledSvgCoordinates graph (0.0, top1)
+                                let svgRight, _ = toScaledSvgCoordinates graph (x1 + barHalfWidth, 0.0)
+                                let svgLeft, _ = toScaledSvgCoordinates graph (x2 - barHalfWidth, 0.0)
+                                [ Line.create (Point.ofFloats (svgRight, svgY)) (Point.ofFloats (svgLeft, svgY))
+                                  |> Element.createWithStyle connectorStyle ])
+                        barElements @ connectors
                 | StackedArea | NormalizedStackedArea | Streamgraph ->
                     match Map.tryFind i stackingMap with
                     | None -> []

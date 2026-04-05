@@ -1971,3 +1971,147 @@ module CandlestickTests =
         let s = Series.candlestick testBars
         let graph = Graph.create [ s ] (-1.0, float count) (80.0, 120.0)
         Graph.drawSeries graph |> List.length = count * 3
+
+module WaterfallTests =
+
+    open FsCheck
+
+    // (x, delta) — positive = up, negative = down
+    let private points = [ 1.0, 10.0; 2.0, -4.0; 3.0, 6.0; 4.0, 0.0 ]
+
+    [<Fact>]
+    let ``waterfall creates Waterfall kind`` () =
+        let s = Series.waterfall points
+        Assert.True(match s.Kind with | Waterfall _ -> true | _ -> false)
+
+    [<Fact>]
+    let ``waterfall default has no total markers`` () =
+        let s = Series.waterfall points
+        Assert.True(match s.Kind with | Waterfall [] -> true | _ -> false)
+
+    [<Fact>]
+    let ``withTotalAt sets total x-values on Waterfall`` () =
+        let s = Series.waterfall points |> Series.withTotalAt [ 4.0 ]
+        Assert.True(match s.Kind with | Waterfall [ 4.0 ] -> true | _ -> false)
+
+    [<Fact>]
+    let ``withTotalAt is a no-op on non-Waterfall series`` () =
+        let s = Series.line points |> Series.withTotalAt [ 4.0 ]
+        Assert.Equal(SeriesKind.Line, s.Kind)
+
+    [<Fact>]
+    let ``waterfall bounds x covers bar half-widths`` () =
+        let s = Series.waterfall points
+        let (xMin, xMax), _ = Series.bounds s
+        Assert.True(xMin < 1.0)
+        Assert.True(xMax > 4.0)
+
+    [<Fact>]
+    let ``waterfall bounds y covers running totals including zero`` () =
+        // running: 0, 10, 6, 12, 12 — range is [0..12]
+        let s = Series.waterfall points
+        let _, (yMin, yMax) = Series.bounds s
+        Assert.Equal(0.0, yMin, 10)
+        Assert.Equal(12.0, yMax, 10)
+
+    [<Fact>]
+    let ``waterfall renders n bars and n-1 connectors`` () =
+        let s = Series.waterfall points
+        let graph = Graph.create [ s ] (0.0, 5.0) (-5.0, 15.0)
+        let n = points.Length
+        // n rects + (n-1) connectors
+        Assert.Equal(n + (n - 1), Graph.drawSeries graph |> List.length)
+
+    [<Fact>]
+    let ``waterfall with total at x renders same element count`` () =
+        let s = Series.waterfall points |> Series.withTotalAt [ 4.0 ]
+        let graph = Graph.create [ s ] (0.0, 5.0) (-5.0, 15.0)
+        let n = points.Length
+        Assert.Equal(n + (n - 1), Graph.drawSeries graph |> List.length)
+
+    [<Fact>]
+    let ``waterfall createWithSeries produces SVG with rects`` () =
+        let svg = Series.waterfall points |> Graph.createWithSeries |> GraphVG.toSvg
+        Assert.Contains("<rect", svg)
+
+    [<Property>]
+    let ``waterfall element count is 2n-1 for n points`` (n : PositiveInt) =
+        let count = min n.Get 50
+        let pts = List.init count (fun i -> float i + 1.0, 1.0)
+        let s = Series.waterfall pts
+        let graph = Graph.create [ s ] (0.0, float count + 1.0) (-1.0, float count + 1.0)
+        let elements = Graph.drawSeries graph |> List.length
+        elements = count + (count - 1)
+
+module ViolinTests =
+
+    open FsCheck
+
+    let private sampleValues = [ 1.0; 2.0; 2.5; 3.0; 3.5; 4.0; 5.0; 5.5; 6.0; 7.0 ]
+
+    [<Fact>]
+    let ``violin creates Violin kind`` () =
+        let s = Series.violin sampleValues
+        Assert.True(match s.Kind with | Violin _ -> true | _ -> false)
+
+    [<Fact>]
+    let ``violinAt creates Violin kind at given position`` () =
+        let s = Series.violinAt 2.0 sampleValues
+        Assert.True(match s.Kind with | Violin _ -> true | _ -> false)
+
+    [<Fact>]
+    let ``violin Points has 5 summary statistics`` () =
+        let s = Series.violin sampleValues
+        Assert.Equal(5, s.Points.Length)
+
+    [<Fact>]
+    let ``violinAt positions all summary points at given x`` () =
+        let s = Series.violinAt 3.0 sampleValues
+        Assert.True(s.Points |> List.forall (fun (x, _) -> x = 3.0))
+
+    [<Fact>]
+    let ``violin bounds x is centered on 0.5 with unit span`` () =
+        let s = Series.violin sampleValues
+        let (xMin, xMax), _ = Series.bounds s
+        Assert.Equal(0.0, xMin, 10)
+        Assert.Equal(1.0, xMax, 10)
+
+    [<Fact>]
+    let ``violin bounds y covers data range`` () =
+        let s = Series.violin sampleValues
+        let _, (yMin, yMax) = Series.bounds s
+        Assert.Equal(1.0, yMin, 10)
+        Assert.Equal(7.0, yMax, 10)
+
+    [<Fact>]
+    let ``violin renders 5 elements (polygon + box overlay)`` () =
+        let s = Series.violin sampleValues
+        let graph = Graph.create [ s ] (0.0, 1.0) (0.0, 8.0)
+        Assert.Equal(5, Graph.drawSeries graph |> List.length)
+
+    [<Fact>]
+    let ``violin createWithSeries produces SVG with polygon`` () =
+        let svg = Series.violin sampleValues |> Graph.createWithSeries |> GraphVG.toSvg
+        Assert.Contains("<polygon", svg)
+
+    [<Fact>]
+    let ``silvermanBandwidth returns positive value for any sample`` () =
+        let bw = CommonMath.silvermanBandwidth sampleValues
+        Assert.True(bw > 0.0)
+
+    [<Fact>]
+    let ``silvermanBandwidth single value returns 1.0`` () =
+        Assert.Equal(1.0, CommonMath.silvermanBandwidth [ 42.0 ], 10)
+
+    [<Property>]
+    let ``violin element count is always 5`` (n : PositiveInt) =
+        let count = min n.Get 50 + 2  // at least 2 values needed
+        let values = List.init count (fun i -> float i)
+        let s = Series.violin values
+        let graph = Graph.create [ s ] (0.0, 1.0) (-1.0, float count)
+        Graph.drawSeries graph |> List.length = 5
+
+    [<Property>]
+    let ``silvermanBandwidth is always positive for non-empty list`` (head : NormalFloat) (tail : NormalFloat list) =
+        let floats = head.Get :: (tail |> List.map (fun v -> v.Get))
+        CommonMath.silvermanBandwidth floats > 0.0

@@ -20,6 +20,33 @@ let histogramGraph =
     |> Graph.withTitle "Histogram"
     |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
 
+let violinPlotGraph =
+    let rng = Random(13)
+    let sample mean std n =
+        [ for _ in 1 .. n ->
+            let u1 = rng.NextDouble()
+            let u2 = rng.NextDouble()
+            mean + std * Math.Sqrt(-2.0 * Math.Log u1) * Math.Cos(tau / 2.0 * u2) ]
+    let groupA = Series.violinAt 1.0 (sample 5.0 1.2 120) |> Series.withLabel "Group A"
+    let groupB = Series.violinAt 2.0 (sample 7.0 0.7 120) |> Series.withLabel "Group B"
+    let groupC = Series.violinAt 3.0 (sample 4.5 2.0 120) |> Series.withLabel "Group C"
+    let xScale = Scale.linear (0.0, 4.0) (0.0, CommonMath.canvasSize)
+    let yScale = Scale.linear (0.0, 13.0) (CommonMath.canvasSize, 0.0)
+    let labelFormatter value =
+        match value with
+        | 1.0 -> "A"
+        | 2.0 -> "B"
+        | 3.0 -> "C"
+        | _ -> ""
+    Graph.create [ groupA; groupB; groupC ] (0.0, 4.0) (0.0, 13.0)
+    |> Graph.withTheme (Theme.light |> Theme.withPens [ Pen.steelBlue; Pen.tomato; Pen.seaGreen ])
+    |> Graph.withTitle "Violin Plot"
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withAxes (
+        Some (Axis.create Bottom xScale |> Axis.withTicks 3 |> Axis.withTickFormat labelFormatter |> Axis.hideBoundsTick |> Axis.hideBoundsLabel),
+        Some (Axis.create Left yScale |> Axis.withTicks 6))
+    |> Graph.withLegend (Legend.create LegendRight)
+
 let boxPlotGraph =
     let rng = Random(7)
     let sample mean std n =

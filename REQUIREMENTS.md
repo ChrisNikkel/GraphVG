@@ -52,48 +52,6 @@ val withTooltip : (float * float -> string) -> Series -> Series
 
 ---
 
-## REQ-35: Violin Plot
-
-A distribution visualization that shows a mirrored kernel density estimate (KDE) alongside optional box-plot summary statistics. Natural companion to the existing `Box` series.
-
-```fsharp
-// Same constructor as boxAt — raw values at a categorical position
-val violinAt : float -> float list -> Series
-val violin : float list -> Series
-```
-
-**Acceptance criteria:**
-
-- Violin series renders a symmetric KDE outline centered on the position value.
-- Box-plot summary (median line, IQR box, whiskers) is overlaid inside the violin by default.
-- KDE bandwidth is chosen automatically (Silverman's rule).
-- Violin width in data coordinates is configurable via `withPointRadius` (reused as half-width).
-- Works in multi-series graphs with multiple violins side by side.
-
----
-
-## REQ-37: Waterfall Chart
-
-A cumulative bar chart where each bar shows the incremental change from the previous total. Used for financial statements, cost breakdowns, and bridge charts.
-
-```fsharp
-// Points are (x, delta) — positive deltas go up, negative go down
-val waterfall : (float * float) list -> Series
-
-// Mark a bar as a running total (draws from zero rather than cumulative baseline)
-val withTotalAt : float list -> Series -> Series   // list of x values that are totals
-```
-
-**Acceptance criteria:**
-
-- Each bar starts at the running cumulative total and extends by its delta value.
-- Positive deltas use the theme's "up" color; negative deltas use the "down" color.
-- Bars marked as totals (via `withTotalAt`) draw from zero and use a neutral color.
-- Auto-bounds cover the full range of running totals, not just delta values.
-- Connector lines between bar tops are rendered as dashed lines.
-
----
-
 ## REQ-38: Pie / Donut Chart
 
 Proportional area chart showing parts of a whole as circular sectors. Requires a polar rendering path separate from the XY `Graph` API.

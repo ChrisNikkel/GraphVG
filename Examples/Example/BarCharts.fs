@@ -30,6 +30,33 @@ let barChartGraph =
         Some (Axis.create Left yScale |> Axis.withTicks 5 |> Axis.withLabel "$M"))
     |> Graph.withLegend (Legend.create LegendTop)
 
+let waterfallGraph =
+    // Annual cash flow bridge: starting cash → operating inflows/outflows → end balance
+    // Points are (period index, delta); period 5 is marked as the running total bar
+    let points =
+        [ 0.0, 120.0   // starting balance
+          1.0,  45.0   // product revenue
+          2.0,  18.0   // services revenue
+          3.0, -32.0   // cost of goods
+          4.0, -24.0   // operating expenses
+          5.0, -15.0   // R&D
+          6.0,   0.0 ] // ending balance (total bar)
+    let labels = [| "Start"; "Product"; "Services"; "COGS"; "OpEx"; "R&D"; "End" |]
+    let labelFormatter value =
+        labels |> Array.tryItem (int value) |> Option.defaultValue ""
+    let xScale = Scale.linear (-0.5, 6.5) (0.0, CommonMath.canvasSize)
+    let yScale = Scale.linear (0.0, 165.0) (CommonMath.canvasSize, 0.0)
+    Series.waterfall points
+    |> Series.withTotalAt [ 0.0; 6.0 ]
+    |> Series.withLabel "Cash ($M)"
+    |> Graph.createWithSeries
+    |> Graph.withTheme Theme.light
+    |> Graph.withTitle "Annual Cash Flow Bridge"
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withAxes (
+        Some (Axis.create Bottom xScale |> Axis.withTicks 7 |> Axis.withTickFormat labelFormatter |> Axis.hideBoundsTick |> Axis.hideBoundsLabel),
+        Some (Axis.create Left yScale |> Axis.withTicks 5 |> Axis.withLabel "$M"))
+
 let horizontalBarGraph =
     // Average daily screen time (hours) by app category — Statista 2024 approximate
     let categories = [ 7.0; 6.0; 5.0; 4.0; 3.0; 2.0; 1.0 ]
