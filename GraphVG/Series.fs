@@ -17,7 +17,7 @@ type ErrorBar =
     | Symmetric of float list
     | Asymmetric of low: float list * high: float list
 
-type OhlcPoint =
+type PriceBar =
     {
         X : float
         Open : float
@@ -41,8 +41,8 @@ type SeriesKind =
     | Bubble of sizes: float list
     | Heatmap of values: float list
     | Band of highs: float list
-    | Candlestick of ohlc: OhlcPoint list
-    | Ohlc of ohlc: OhlcPoint list
+    | Candlestick of bars: PriceBar list
+    | Ohlc of bars: PriceBar list
     | Violin of values: float list
     | Waterfall of totals: float list
 
@@ -139,11 +139,11 @@ module Series =
         | Waterfall _ -> { series with Kind = Waterfall xValues }
         | _ -> series
 
-    let candlestick (bars : OhlcPoint list) =
+    let candlestick (bars : PriceBar list) =
         let points = bars |> List.map (fun b -> b.X, b.Close)
         create (Candlestick bars) points
 
-    let ohlc (bars : OhlcPoint list) =
+    let ohlc (bars : PriceBar list) =
         let points = bars |> List.map (fun b -> b.X, b.Close)
         create (Ohlc bars) points
 

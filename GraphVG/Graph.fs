@@ -542,13 +542,13 @@ module Graph =
                             [ Circle.create svgPt (Length.ofFloat radius) |> Element.createWithStyle fillStyle ]
                         else [])
                     |> List.concat
-                | Candlestick ohlcData | Ohlc ohlcData ->
-                    if List.isEmpty ohlcData then []
+                | Candlestick priceBars | Ohlc priceBars ->
+                    if List.isEmpty priceBars then []
                     else
                         let isOhlcStyle = match series.Kind with | Ohlc _ -> true | _ -> false
-                        let halfBar = ohlcData |> List.map (fun b -> b.X) |> inferMinSpacing |> fun s -> s * 0.4
+                        let halfBar = priceBars |> List.map (fun b -> b.X) |> inferMinSpacing |> fun s -> s * 0.4
                         let wickWidth = series.StrokeWidth |> Option.defaultValue (Length.ofFloat 1.5)
-                        ohlcData
+                        priceBars
                         |> List.collect (fun bar ->
                             let svgCX, _ = toScaledSvgCoordinates graph (bar.X, 0.0)
                             let svgLeft, _ = toScaledSvgCoordinates graph (bar.X - halfBar, 0.0)
