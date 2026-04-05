@@ -41,7 +41,7 @@ let waterfallGraph =
           4.0, -24.0   // operating expenses
           5.0, -15.0   // R&D
           6.0,   0.0 ] // ending balance (total bar)
-    let labels = [| "Start"; "Product"; "Services"; "COGS"; "OpEx"; "R&D"; "End" |]
+    let labels = [| "Start"; "Product"; "Services"; "COGS"; "OpEx"; "Research"; "End" |]
     let labelFormatter value =
         labels |> Array.tryItem (int value) |> Option.defaultValue ""
     let xScale = Scale.linear (-0.5, 6.5) (0.0, CommonMath.canvasSize)
