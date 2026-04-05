@@ -42,7 +42,7 @@ type SeriesKind =
     | Heatmap of values: float list
     | Band of highs: float list
     | Candlestick of bars: PriceBar list
-    | Ohlc of bars: PriceBar list
+    | StockBar of bars: PriceBar list
     | Violin of values: float list
     | Waterfall of totals: float list
 
@@ -143,9 +143,9 @@ module Series =
         let points = bars |> List.map (fun b -> b.X, b.Close)
         create (Candlestick bars) points
 
-    let ohlc (bars : PriceBar list) =
+    let stockBar (bars : PriceBar list) =
         let points = bars |> List.map (fun b -> b.X, b.Close)
-        create (Ohlc bars) points
+        create (StockBar bars) points
 
     let withLabel label series =
         { series with Label = Some label }
@@ -278,7 +278,7 @@ module Series =
             let xs, deltas = series.Points |> List.unzip
             let runningTotals = deltas |> List.scan (+) 0.0
             (List.min xs - 0.5, List.max xs + 0.5), (List.min runningTotals, List.max runningTotals)
-        | Candlestick bars | Ohlc bars ->
+        | Candlestick bars | StockBar bars ->
             let xs = bars |> List.map (fun b -> b.X)
             let yMin = bars |> List.map (fun b -> b.Low) |> List.min
             let yMax = bars |> List.map (fun b -> b.High) |> List.max

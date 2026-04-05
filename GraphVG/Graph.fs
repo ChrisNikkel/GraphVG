@@ -542,10 +542,10 @@ module Graph =
                             [ Circle.create svgPt (Length.ofFloat radius) |> Element.createWithStyle fillStyle ]
                         else [])
                     |> List.concat
-                | Candlestick priceBars | Ohlc priceBars ->
+                | Candlestick priceBars | StockBar priceBars ->
                     if List.isEmpty priceBars then []
                     else
-                        let isOhlcStyle = match series.Kind with | Ohlc _ -> true | _ -> false
+                        let isStockBarStyle = match series.Kind with | StockBar _ -> true | _ -> false
                         let halfBar = priceBars |> List.map (fun b -> b.X) |> inferMinSpacing |> fun s -> s * 0.4
                         let wickWidth = series.StrokeWidth |> Option.defaultValue (Length.ofFloat 1.5)
                         priceBars
@@ -560,7 +560,7 @@ module Graph =
                             let fillColor = if bar.Close >= bar.Open then graph.Theme.UpColor else graph.Theme.DownColor
                             let colorPen = Pen.create fillColor |> Pen.withOpacity series.Opacity
                             let wickStyle = Style.createWithPen (colorPen |> Pen.withWidth wickWidth) |> Style.withFillOpacity 0.0
-                            if isOhlcStyle then
+                            if isStockBarStyle then
                                 [
                                     Line.create (Point.ofFloats (svgCX, svgHigh)) (Point.ofFloats (svgCX, svgLow))
                                     |> Element.createWithStyle wickStyle

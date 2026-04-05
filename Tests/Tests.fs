@@ -1917,9 +1917,9 @@ module CandlestickTests =
         Assert.True(match s.Kind with | Candlestick _ -> true | _ -> false)
 
     [<Fact>]
-    let ``ohlc creates Ohlc kind`` () =
-        let s = Series.ohlc bars
-        Assert.True(match s.Kind with | Ohlc _ -> true | _ -> false)
+    let ``stockBar creates StockBar kind`` () =
+        let s = Series.stockBar bars
+        Assert.True(match s.Kind with | StockBar _ -> true | _ -> false)
 
     [<Fact>]
     let ``candlestick Points are (x, close) pairs`` () =
@@ -1942,8 +1942,8 @@ module CandlestickTests =
         Assert.Equal(9, Graph.drawSeries graph |> List.length)
 
     [<Fact>]
-    let ``ohlc renders 3 elements per bar (wick + open tick + close tick)`` () =
-        let s = Series.ohlc bars
+    let ``stockBar renders 3 elements per bar (wick + open tick + close tick)`` () =
+        let s = Series.stockBar bars
         let graph = Graph.create [ s ] (0.0, 4.0) (80.0, 120.0)
         Assert.Equal(9, Graph.drawSeries graph |> List.length)
 
@@ -1953,15 +1953,15 @@ module CandlestickTests =
         Assert.Contains("<rect", svg)
 
     [<Fact>]
-    let ``ohlc createWithSeries produces SVG with lines`` () =
-        let svg = Series.ohlc bars |> Graph.createWithSeries |> GraphVG.toSvg
+    let ``stockBar createWithSeries produces SVG with lines`` () =
+        let svg = Series.stockBar bars |> Graph.createWithSeries |> GraphVG.toSvg
         Assert.Contains("<line", svg)
 
     [<Fact>]
-    let ``candlestick and ohlc SVG differ`` () =
+    let ``candlestick and stockBar SVG differ`` () =
         let candleSvg = Series.candlestick bars |> Graph.createWithSeries |> GraphVG.toSvg
-        let ohlcSvg = Series.ohlc bars |> Graph.createWithSeries |> GraphVG.toSvg
-        Assert.True(candleSvg <> ohlcSvg)
+        let stockBarSvg = Series.stockBar bars |> Graph.createWithSeries |> GraphVG.toSvg
+        Assert.True(candleSvg <> stockBarSvg)
 
     [<Property>]
     let ``candlestick element count is 3n for n bars`` (n : PositiveInt) =
