@@ -52,30 +52,6 @@ val withTooltip : (float * float -> string) -> Series -> Series
 
 ---
 
-## REQ-30: Layout Spacing Configuration
-
-Expose graph layout spacing controls instead of relying on internal fixed margins for titles, axes, and labels.
-
-```fsharp
-type LayoutSpacing =
-    {
-        OuterMargin : float
-        TitlePadding : float
-        AxisLabelPadding : float
-        TickLabelPadding : float
-    }
-
-val withLayoutSpacing : LayoutSpacing -> Graph -> Graph
-```
-
-**Acceptance criteria:**
-
-- Title, tick-label, and axis-label spacing can be configured per graph.
-- Default behavior remains backward-compatible with current built-in spacing values.
-- Large titles and top/right axis labels do not overlap when default spacing is used.
-
----
-
 ## REQ-35: Violin Plot
 
 A distribution visualization that shows a mirrored kernel density estimate (KDE) alongside optional box-plot summary statistics. Natural companion to the existing `Box` series.
