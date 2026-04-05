@@ -81,7 +81,7 @@ let parallelSetsGraph =
 let pieChartGraph =
     // Global electricity generation mix (approximate IEA 2023 data)
     let values = [ 36.4; 22.5; 14.3; 9.4; 7.5; 9.9 ]
-    let labels = [ "Coal"; "Natural Gas"; "Hydro"; "Nuclear"; "Wind & Solar"; "Other" ]
+    let labels = [ "Coal"; "Natural Gas"; "Hydro"; "Nuclear"; "Wind and Solar"; "Other" ]
     Series.pie values
     |> Series.withSliceLabels labels
     |> Series.withLabel "Energy Mix"

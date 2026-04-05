@@ -188,6 +188,13 @@ Prefer full words over abbreviations: `position` not `pos`, `minimum` not `min` 
 - Prefer `flowchart` over `graph` for mermaid diagrams (cleaner syntax, explicit direction).
 - Node label style: use `[text]` for plain boxes, `["text"]` when the label contains spaces or punctuation that would be ambiguous.
 
+### SVG/XML escaping
+
+- SVG is XML: any text content or attribute value must escape reserved characters.
+- Always escape `&` as `&amp;` in SVG text nodes (for example, `Wind &amp; Solar`).
+- Also escape `<` as `&lt;` and `>` as `&gt;` when they appear as literal text.
+- If a label can include arbitrary user/data text, sanitize/escape before writing SVG output.
+
 ### Property-Based Testing
 
 Use [FsCheck](https://fscheck.github.io/FsCheck/) with `[<Property>]` (from `FsCheck.Xunit`) alongside `[<Fact>]` tests. Properties catch edge cases that hand-written examples miss.
