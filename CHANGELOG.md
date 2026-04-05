@@ -4,6 +4,9 @@ All notable changes to GraphVG will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- Adaptive canvas resolution: annotation constants (tick length, font size, margins, legend swatches) are now expressed as fractions of `canvasSize`; `Graph.CanvasSize` is set automatically from the domain span via `adaptiveCanvasSize`, which scales up by one decade per decade of span above 1000 to maintain SVG coordinate precision for large-magnitude data
+
 ### Added
 - `Series.withTooltip`: attach a `(float * float -> string)` function to any series; renders per-point SVG `<title>` elements as invisible hit-target circles; works in both `toSvg` and `toHtml` with no JavaScript; tooltip text is automatically XML-escaped
 - `Violin` series kind: `Series.violin` and `Series.violinAt` take raw float values and render a symmetric KDE outline with a box-plot overlay (IQR box, median line, whiskers); bandwidth is chosen automatically via Silverman's rule; violin width is configurable via `withPointRadius`; `CommonMath.silvermanBandwidth` and `CommonMath.gaussianKde` are public helpers

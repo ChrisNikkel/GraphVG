@@ -52,6 +52,11 @@ module Layout =
         |> Option.defaultValue tickExtent
 
     let private axisPadding (spacing : LayoutSpacing) (axis : Axis) =
+        let cs =
+            match axis.Scale with
+            | Scale.Linear(_, (r1, r2)) -> max (abs r1) (abs r2)
+            | Scale.Log(_, (r1, r2), _) -> max (abs r1) (abs r2)
+        let sf = cs / canvasSize
         let maximumTickLabelWidth =
             Axis.formattedTickLabels axis
             |> List.map (estimatedTextWidth axis.FontSize)
@@ -59,32 +64,34 @@ module Layout =
         match axis.Position with
         | Top ->
             let tickExtent = horizontalTickExtent (topTickLabelGap spacing) axis
-            max tickExtent (horizontalLabelExtent (topAxisLabelGap spacing) tickExtent axis) |> paddingWithTop
+            (max tickExtent (horizontalLabelExtent (topAxisLabelGap spacing) tickExtent axis)) * sf |> paddingWithTop
         | Bottom ->
             let tickExtent = horizontalTickExtent (bottomTickLabelGap spacing) axis
-            max tickExtent (horizontalLabelExtent (bottomAxisLabelGap spacing) tickExtent axis) |> paddingWithBottom
+            (max tickExtent (horizontalLabelExtent (bottomAxisLabelGap spacing) tickExtent axis)) * sf |> paddingWithBottom
         | AxisPosition.Left ->
             let tickGap = verticalTickLabelGap spacing
             let tickExtent = verticalTickExtent tickGap maximumTickLabelWidth axis
-            max tickExtent (verticalLabelExtent tickGap spacing.AxisLabelPadding maximumTickLabelWidth tickExtent axis) |> paddingWithLeft
+            (max tickExtent (verticalLabelExtent tickGap spacing.AxisLabelPadding maximumTickLabelWidth tickExtent axis)) * sf |> paddingWithLeft
         | AxisPosition.Right ->
             let tickGap = verticalTickLabelGap spacing
             let tickExtent = verticalTickExtent tickGap maximumTickLabelWidth axis
-            max tickExtent (verticalLabelExtent tickGap spacing.AxisLabelPadding maximumTickLabelWidth tickExtent axis) |> paddingWithRight
+            (max tickExtent (verticalLabelExtent tickGap spacing.AxisLabelPadding maximumTickLabelWidth tickExtent axis)) * sf |> paddingWithRight
         | HorizontalAt _
         | VerticalAt _ -> emptyPadding
 
     // ── Title padding ─────────────────────────────────────────────────────────
 
     let private titlePadding (graph : Graph) =
+        let sf = Graph.canvasSizeOf graph / canvasSize
         graph.Title
-        |> Option.map (fun _ -> graph.TitleStyle.FontSize + graph.LayoutSpacing.TitlePadding)
+        |> Option.map (fun _ -> (graph.TitleStyle.FontSize + graph.LayoutSpacing.TitlePadding) * sf)
         |> Option.defaultValue 0.0
         |> paddingWithTop
 
     // ── Legend padding ────────────────────────────────────────────────────────
 
     let private legendPadding (graph : Graph) =
+        let sf = Graph.canvasSizeOf graph / canvasSize
         match graph.Legend with
         | None -> emptyPadding
         | Some legend ->
@@ -95,24 +102,24 @@ module Layout =
                 match legend.Position with
                 | LegendHidden -> emptyPadding
                 | LegendLeft ->
-                    Legend.legendOuterMargin + Legend.swatchWidth + Legend.swatchLabelGap + maxLabelWidth + Legend.legendOuterMargin
+                    (Legend.legendOuterMargin + Legend.swatchWidth + Legend.swatchLabelGap + maxLabelWidth + Legend.legendOuterMargin) * sf
                     |> paddingWithLeft
                 | LegendRight ->
-                    Legend.legendOuterMargin + Legend.swatchWidth + Legend.swatchLabelGap + maxLabelWidth + Legend.legendOuterMargin
+                    (Legend.legendOuterMargin + Legend.swatchWidth + Legend.swatchLabelGap + maxLabelWidth + Legend.legendOuterMargin) * sf
                     |> paddingWithRight
                 | LegendTop ->
-                    Legend.legendOuterMargin + Legend.swatchHeight + Legend.legendOuterMargin
+                    (Legend.legendOuterMargin + Legend.swatchHeight + Legend.legendOuterMargin) * sf
                     |> paddingWithTop
                 | LegendBottom ->
-                    Legend.legendOuterMargin + Legend.swatchHeight + Legend.legendOuterMargin
+                    (Legend.legendOuterMargin + Legend.swatchHeight + Legend.legendOuterMargin) * sf
                     |> paddingWithBottom
 
     // ── Heatmap color ramp ────────────────────────────────────────────────────
 
-    let private rampMargin = 16.0
-    let private rampBarWidth = 16.0
-    let private rampLabelGap = 6.0
-    let private rampFontSize = 11.0
+    let private rampMargin = canvasSize * 0.016
+    let private rampBarWidth = canvasSize * 0.016
+    let private rampLabelGap = canvasSize * 0.006
+    let private rampFontSize = canvasSize * 0.011
     let private rampSegments = 20
 
     let private heatSeries (graph : Graph) =
@@ -124,6 +131,7 @@ module Layout =
         else sprintf "%.3g" v
 
     let private heatmapRampPadding (graph : Graph) =
+        let sf = Graph.canvasSizeOf graph / canvasSize
         match heatSeries graph with
         | [] -> emptyPadding
         | first :: _ ->
@@ -134,10 +142,12 @@ module Layout =
                 [ formatRampValue minVal; formatRampValue maxVal ]
                 |> List.map (estimatedTextWidth rampFontSize)
                 |> List.max
-            rampMargin + rampBarWidth + rampLabelGap + maxLabelWidth + rampMargin
+            (rampMargin + rampBarWidth + rampLabelGap + maxLabelWidth + rampMargin) * sf
             |> paddingWithRight
 
     let heatmapRampElements (axisPen : Pen) (graph : Graph) : Element list =
+        let cs = Graph.canvasSizeOf graph
+        let sf = cs / canvasSize
         match heatSeries graph with
         | [] -> []
         | first :: _ ->
@@ -145,9 +155,9 @@ module Layout =
             let minVal = if List.isEmpty heatValues then 0.0 else List.min heatValues
             let maxVal = if List.isEmpty heatValues then 1.0 else List.max heatValues
             let colorScale = first.ColorScale |> Option.defaultValue (Theme.defaultHeatmapColorScale minVal maxVal)
-            let rampX = canvasSize + rampMargin
-            let labelX = rampX + rampBarWidth + rampLabelGap
-            let segH = canvasSize / float rampSegments
+            let rampX = cs + rampMargin * sf
+            let labelX = rampX + rampBarWidth * sf + rampLabelGap * sf
+            let segH = cs / float rampSegments
             let rampEls =
                 [ 0 .. rampSegments - 1 ]
                 |> List.map (fun i ->
@@ -157,17 +167,17 @@ module Layout =
                     let color = colorScale value
                     Rect.create
                         (Point.ofFloats (rampX, float i * segH))
-                        (Area.ofFloats (rampBarWidth, segH + 1.0))
+                        (Area.ofFloats (rampBarWidth * sf, segH + sf))
                     |> Element.createWithStyle (Style.empty |> Style.withFill color))
             let textStyle = Style.empty |> Style.withFillPen axisPen
             let maxLabel =
                 Text.create (Point.ofFloats (labelX, segH / 2.0)) (formatRampValue maxVal)
-                |> Text.withFontSize rampFontSize
+                |> Text.withFontSize (rampFontSize * sf)
                 |> Text.withBaseline CentralBaseline
                 |> Element.createWithStyle textStyle
             let minLabel =
-                Text.create (Point.ofFloats (labelX, canvasSize - segH / 2.0)) (formatRampValue minVal)
-                |> Text.withFontSize rampFontSize
+                Text.create (Point.ofFloats (labelX, cs - segH / 2.0)) (formatRampValue minVal)
+                |> Text.withFontSize (rampFontSize * sf)
                 |> Text.withBaseline CentralBaseline
                 |> Element.createWithStyle textStyle
             rampEls @ [ maxLabel; minLabel ]
@@ -175,6 +185,8 @@ module Layout =
     // ── Combined padding ──────────────────────────────────────────────────────
 
     let graphPadding (graph : Graph) =
+        let sf = Graph.canvasSizeOf graph / canvasSize
+        let outerMargin = graph.LayoutSpacing.OuterMargin * sf
         let fromAxes =
             [ graph.XAxis; graph.YAxis ]
             |> List.choose id
@@ -184,38 +196,39 @@ module Layout =
             [ fromAxes; titlePadding graph; legendPadding graph; heatmapRampPadding graph ]
             |> List.fold sumPadding emptyPadding
         {
-            Top = max graph.LayoutSpacing.OuterMargin raw.Top
-            Right = max graph.LayoutSpacing.OuterMargin raw.Right
-            Bottom = max graph.LayoutSpacing.OuterMargin raw.Bottom
-            Left = max graph.LayoutSpacing.OuterMargin raw.Left
+            Top = max outerMargin raw.Top
+            Right = max outerMargin raw.Right
+            Bottom = max outerMargin raw.Bottom
+            Left = max outerMargin raw.Left
         }
 
     // ── SVG element primitives ────────────────────────────────────────────────
 
-    let viewBoxForPadding (padding : GraphPadding) =
+    let viewBoxForPadding (padding : GraphPadding) (cs : float) =
         ViewBox.create
             (Point.ofFloats (-padding.Left, -padding.Top))
-            (Area.ofFloats (canvasSize + padding.Left + padding.Right, canvasSize + padding.Top + padding.Bottom))
+            (Area.ofFloats (cs + padding.Left + padding.Right, cs + padding.Top + padding.Bottom))
 
-    let backgroundElement (backgroundColor : Color) (padding : GraphPadding) =
+    let backgroundElement (backgroundColor : Color) (padding : GraphPadding) (cs : float) =
         Rect.create
             (Point.ofFloats (-padding.Left, -padding.Top))
-            (Area.ofFloats (canvasSize + padding.Left + padding.Right, canvasSize + padding.Top + padding.Bottom))
+            (Area.ofFloats (cs + padding.Left + padding.Right, cs + padding.Top + padding.Bottom))
         |> Element.createWithStyle (Style.empty |> Style.withFill backgroundColor)
 
-    let plotBackground (color : Color) =
-        Rect.create Point.origin (Area.ofFloats (canvasSize, canvasSize))
+    let plotBackground (color : Color) (cs : float) =
+        Rect.create Point.origin (Area.ofFloats (cs, cs))
         |> Element.createWithStyle (Style.empty |> Style.withFill color)
 
-    let private titleTopInset = 6.0
+    let private titleTopInset = canvasSize * 0.006
 
     let private titleAnchor = function
         | TitleAlignment.Left -> Start
         | TitleAlignment.Center -> Middle
         | TitleAlignment.Right -> End
 
-    let titleElement (title : string) (fontSize : float) (alignment : TitleAlignment) (padding : GraphPadding) =
-        Text.create (Point.ofFloats (canvasSize / 2.0, -padding.Top + titleTopInset)) title
+    let titleElement (title : string) (fontSize : float) (alignment : TitleAlignment) (padding : GraphPadding) (cs : float) =
+        let sf = cs / canvasSize
+        Text.create (Point.ofFloats (cs / 2.0, -padding.Top + titleTopInset * sf)) title
         |> Text.withFontSize fontSize
         |> Text.withAnchor (titleAnchor alignment)
         |> Text.withBaseline HangingBaseline

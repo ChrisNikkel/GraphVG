@@ -31,12 +31,24 @@ module CommonMath =
             }
 
         let defaults =
-            create 20.0 16.0 4.0 4.0
+            create (canvasSize * 0.020) (canvasSize * 0.016) (canvasSize * 0.004) (canvasSize * 0.004)
 
     let estimatedTextWidth fontSize (text : string) =
         float text.Length * fontSize * 0.6
 
     let epsilon : float = 1e-10
+
+    /// Computes an adaptive internal canvas resolution for a given data span.
+    /// The canvas stays at 1000 for spans up to 10× canvasSize; above that it scales
+    /// up by one decade per decade of span, ensuring SVG coordinate differences remain
+    /// distinguishable at standard floating-point formatting precision.
+    let adaptiveCanvasSize (xSpan : float) (ySpan : float) =
+        let span = max xSpan ySpan
+        if span <= 0.0 || System.Double.IsNaN(span) || System.Double.IsInfinity(span) then
+            canvasSize
+        else
+            let decades = max 0.0 (System.Math.Floor(System.Math.Log10(span / canvasSize)))
+            canvasSize * System.Math.Pow(10.0, decades)
 
     let isNear (expected : float) (actual : float) =
         abs (actual - expected) < epsilon

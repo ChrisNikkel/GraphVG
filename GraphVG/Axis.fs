@@ -54,11 +54,16 @@ module Axis =
             HideOriginLabel = false
             HideBoundsTick = false
             HideBoundsLabel = false
-            TickLength = 6.0
-            FontSize = 12.0
+            TickLength = canvasSize * 0.006
+            FontSize = canvasSize * 0.012
             TickFormat = None
             SpineStyle = Full
         }
+
+    let private axisCanvasSize (axis : Axis) =
+        match axis.Scale with
+        | Scale.Linear(_, (r1, r2)) -> max (abs r1) (abs r2)
+        | Scale.Log(_, (r1, r2), _) -> max (abs r1) (abs r2)
 
     let withTicks count (axis : Axis) =
         { axis with Ticks = TickCount count }
@@ -149,8 +154,9 @@ module Axis =
         | Full -> [ mkLine pen startPoint endPoint ]
         | Hidden -> []
         | Box ->
+            let cs = axisCanvasSize axis
             let boxRect =
-                Rect.create (Point.ofFloats (0.0, 0.0)) (Area.ofFloats (canvasSize, canvasSize))
+                Rect.create (Point.ofFloats (0.0, 0.0)) (Area.ofFloats (cs, cs))
                 |> Element.createWithStyle (strokeStyle pen)
             [ boxRect ]
 
@@ -221,69 +227,75 @@ module Axis =
         match theme.GridPen with
         | None -> []
         | Some gridPen ->
+            let cs = axisCanvasSize axis
             tickValues axis
             |> List.filter (showsTick axis)
             |> List.map (fun value ->
                 let pixel = Scale.apply axis.Scale value
-                if isHorizontalAxis axis then mkLine gridPen (Point.ofFloats (pixel, 0.0)) (Point.ofFloats (pixel, canvasSize))
-                else mkLine gridPen (Point.ofFloats (0.0, pixel)) (Point.ofFloats (canvasSize, pixel)))
+                if isHorizontalAxis axis then mkLine gridPen (Point.ofFloats (pixel, 0.0)) (Point.ofFloats (pixel, cs))
+                else mkLine gridPen (Point.ofFloats (0.0, pixel)) (Point.ofFloats (cs, pixel)))
 
     let toElementsWithSpacing theme (spacing : LayoutSpacing) (axis : Axis) =
         let pen = theme.AxisPen
+        let cs = axisCanvasSize axis
+        let sf = cs / canvasSize
+        let scaledAxis = { axis with TickLength = axis.TickLength * sf; FontSize = axis.FontSize * sf }
+        let tlPad = spacing.TickLabelPadding * sf
+        let alPad = spacing.AxisLabelPadding * sf
         match axis.Position with
         | Bottom ->
             horizontalAxisElements
                 pen
-                axis
-                canvasSize
+                scaledAxis
+                cs
                 1.0
                 HangingBaseline
-                (spacing.TickLabelPadding - 2.0)
+                (tlPad - 2.0 * sf)
                 HangingBaseline
-                (axis.TickLength + axis.FontSize + spacing.AxisLabelPadding + 2.0)
+                (scaledAxis.TickLength + scaledAxis.FontSize + alPad + 2.0 * sf)
 
         | Top ->
             horizontalAxisElements
                 pen
-                axis
+                scaledAxis
                 0.0
                 -1.0
                 AlphabeticBaseline
-                (-(spacing.TickLabelPadding - 1.0))
+                (-(tlPad - 1.0 * sf))
                 AlphabeticBaseline
-                (-axis.TickLength - axis.FontSize - spacing.AxisLabelPadding)
+                (-scaledAxis.TickLength - scaledAxis.FontSize - alPad)
 
         | Left ->
-            let maxTickWidth = estimatedTickLabelWidth axis
-            let labelOffset = spacing.TickLabelPadding
-            let gap = spacing.AxisLabelPadding
-            verticalAxisElements pen axis 0.0 -1.0 End labelOffset Middle (-(axis.TickLength + labelOffset + maxTickWidth + axis.FontSize / 2.0 + gap))
+            let maxTickWidth = estimatedTickLabelWidth axis * sf
+            let labelOffset = tlPad
+            let gap = alPad
+            verticalAxisElements pen scaledAxis 0.0 -1.0 End labelOffset Middle (-(scaledAxis.TickLength + labelOffset + maxTickWidth + scaledAxis.FontSize / 2.0 + gap))
 
         | Right ->
-            let maxTickWidth = estimatedTickLabelWidth axis
-            let labelOffset = spacing.TickLabelPadding
-            let gap = spacing.AxisLabelPadding
-            verticalAxisElements pen axis canvasSize 1.0 Start labelOffset Start (axis.TickLength + labelOffset + maxTickWidth + axis.FontSize / 2.0 + gap)
+            let maxTickWidth = estimatedTickLabelWidth axis * sf
+            let labelOffset = tlPad
+            let gap = alPad
+            verticalAxisElements pen scaledAxis cs 1.0 Start labelOffset Start (scaledAxis.TickLength + labelOffset + maxTickWidth + scaledAxis.FontSize / 2.0 + gap)
 
         | HorizontalAt y ->
             horizontalAxisElements
                 pen
-                axis
+                scaledAxis
                 y
                 1.0
                 HangingBaseline
-                (spacing.TickLabelPadding - 2.0)
+                (tlPad - 2.0 * sf)
                 HangingBaseline
-                (axis.TickLength + axis.FontSize + spacing.AxisLabelPadding + 2.0)
+                (scaledAxis.TickLength + scaledAxis.FontSize + alPad + 2.0 * sf)
 
         | VerticalAt x ->
-            let leftSide = x <= canvasSize / 2.0
+            let leftSide = x <= cs / 2.0
             let anchor = if leftSide then Start else End
             let tickSign = if leftSide then 1.0 else -1.0
-            let maxTickWidth = estimatedTickLabelWidth axis
-            let labelOffset = spacing.TickLabelPadding
-            let gap = spacing.AxisLabelPadding
-            verticalAxisElements pen axis x tickSign anchor labelOffset anchor (tickSign * (axis.TickLength + labelOffset + maxTickWidth + axis.FontSize / 2.0 + gap))
+            let maxTickWidth = estimatedTickLabelWidth axis * sf
+            let labelOffset = tlPad
+            let gap = alPad
+            verticalAxisElements pen scaledAxis x tickSign anchor labelOffset anchor (tickSign * (scaledAxis.TickLength + labelOffset + maxTickWidth + scaledAxis.FontSize / 2.0 + gap))
 
     let toElements theme (axis : Axis) =
         toElementsWithSpacing theme LayoutSpacing.defaults axis

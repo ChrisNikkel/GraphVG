@@ -22,6 +22,7 @@ type Graph =
         Legend : Legend option
         DomainPolicy : DomainPolicy
         LayoutSpacing : LayoutSpacing
+        CanvasSize : float
     }
 
 module Graph =
@@ -39,8 +40,9 @@ module Graph =
         | Scale.Log(_, r, b) -> Scale.Log(newDomain, r, b)
 
     let private defaultAxes xScale yScale =
-        let xAxisPosition = Scale.apply yScale 0.0 |> clamp 0.0 canvasSize
-        let yAxisPosition = Scale.apply xScale 0.0 |> clamp 0.0 canvasSize
+        let cs = snd (pixelRangeOf xScale)
+        let xAxisPosition = Scale.apply yScale 0.0 |> clamp 0.0 cs
+        let yAxisPosition = Scale.apply xScale 0.0 |> clamp 0.0 cs
         Some (Axis.create (HorizontalAt xAxisPosition) xScale |> Axis.hideOrigin),
         Some (Axis.create (VerticalAt yAxisPosition) yScale |> Axis.hideOrigin)
 
@@ -53,8 +55,11 @@ module Graph =
         (domainMin, domainMax), (rangeMin, rangeMax)
 
     let private buildScales domain range =
-        Scale.linear domain (0.0, canvasSize),
-        Scale.linear range (canvasSize, 0.0)
+        let xSpan = abs (snd domain - fst domain)
+        let ySpan = abs (snd range - fst range)
+        let cs = adaptiveCanvasSize xSpan ySpan
+        Scale.linear domain (0.0, cs),
+        Scale.linear range (cs, 0.0)
 
     let private applyPolicy (policy : DomainPolicy) (lo, hi) =
         let span = max (hi - lo) 1e-10
@@ -72,6 +77,10 @@ module Graph =
 
     let toScaledSvgCoordinates graph (x, y) =
         Scale.apply graph.XScale x, Scale.apply graph.YScale y
+
+    /// Returns the internal canvas size for the graph, derived from its X scale pixel range.
+    let canvasSizeOf (graph : Graph) =
+        snd (pixelRangeOf graph.XScale)
 
     // ── Constructors ────────────────────────────────────────────────────────────
 
@@ -91,6 +100,7 @@ module Graph =
             Legend = None
             DomainPolicy = Padded 0.1
             LayoutSpacing = LayoutSpacing.defaults
+            CanvasSize = snd (pixelRangeOf xScale)
         }
 
     let createWithSeries (series : Series) =
@@ -118,6 +128,7 @@ module Graph =
             Legend = None
             DomainPolicy = policy
             LayoutSpacing = LayoutSpacing.defaults
+            CanvasSize = snd (pixelRangeOf xScale)
         }
 
     // ── Bounds helpers ──────────────────────────────────────────────────────────
@@ -280,7 +291,8 @@ module Graph =
         | DashDot -> style |> Style.withStrokeDashArray [ 12.0; 6.0; 3.0; 6.0 ]
 
     let private errorBarElements (pen : Pen) (points : (float * float) list) (errorBar : ErrorBar) (graph : Graph) =
-        let capHalfWidth = 5.0
+        let cs = snd (pixelRangeOf graph.XScale)
+        let capHalfWidth = cs * 0.005
         let style = Style.createWithPen pen
         let errorsFor i =
             match errorBar with
@@ -312,12 +324,14 @@ module Graph =
         let barLayouts = computeBarLayouts graph.Series
         let seriesToElements i (series : Series) =
             if series.Visible then
+                let cs = snd (pixelRangeOf graph.XScale)
+                let sf = cs / canvasSize
                 let seriesPen = Theme.penForSeries i graph.Theme |> Pen.withOpacity series.Opacity
                 match series.Kind with
                 | Scatter ->
-                    let r = series.PointRadius |> Option.defaultValue 3.0
+                    let r = (series.PointRadius |> Option.defaultValue (canvasSize * 0.003)) * sf
                     let fillStyle = Style.empty |> Style.withFillPen seriesPen
-                    let crossPen = series.StrokeWidth |> Option.map (fun w -> seriesPen |> Pen.withWidth (Length.ofFloat w)) |> Option.defaultValue seriesPen
+                    let crossPen = series.StrokeWidth |> Option.map (fun w -> seriesPen |> Pen.withWidth (Length.ofFloat (w * sf))) |> Option.defaultValue seriesPen
                     let crossStyle = Style.createWithPen crossPen |> Style.withFillOpacity 0.0
                     series.Points
                     |> List.collect (fun pt ->
@@ -339,14 +353,14 @@ module Graph =
                             centerLines (cx, cy) r crossUnit
                             |> List.map (fun (from', to') -> Line.create (Point.ofFloats from') (Point.ofFloats to') |> Element.createWithStyle crossStyle))
                 | SeriesKind.Line ->
-                    let strokePen = series.StrokeWidth |> Option.map (fun width -> seriesPen |> Pen.withWidth (Length.ofFloat width)) |> Option.defaultValue seriesPen
+                    let strokePen = series.StrokeWidth |> Option.map (fun width -> seriesPen |> Pen.withWidth (Length.ofFloat (width * sf))) |> Option.defaultValue seriesPen
                     let style =
                         Style.createWithPen strokePen
                         |> Style.withFillOpacity 0.0
                         |> applyDash series.StrokeDash
                     [ Polyline.ofList (series.Points |> List.map toSvgPoint) |> Element.createWithStyle style ]
                 | StepLine mode ->
-                    let strokePen = series.StrokeWidth |> Option.map (fun width -> seriesPen |> Pen.withWidth (Length.ofFloat width)) |> Option.defaultValue seriesPen
+                    let strokePen = series.StrokeWidth |> Option.map (fun width -> seriesPen |> Pen.withWidth (Length.ofFloat (width * sf))) |> Option.defaultValue seriesPen
                     let style =
                         Style.createWithPen strokePen
                         |> Style.withFillOpacity 0.0
@@ -354,7 +368,7 @@ module Graph =
                     let stepPoints = expandStepPoints mode series.Points
                     [ Polyline.ofList (stepPoints |> List.map toSvgPoint) |> Element.createWithStyle style ]
                 | Area ->
-                    let strokePen = series.StrokeWidth |> Option.map (fun width -> seriesPen |> Pen.withWidth (Length.ofFloat width)) |> Option.defaultValue seriesPen
+                    let strokePen = series.StrokeWidth |> Option.map (fun width -> seriesPen |> Pen.withWidth (Length.ofFloat (width * sf))) |> Option.defaultValue seriesPen
                     let style =
                         Style.createWithPen strokePen
                         |> Style.withFillPen strokePen
@@ -370,7 +384,7 @@ module Graph =
                         |> applyDash series.StrokeDash
                     let style =
                         match series.StrokeWidth with
-                        | Some w -> baseStyle |> Style.withStrokePen (seriesPen |> Pen.withWidth (Length.ofFloat w))
+                        | Some w -> baseStyle |> Style.withStrokePen (seriesPen |> Pen.withWidth (Length.ofFloat (w * sf)))
                         | None -> baseStyle
                     let topPts = List.map2 (fun x yHigh -> toSvgPoint (x, yHigh)) xs highs
                     let botPts = List.map2 (fun x yLow -> toSvgPoint (x, yLow)) xs yLows
@@ -388,7 +402,7 @@ module Graph =
                 | SeriesKind.Box ->
                     match series.Points with
                     | [ (xPos, yMin); (_, q1); (_, median); (_, q3); (_, yMax) ] ->
-                        let halfWidth = series.PointRadius |> Option.defaultValue 40.0
+                        let halfWidth = (series.PointRadius |> Option.defaultValue (canvasSize * 0.04)) * sf
                         let svgX = fst (toScaledSvgCoordinates graph (xPos, 0.0))
                         let svgY value = snd (toScaledSvgCoordinates graph (0.0, value))
                         let svgMin = svgY yMin
@@ -421,7 +435,7 @@ module Graph =
                 | Violin rawValues ->
                     match series.Points with
                     | [ (xPos, yMin); (_, q1); (_, median); (_, q3); (_, yMax) ] when not rawValues.IsEmpty ->
-                        let halfWidth = series.PointRadius |> Option.defaultValue 40.0
+                        let halfWidth = (series.PointRadius |> Option.defaultValue (canvasSize * 0.04)) * sf
                         let bandwidth = silvermanBandwidth rawValues
                         let nSamples = 100
                         let extent = 2.0 * bandwidth
@@ -525,13 +539,13 @@ module Graph =
                             let color = colorScale value
                             Rect.create
                                 (Point.ofFloats (min svgX1 svgX2, min svgY1 svgY2))
-                                (Area.ofFloats (abs (svgX2 - svgX1) + 1.0, abs (svgY2 - svgY1) + 1.0))
+                                (Area.ofFloats (abs (svgX2 - svgX1) + sf, abs (svgY2 - svgY1) + sf))
                             |> Element.createWithStyle (Style.empty |> Style.withFill color |> Style.withFillOpacity series.Opacity))
                 | Bubble sizes ->
                     // Radius is area-proportional: a point with twice the size value renders with twice the area.
                     // The largest bubble has radius maxRadiusPx (default 40 px, or set via withPointRadius).
                     let maxSize = sizes |> List.fold max 0.0
-                    let maxRadiusPx = series.PointRadius |> Option.defaultValue 40.0
+                    let maxRadiusPx = (series.PointRadius |> Option.defaultValue (canvasSize * 0.04)) * sf
                     let fillStyle = Style.empty |> Style.withFillPen seriesPen |> Style.withFillOpacity 0.5
                     series.Points
                     |> List.mapi (fun idx pt ->
@@ -549,7 +563,7 @@ module Graph =
                     else
                         let isStockBarStyle = match series.Kind with | StockBar _ -> true | _ -> false
                         let halfBar = priceBars |> List.map (fun b -> b.X) |> inferMinSpacing |> fun s -> s * 0.4
-                        let wickWidth = series.StrokeWidth |> Option.defaultValue 1.5
+                        let wickWidth = (series.StrokeWidth |> Option.defaultValue (canvasSize * 0.0015)) * sf
                         priceBars
                         |> List.collect (fun bar ->
                             let svgCX, _ = toScaledSvgCoordinates graph (bar.X, 0.0)
@@ -574,7 +588,7 @@ module Graph =
                             else
                                 let svgBodyTop = min svgOpen svgClose
                                 let svgBodyBottom = max svgOpen svgClose
-                                let bodyHeight = max 1.0 (svgBodyBottom - svgBodyTop)
+                                let bodyHeight = max sf (svgBodyBottom - svgBodyTop)
                                 let bodyStyle = Style.empty |> Style.withFill fillColor |> Style.withFillOpacity series.Opacity
                                 [
                                     Line.create (Point.ofFloats (svgCX, svgHigh)) (Point.ofFloats (svgCX, svgBodyTop))
@@ -610,7 +624,7 @@ module Graph =
                                 let svgX2, _ = toScaledSvgCoordinates graph (x + barHalfWidth, 0.0)
                                 let _, svgTop = toScaledSvgCoordinates graph (0.0, max baseline top)
                                 let _, svgBottom = toScaledSvgCoordinates graph (0.0, min baseline top)
-                                let barHeight = max 1.0 (svgBottom - svgTop)
+                                let barHeight = max sf (svgBottom - svgTop)
                                 let color =
                                     if isTotal then neutralPen.Color
                                     elif top >= baseline then upColor
@@ -641,7 +655,7 @@ module Graph =
                     match Map.tryFind i stackingMap with
                     | None -> []
                     | Some (xValues, baselines, tops) ->
-                        let strokePen = series.StrokeWidth |> Option.map (fun w -> seriesPen |> Pen.withWidth (Length.ofFloat w)) |> Option.defaultValue seriesPen
+                        let strokePen = series.StrokeWidth |> Option.map (fun w -> seriesPen |> Pen.withWidth (Length.ofFloat (w * sf))) |> Option.defaultValue seriesPen
                         let style =
                             Style.createWithPen strokePen
                             |> Style.withFillPen strokePen
@@ -654,13 +668,13 @@ module Graph =
                     let numDims = dimensions.Length
                     if numDims < 2 || flows.IsEmpty then []
                     else
-                        let nodeWidth = 12.0
-                        let nodeGap = 6.0
-                        let labelGap = 6.0
-                        let labelFontSize = 11.0
-                        let titleFontSize = 12.0
+                        let nodeWidth = canvasSize * 0.012 * sf
+                        let nodeGap = canvasSize * 0.006 * sf
+                        let labelGap = canvasSize * 0.006 * sf
+                        let labelFontSize = canvasSize * 0.011 * sf
+                        let titleFontSize = canvasSize * 0.012 * sf
 
-                        let dimX d = canvasSize * float d / float (numDims - 1)
+                        let dimX d = cs * float d / float (numDims - 1)
 
                         let dimCategories =
                             [| for d in 0 .. numDims - 1 ->
@@ -676,7 +690,7 @@ module Graph =
                             [| for d in 0 .. numDims - 1 ->
                                 let cats = dimCategories.[d]
                                 let total = cats |> List.sumBy (dimCatWeight d)
-                                let available = canvasSize - float (max 0 (cats.Length - 1)) * nodeGap
+                                let available = cs - float (max 0 (cats.Length - 1)) * nodeGap
                                 cats
                                 |> List.mapFold (fun y cat ->
                                     let h = if total > 0.0 then dimCatWeight d cat / total * available else 0.0
@@ -729,7 +743,7 @@ module Graph =
                         let titleElements =
                             [ for d in 0 .. numDims - 1 do
                                 let x = dimX d
-                                yield Text.create (Point.ofFloats (x, -titleFontSize - 4.0)) dimensions.[d]
+                                yield Text.create (Point.ofFloats (x, -titleFontSize - canvasSize * 0.004 * sf)) dimensions.[d]
                                     |> Text.withFontSize titleFontSize
                                     |> Text.withAnchor Middle
                                     |> Text.withBaseline HangingBaseline
@@ -804,9 +818,9 @@ module Graph =
                 | Pie sliceLabels ->
                     if series.Points.IsEmpty then []
                     else
-                        let cx = canvasSize / 2.0
-                        let cy = canvasSize / 2.0
-                        let outerRadius = canvasSize * 0.42
+                        let cx = cs / 2.0
+                        let cy = cs / 2.0
+                        let outerRadius = cs * 0.42
                         let values = series.Points |> List.map snd
                         let total = List.sum values
                         if total <= 0.0 then []
@@ -852,7 +866,7 @@ module Graph =
                                         let ly = cy + labelRadius * sin midAngle
                                         let labelStyle = Style.empty |> Style.withFill (Color.ofName White)
                                         [ Text.create (Point.ofFloats (lx, ly)) label
-                                          |> Text.withFontSize 11.0
+                                          |> Text.withFontSize (canvasSize * 0.011 * sf)
                                           |> Text.withAnchor Middle
                                           |> Text.withBaseline CentralBaseline
                                           |> Element.createWithStyle labelStyle ]
