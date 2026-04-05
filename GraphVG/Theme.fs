@@ -29,11 +29,25 @@ module Theme =
     let withPens pens theme =
         { theme with Pens = pens }
 
+    let withSeriesColors colors theme =
+        { theme with Pens = colors |> List.map Pen.create }
+
     let withAxisPen axisPen theme =
         { theme with AxisPen = axisPen }
 
+    let withAxisColor color theme =
+        { theme with AxisPen = { theme.AxisPen with Color = color } }
+
     let withGridPen gridPen theme =
         { theme with GridPen = Some gridPen }
+
+    let withGridColor color theme =
+        let pen = theme.GridPen |> Option.defaultWith (fun () -> Pen.create color)
+        { theme with GridPen = Some { pen with Color = color } }
+
+    let withGridOpacity opacity theme =
+        let pen = theme.GridPen |> Option.defaultWith (fun () -> Pen.create (Color.ofName LightGray))
+        { theme with GridPen = Some { pen with Opacity = opacity } }
 
     let withUpColor color theme =
         { theme with UpColor = color }

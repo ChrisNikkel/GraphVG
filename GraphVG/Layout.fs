@@ -63,11 +63,11 @@ module Layout =
         | Bottom ->
             let tickExtent = horizontalTickExtent (bottomTickLabelGap spacing) axis
             max tickExtent (horizontalLabelExtent (bottomAxisLabelGap spacing) tickExtent axis) |> paddingWithBottom
-        | Left ->
+        | AxisPosition.Left ->
             let tickGap = verticalTickLabelGap spacing
             let tickExtent = verticalTickExtent tickGap maximumTickLabelWidth axis
             max tickExtent (verticalLabelExtent tickGap spacing.AxisLabelPadding maximumTickLabelWidth tickExtent axis) |> paddingWithLeft
-        | Right ->
+        | AxisPosition.Right ->
             let tickGap = verticalTickLabelGap spacing
             let tickExtent = verticalTickExtent tickGap maximumTickLabelWidth axis
             max tickExtent (verticalLabelExtent tickGap spacing.AxisLabelPadding maximumTickLabelWidth tickExtent axis) |> paddingWithRight
@@ -209,9 +209,14 @@ module Layout =
 
     let private titleTopInset = 6.0
 
-    let titleElement (title : string) (fontSize : float) (alignment : TextAnchor) (padding : GraphPadding) =
+    let private titleAnchor = function
+        | TitleAlignment.Left -> Start
+        | TitleAlignment.Center -> Middle
+        | TitleAlignment.Right -> End
+
+    let titleElement (title : string) (fontSize : float) (alignment : TitleAlignment) (padding : GraphPadding) =
         Text.create (Point.ofFloats (canvasSize / 2.0, -padding.Top + titleTopInset)) title
         |> Text.withFontSize fontSize
-        |> Text.withAnchor alignment
+        |> Text.withAnchor (titleAnchor alignment)
         |> Text.withBaseline HangingBaseline
         |> Element.createWithStyle (Style.empty |> Style.withFillPen Pen.black)

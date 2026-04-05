@@ -18,7 +18,7 @@ let histogramGraph =
     |> Graph.createWithSeries
     |> Graph.withTheme (Theme.light |> Theme.withPlotBackground (Color.ofName AliceBlue))
     |> Graph.withTitle "Histogram"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Center)
 
 let violinPlotGraph =
     let rng = Random(13)
@@ -41,7 +41,7 @@ let violinPlotGraph =
     Graph.create [ groupA; groupB; groupC ] (0.0, 4.0) (0.0, 13.0)
     |> Graph.withTheme (Theme.light |> Theme.withPens [ Pen.steelBlue; Pen.tomato; Pen.seaGreen ])
     |> Graph.withTitle "Violin Plot"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Center)
     |> Graph.withAxes (
         Some (Axis.create Bottom xScale |> Axis.withTicks 3 |> Axis.withTickFormat labelFormatter |> Axis.hideBoundsTick |> Axis.hideBoundsLabel),
         Some (Axis.create Left yScale |> Axis.withTicks 6))
@@ -68,7 +68,7 @@ let boxPlotGraph =
     Graph.create [ groupA; groupB; groupC ] (0.0, 4.0) (0.0, 12.0)
     |> Graph.withTheme (Theme.light |> Theme.withPens [ Pen.steelBlue; Pen.tomato; Pen.seaGreen ])
     |> Graph.withTitle "Box Plot"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Center)
     |> Graph.withAxes (
         Some (Axis.create Bottom xScale |> Axis.withTicks 3 |> Axis.withTickFormat labelFormatter |> Axis.hideBoundsTick |> Axis.hideBoundsLabel),
         Some (Axis.create Left yScale |> Axis.withTicks 6))

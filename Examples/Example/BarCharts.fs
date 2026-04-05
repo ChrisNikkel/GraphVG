@@ -24,7 +24,7 @@ let barChartGraph =
     Graph.create allSeries (0.5, 4.5) (0.0, 90.0)
     |> Graph.withTheme (Theme.light |> Theme.withPens [ Pen.steelBlue; Pen.coral; Pen.mediumSeaGreen ])
     |> Graph.withTitle "Quarterly Revenue by Product"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Center)
     |> Graph.withAxes (
         Some (Axis.create Bottom xScale |> Axis.withTicks 4 |> Axis.withTickFormat quarterFormatter |> Axis.hideBoundsTick |> Axis.hideBoundsLabel),
         Some (Axis.create Left yScale |> Axis.withTicks 5 |> Axis.withLabel "$M"))
@@ -52,7 +52,7 @@ let waterfallGraph =
     |> Graph.createWithSeries
     |> Graph.withTheme Theme.light
     |> Graph.withTitle "Annual Cash Flow Bridge"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Center)
     |> Graph.withAxes (
         Some (Axis.create Bottom xScale |> Axis.withTicks 7 |> Axis.withTickFormat labelFormatter |> Axis.hideBoundsTick |> Axis.hideBoundsLabel),
         Some (Axis.create Left yScale |> Axis.withTicks 5 |> Axis.withLabel "$M"))
@@ -71,7 +71,7 @@ let horizontalBarGraph =
     Graph.create [ series ] (0.0, 2.2) (0.5, 7.5)
     |> Graph.withTheme (Theme.light |> Theme.withPens [ Pen.cornflowerBlue ])
     |> Graph.withTitle "Daily Screen Time by Category"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Center)
     |> Graph.withAxes (
         Some (Axis.create Bottom xScale |> Axis.withTicks 5 |> Axis.withTickFormat (sprintf "%.1fh") |> Axis.withLabel "Hours per day"),
         Some (Axis.create Left yScale |> Axis.withTicks 7 |> Axis.withTickFormat catFormatter |> Axis.hideBoundsTick |> Axis.hideBoundsLabel))

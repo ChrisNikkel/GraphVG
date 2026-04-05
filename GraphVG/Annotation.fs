@@ -7,10 +7,12 @@ type Annotation =
     | Line of x1 : float * y1 : float * x2 : float * y2 : float
     | Rect of x : float * y : float * width : float * height : float
 
+type TitleAlignment = Left | Center | Right
+
 type TitleStyle =
     {
         FontSize : float
-        Alignment : TextAnchor
+        Alignment : TitleAlignment
     }
 
 module TitleStyle =
@@ -19,7 +21,7 @@ module TitleStyle =
         { FontSize = fontSize; Alignment = alignment }
 
     let defaults =
-        { FontSize = 16.0; Alignment = Middle }
+        { FontSize = 16.0; Alignment = Center }
 
 module Annotation =
 

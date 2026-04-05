@@ -46,7 +46,7 @@ let bubbleChartGraph =
     Graph.create [ americas; europe; asia; africa ] (0.0, 85.0) (50.0, 90.0)
     |> Graph.withTheme Theme.light
     |> Graph.withTitle "GDP per Capita vs Life Expectancy"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Center)
     |> Graph.withLegend (Legend.create LegendRight)
 
 // 2D heatmap: weekly step counts by day and hour, showing activity patterns.
@@ -68,7 +68,7 @@ let heatmapGraph =
     |> Graph.createWithSeries
     |> Graph.withTheme Theme.light
     |> Graph.withTitle "Weekly Step Counts by Hour"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Center)
     |> Graph.withAxes (
         Some (Axis.create Bottom (Scale.linear (-0.5, 23.5) (0.0, CommonMath.canvasSize))
               |> Axis.withTicks 24

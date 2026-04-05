@@ -29,7 +29,7 @@ let centeredAxesGraph =
     Graph.create [ unitCircle; lissajous ] (-1.2, 1.2) (-1.2, 1.2)
     |> Graph.withTheme Theme.light
     |> Graph.withTitle "Centered Axes"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Center)
     |> Graph.withAxes (
         Some (Axis.create (HorizontalAt (Scale.apply yScale 0.0)) xScale |> Axis.withTickInterval 0.5 |> Axis.hideOrigin),
         Some (Axis.create (VerticalAt (Scale.apply xScale 0.0)) yScale |> Axis.withTickInterval 0.5 |> Axis.hideOrigin))
@@ -69,7 +69,7 @@ let axisStylesGraph =
     Graph.create [ target; growth; milestones ] (1.0, 12.0) (0.0, 100.0)
     |> Graph.withTheme themed
     |> Graph.withTitle "Axis Styling"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Center)
     |> Graph.withAxes (
         Some (Axis.create Top xScale |> Axis.withTickInterval 2.0 |> Axis.withTickFormat monthFormatter |> Axis.withTickLength 10.0 |> Axis.withFontSize 14.0 |> Axis.withLabel "Campaign Timeline" |> Axis.hideBoundsTick |> Axis.hideBoundsLabel |> Axis.withSpine SpineStyle.Full),
         Some (Axis.create Right yScale |> Axis.withTicks 6 |> Axis.withTickFormat (sprintf "%.0f%%") |> Axis.withFontSize 14.0 |> Axis.withLabel "Coverage" |> Axis.hideBoundsTick |> Axis.withSpine SpineStyle.Hidden))
@@ -107,7 +107,7 @@ let styledSeriesGraph =
     Graph.create [ areaBand; trendLine; highlights ] (0.0, 10.0) (0.0, 5.5)
     |> Graph.withTheme themed
     |> Graph.withTitle "Series Styling"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Center)
     |> Graph.withLegend (Legend.create LegendRight)
 
 let stepLineGraph =
@@ -139,7 +139,7 @@ let stepLineGraph =
     Graph.create [ after; before; mid ] (0.0, 24.0) (0.0, 0.28)
     |> Graph.withTheme (Theme.light |> Theme.withPens [ Pen.steelBlue; Pen.tomato; Pen.seaGreen ])
     |> Graph.withTitle "Step Line"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Center)
     |> Graph.withAxes (
         Some (Axis.create Bottom xScale |> Axis.withTickInterval 6.0 |> Axis.withTickFormat (fun v -> sprintf "%.0fh" v) |> Axis.withLabel "Hour of Day"),
         Some (Axis.create Left yScale |> Axis.withTicks 5 |> Axis.withTickFormat (sprintf "$%.2f") |> Axis.withLabel "Rate ($/kWh)"))
@@ -170,7 +170,7 @@ let bandGraph =
     Graph.create [ uncertainty; meanLine ] (1.0, 12.0) (-5.0, 30.0)
     |> Graph.withTheme (Theme.light |> Theme.withPens [ Pen.steelBlue; Pen.steelBlue ])
     |> Graph.withTitle "Confidence Band"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Center)
     |> Graph.withAxes (
         Some (Axis.create Bottom xScale |> Axis.withTicks 12 |> Axis.withTickFormat monthFormatter |> Axis.hideBoundsTick |> Axis.hideBoundsLabel),
         Some (Axis.create Left yScale |> Axis.withTicks 7 |> Axis.withTickFormat (sprintf "%.0f°C") |> Axis.withLabel "Temperature"))
@@ -194,7 +194,7 @@ let logScaleGraph =
     Graph.create [ lineSeries; markerSeries ] (1.0, 1000.0) (0.0, 7.0)
     |> Graph.withTheme Theme.empty
     |> Graph.withTitle "Log Scale"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Center)
     |> Graph.withXScale xScale
     |> Graph.withYScale yScale
     |> Graph.withAxes (

@@ -31,7 +31,7 @@ let stackedAreaGraph =
     Graph.create allSeries (1990.0, 2024.0) (0.0, 4800.0)
     |> Graph.withTheme blueScheme
     |> Graph.withTitle "US Electricity by Source"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Center)
     |> Graph.withAxes (
         Some (Axis.create Bottom xScale |> Axis.withTickInterval 10.0 |> Axis.withTickFormat (sprintf "%.0f")),
         Some (Axis.create Left yScale |> Axis.withTicks 6 |> Axis.withLabel "TWh"))
@@ -49,7 +49,7 @@ let normalizedStackedAreaGraph =
     Graph.create allSeries (1990.0, 2024.0) (0.0, 100.0)
     |> Graph.withTheme autumnScheme
     |> Graph.withTitle "Normalized Stacked Area"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Center)
     |> Graph.withAxes (
         Some (Axis.create Bottom xScale |> Axis.withTickInterval 10.0 |> Axis.withTickFormat (sprintf "%.0f")),
         Some (Axis.create Left yScale |> Axis.withTicks 5 |> Axis.withTickFormat (sprintf "%.0f%%") |> Axis.withLabel "Share"))
@@ -81,7 +81,7 @@ let streamgraphGraph =
     Graph.create allSeries (1995.0, 2012.0) (-60.0, 60.0)
     |> Graph.withTheme rainbowScheme
     |> Graph.withTitle "Console Wars 1995–2012"
-    |> Graph.withTitleStyle (TitleStyle.create 22.0 Middle)
+    |> Graph.withTitleStyle (TitleStyle.create 22.0 Center)
     |> Graph.withAxes (
         Some (Axis.create Bottom xScale |> Axis.withTickInterval 5.0 |> Axis.withTickFormat (sprintf "%.0f") |> Axis.withSpine SpineStyle.Hidden),
         None)

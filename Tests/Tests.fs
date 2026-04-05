@@ -947,28 +947,28 @@ module TitleStyleTests =
     [<Fact>]
     let ``default title style has FontSize 16 and Middle alignment`` () =
         let graph = Graph.create [ series ] (0.0, 1.0) (0.0, 1.0)
-        Assert.Equal(16.0,                  graph.TitleStyle.FontSize)
-        Assert.Equal(SharpVG.Middle,        graph.TitleStyle.Alignment)
+        Assert.Equal(16.0, graph.TitleStyle.FontSize)
+        Assert.Equal(Center, graph.TitleStyle.Alignment)
 
     [<Fact>]
     let ``withTitleStyle sets both fields`` () =
-        let style = TitleStyle.create 24.0 SharpVG.Start
+        let style = TitleStyle.create 24.0 TitleAlignment.Left
         let graph = Graph.create [ series ] (0.0, 1.0) (0.0, 1.0) |> Graph.withTitleStyle style
-        Assert.Equal(24.0,         graph.TitleStyle.FontSize)
-        Assert.Equal(SharpVG.Start, graph.TitleStyle.Alignment)
+        Assert.Equal(24.0, graph.TitleStyle.FontSize)
+        Assert.Equal(TitleAlignment.Left, graph.TitleStyle.Alignment)
 
     [<Fact>]
     let ``custom title style produces different SVG than default`` () =
         let base'    = Graph.create [ series ] (0.0, 1.0) (0.0, 1.0) |> Graph.withTitle "Hello"
         let default' = base' |> GraphVG.toSvg
-        let custom   = base' |> Graph.withTitleStyle (TitleStyle.create 32.0 SharpVG.Start) |> GraphVG.toSvg
+        let custom   = base' |> Graph.withTitleStyle (TitleStyle.create 32.0 TitleAlignment.Left) |> GraphVG.toSvg
         Assert.True(default' <> custom)
 
     [<Fact>]
     let ``title rendering reserves top padding based on font size`` () =
         let base' = Graph.create [ series ] (0.0, 1.0) (0.0, 1.0) |> Graph.withTitle "Hello"
         let defaultRender = base' |> GraphVG.toSvg
-        let customRender = base' |> Graph.withTitleStyle (TitleStyle.create 32.0 SharpVG.Start) |> GraphVG.toSvg
+        let customRender = base' |> Graph.withTitleStyle (TitleStyle.create 32.0 TitleAlignment.Left) |> GraphVG.toSvg
         Assert.Contains("viewBox=\"-20,-32 1040,1052\"", defaultRender)
         Assert.Contains("dominant-baseline=\"hanging\"", defaultRender)
         Assert.Contains("viewBox=\"-20,-48 1040,1068\"", customRender)
