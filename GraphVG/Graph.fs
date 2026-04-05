@@ -312,10 +312,9 @@ module Graph =
                 let seriesPen = Theme.penForSeries i graph.Theme |> Pen.withOpacity series.Opacity
                 match series.Kind with
                 | Scatter ->
-                    let radius = series.PointRadius |> Option.defaultValue (Length.ofFloat 3.0)
-                    let r = Length.toFloat radius
+                    let r = series.PointRadius |> Option.defaultValue 3.0
                     let fillStyle = Style.empty |> Style.withFillPen seriesPen
-                    let crossPen = series.StrokeWidth |> Option.map (fun w -> seriesPen |> Pen.withWidth w) |> Option.defaultValue seriesPen
+                    let crossPen = series.StrokeWidth |> Option.map (fun w -> seriesPen |> Pen.withWidth (Length.ofFloat w)) |> Option.defaultValue seriesPen
                     let crossStyle = Style.createWithPen crossPen |> Style.withFillOpacity 0.0
                     series.Points
                     |> List.collect (fun pt ->
@@ -326,7 +325,7 @@ module Graph =
                             |> Element.createWithStyle fillStyle
                         match series.PointShape with
                         | PointShape.Circle ->
-                            [ Circle.create svgPt radius |> Element.createWithStyle fillStyle ]
+                            [ Circle.create svgPt (Length.ofFloat r) |> Element.createWithStyle fillStyle ]
                         | Square ->
                             [ polygon squareUnit ]
                         | Diamond ->
@@ -337,14 +336,14 @@ module Graph =
                             centerLines (cx, cy) r crossUnit
                             |> List.map (fun (from', to') -> Line.create (Point.ofFloats from') (Point.ofFloats to') |> Element.createWithStyle crossStyle))
                 | SeriesKind.Line ->
-                    let strokePen = series.StrokeWidth |> Option.map (fun width -> seriesPen |> Pen.withWidth width) |> Option.defaultValue seriesPen
+                    let strokePen = series.StrokeWidth |> Option.map (fun width -> seriesPen |> Pen.withWidth (Length.ofFloat width)) |> Option.defaultValue seriesPen
                     let style =
                         Style.createWithPen strokePen
                         |> Style.withFillOpacity 0.0
                         |> applyDash series.StrokeDash
                     [ Polyline.ofList (series.Points |> List.map toSvgPoint) |> Element.createWithStyle style ]
                 | StepLine mode ->
-                    let strokePen = series.StrokeWidth |> Option.map (fun width -> seriesPen |> Pen.withWidth width) |> Option.defaultValue seriesPen
+                    let strokePen = series.StrokeWidth |> Option.map (fun width -> seriesPen |> Pen.withWidth (Length.ofFloat width)) |> Option.defaultValue seriesPen
                     let style =
                         Style.createWithPen strokePen
                         |> Style.withFillOpacity 0.0
@@ -352,7 +351,7 @@ module Graph =
                     let stepPoints = expandStepPoints mode series.Points
                     [ Polyline.ofList (stepPoints |> List.map toSvgPoint) |> Element.createWithStyle style ]
                 | Area ->
-                    let strokePen = series.StrokeWidth |> Option.map (fun width -> seriesPen |> Pen.withWidth width) |> Option.defaultValue seriesPen
+                    let strokePen = series.StrokeWidth |> Option.map (fun width -> seriesPen |> Pen.withWidth (Length.ofFloat width)) |> Option.defaultValue seriesPen
                     let style =
                         Style.createWithPen strokePen
                         |> Style.withFillPen strokePen
@@ -368,7 +367,7 @@ module Graph =
                         |> applyDash series.StrokeDash
                     let style =
                         match series.StrokeWidth with
-                        | Some w -> baseStyle |> Style.withStrokePen (seriesPen |> Pen.withWidth w)
+                        | Some w -> baseStyle |> Style.withStrokePen (seriesPen |> Pen.withWidth (Length.ofFloat w))
                         | None -> baseStyle
                     let topPts = List.map2 (fun x yHigh -> toSvgPoint (x, yHigh)) xs highs
                     let botPts = List.map2 (fun x yLow -> toSvgPoint (x, yLow)) xs yLows
@@ -386,7 +385,7 @@ module Graph =
                 | SeriesKind.Box ->
                     match series.Points with
                     | [ (xPos, yMin); (_, q1); (_, median); (_, q3); (_, yMax) ] ->
-                        let halfWidth = series.PointRadius |> Option.map Length.toFloat |> Option.defaultValue 40.0
+                        let halfWidth = series.PointRadius |> Option.defaultValue 40.0
                         let svgX = fst (toScaledSvgCoordinates graph (xPos, 0.0))
                         let svgY value = snd (toScaledSvgCoordinates graph (0.0, value))
                         let svgMin = svgY yMin
@@ -419,7 +418,7 @@ module Graph =
                 | Violin rawValues ->
                     match series.Points with
                     | [ (xPos, yMin); (_, q1); (_, median); (_, q3); (_, yMax) ] when not rawValues.IsEmpty ->
-                        let halfWidth = series.PointRadius |> Option.map Length.toFloat |> Option.defaultValue 40.0
+                        let halfWidth = series.PointRadius |> Option.defaultValue 40.0
                         let bandwidth = silvermanBandwidth rawValues
                         let nSamples = 100
                         let extent = 2.0 * bandwidth
@@ -529,7 +528,7 @@ module Graph =
                     // Radius is area-proportional: a point with twice the size value renders with twice the area.
                     // The largest bubble has radius maxRadiusPx (default 40 px, or set via withPointRadius).
                     let maxSize = sizes |> List.fold max 0.0
-                    let maxRadiusPx = series.PointRadius |> Option.map Length.toFloat |> Option.defaultValue 40.0
+                    let maxRadiusPx = series.PointRadius |> Option.defaultValue 40.0
                     let fillStyle = Style.empty |> Style.withFillPen seriesPen |> Style.withFillOpacity 0.5
                     series.Points
                     |> List.mapi (fun idx pt ->
@@ -547,7 +546,7 @@ module Graph =
                     else
                         let isStockBarStyle = match series.Kind with | StockBar _ -> true | _ -> false
                         let halfBar = priceBars |> List.map (fun b -> b.X) |> inferMinSpacing |> fun s -> s * 0.4
-                        let wickWidth = series.StrokeWidth |> Option.defaultValue (Length.ofFloat 1.5)
+                        let wickWidth = series.StrokeWidth |> Option.defaultValue 1.5
                         priceBars
                         |> List.collect (fun bar ->
                             let svgCX, _ = toScaledSvgCoordinates graph (bar.X, 0.0)
@@ -559,7 +558,7 @@ module Graph =
                             let svgLow = snd (toScaledSvgCoordinates graph (0.0, bar.Low))
                             let fillColor = if bar.Close >= bar.Open then graph.Theme.UpColor else graph.Theme.DownColor
                             let colorPen = Pen.create fillColor |> Pen.withOpacity series.Opacity
-                            let wickStyle = Style.createWithPen (colorPen |> Pen.withWidth wickWidth) |> Style.withFillOpacity 0.0
+                            let wickStyle = Style.createWithPen (colorPen |> Pen.withWidth (Length.ofFloat wickWidth)) |> Style.withFillOpacity 0.0
                             if isStockBarStyle then
                                 [
                                     Line.create (Point.ofFloats (svgCX, svgHigh)) (Point.ofFloats (svgCX, svgLow))
@@ -639,7 +638,7 @@ module Graph =
                     match Map.tryFind i stackingMap with
                     | None -> []
                     | Some (xValues, baselines, tops) ->
-                        let strokePen = series.StrokeWidth |> Option.map (fun w -> seriesPen |> Pen.withWidth w) |> Option.defaultValue seriesPen
+                        let strokePen = series.StrokeWidth |> Option.map (fun w -> seriesPen |> Pen.withWidth (Length.ofFloat w)) |> Option.defaultValue seriesPen
                         let style =
                             Style.createWithPen strokePen
                             |> Style.withFillPen strokePen

@@ -48,12 +48,12 @@ let axisStylesGraph =
         months
         |> Series.line
         |> Series.withLabel "Adoption"
-        |> Series.withStrokeWidth (Length.ofFloat 4.0)
+        |> Series.withStrokeWidth 4.0
     let milestones =
         months
         |> Series.scatter
         |> Series.withLabel "Checkpoints"
-        |> Series.withPointRadius (Length.ofFloat 7.0)
+        |> Series.withPointRadius 7.0
     let xScale = Scale.linear (1.0, 12.0) (0.0, CommonMath.canvasSize)
     let yScale = Scale.linear (0.0, 100.0) (CommonMath.canvasSize, 0.0)
     let monthFormatter value =
@@ -91,7 +91,7 @@ let styledSeriesGraph =
         upperBand
         |> Series.line
         |> Series.withLabel "Trend"
-        |> Series.withStrokeWidth (Length.ofFloat 4.0)
+        |> Series.withStrokeWidth 4.0
         |> Series.withStrokeDash DashDot
     let highlights =
         upperBand
@@ -99,7 +99,7 @@ let styledSeriesGraph =
         |> List.choose (fun (index, point) -> if index % 5 = 0 then Some point else None)
         |> Series.scatter
         |> Series.withLabel "Samples"
-        |> Series.withPointRadius (Length.ofFloat 8.0)
+        |> Series.withPointRadius 8.0
     let themed =
         Theme.light
         |> Theme.withPlotBackground (Color.ofName FloralWhite)
@@ -119,20 +119,20 @@ let stepLineGraph =
         hourlyRates
         |> Series.stepLine
         |> Series.withLabel "After (default)"
-        |> Series.withStrokeWidth (Length.ofFloat 3.0)
+        |> Series.withStrokeWidth 3.0
     let before =
         hourlyRates
         |> Series.stepLine
         |> Series.withStepMode Before
         |> Series.withLabel "Before"
-        |> Series.withStrokeWidth (Length.ofFloat 2.0)
+        |> Series.withStrokeWidth 2.0
         |> Series.withStrokeDash Dashed
     let mid =
         hourlyRates
         |> Series.stepLine
         |> Series.withStepMode Mid
         |> Series.withLabel "Mid"
-        |> Series.withStrokeWidth (Length.ofFloat 2.0)
+        |> Series.withStrokeWidth 2.0
         |> Series.withStrokeDash Dotted
     let xScale = Scale.linear (0.0, 24.0) (0.0, CommonMath.canvasSize)
     let yScale = Scale.linear (0.0, 0.28) (CommonMath.canvasSize, 0.0)
@@ -159,7 +159,7 @@ let bandGraph =
         List.zip months means
         |> Series.line
         |> Series.withLabel "Mean"
-        |> Series.withStrokeWidth (Length.ofFloat 3.5)
+        |> Series.withStrokeWidth 3.5
     let xScale = Scale.linear (1.0, 12.0) (0.0, CommonMath.canvasSize)
     let yScale = Scale.linear (-5.0, 30.0) (CommonMath.canvasSize, 0.0)
     let monthFormatter value =
@@ -183,12 +183,12 @@ let logScaleGraph =
         responsePoints
         |> Series.line
         |> Series.withLabel "Response"
-        |> Series.withStrokeWidth (Length.ofFloat 3.5)
+        |> Series.withStrokeWidth 3.5
     let markerSeries =
         responsePoints
         |> Series.scatter
         |> Series.withLabel "Samples"
-        |> Series.withPointRadius (Length.ofFloat 6.0)
+        |> Series.withPointRadius 6.0
     let xScale = Scale.log (1.0, 1000.0) (0.0, CommonMath.canvasSize) 10.0
     let yScale = Scale.linear (0.0, 7.0) (CommonMath.canvasSize, 0.0)
     Graph.create [ lineSeries; markerSeries ] (1.0, 1000.0) (0.0, 7.0)

@@ -201,13 +201,13 @@ module SeriesTests =
 
     [<Fact>]
     let ``withStrokeWidth sets stroke width`` () =
-        let series = Series.line [ 0.0, 0.0 ] |> Series.withStrokeWidth (SharpVG.Length.ofFloat 3.0)
-        Assert.Equal(Some (SharpVG.Length.ofFloat 3.0), series.StrokeWidth)
+        let series = Series.line [ 0.0, 0.0 ] |> Series.withStrokeWidth 3.0
+        Assert.Equal(Some 3.0, series.StrokeWidth)
 
     [<Fact>]
     let ``withPointRadius sets point radius`` () =
-        let series = Series.scatter [ 0.0, 0.0 ] |> Series.withPointRadius (SharpVG.Length.ofFloat 7.0)
-        Assert.Equal(Some (SharpVG.Length.ofFloat 7.0), series.PointRadius)
+        let series = Series.scatter [ 0.0, 0.0 ] |> Series.withPointRadius 7.0
+        Assert.Equal(Some 7.0, series.PointRadius)
 
     // Visibility and opacity – REQ-21
 
@@ -549,26 +549,26 @@ module GraphTests =
 
     [<Fact>]
     let ``drawSeries scatter with custom radius appears in SVG output`` () =
-        let seriesWithRadius = Series.scatter points |> Series.withPointRadius (SharpVG.Length.ofFloat 8.0)
+        let seriesWithRadius = Series.scatter points |> Series.withPointRadius 8.0
         let svgOutput = Graph.create [ seriesWithRadius ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
         Assert.Contains("8", svgOutput)
 
     [<Fact>]
     let ``drawSeries line with custom stroke width appears in SVG output`` () =
-        let seriesWithWidth = Series.line points |> Series.withStrokeWidth (SharpVG.Length.ofFloat 5.0)
+        let seriesWithWidth = Series.line points |> Series.withStrokeWidth 5.0
         let svgOutput = Graph.create [ seriesWithWidth ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
         Assert.Contains("5", svgOutput)
 
     [<Fact>]
     let ``drawSeries scatter custom radius produces different SVG than default`` () =
         let defaultSvg = Graph.create [ Series.scatter points ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
-        let customSvg = Graph.create [ Series.scatter points |> Series.withPointRadius (SharpVG.Length.ofFloat 9.0) ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
+        let customSvg = Graph.create [ Series.scatter points |> Series.withPointRadius 9.0 ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
         Assert.True(defaultSvg <> customSvg)
 
     [<Fact>]
     let ``drawSeries line custom stroke width produces different SVG than default`` () =
         let defaultSvg = Graph.create [ Series.line points ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
-        let customSvg = Graph.create [ Series.line points |> Series.withStrokeWidth (SharpVG.Length.ofFloat 4.0) ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
+        let customSvg = Graph.create [ Series.line points |> Series.withStrokeWidth 4.0 ] (0.0, 4.0) (0.0, 4.0) |> GraphVG.toSvg
         Assert.True(defaultSvg <> customSvg)
 
     // Visibility – REQ-21
@@ -719,7 +719,7 @@ module GraphTests =
     [<Fact>]
     let ``drawSeries band with stroke width produces different SVG than without`` () =
         let noStroke = Graph.create [ Series.band bandTriples ] (0.0, 4.0) (0.0, 6.0) |> GraphVG.toSvg
-        let withStroke = Graph.create [ Series.band bandTriples |> Series.withStrokeWidth (SharpVG.Length.ofFloat 2.0) ] (0.0, 4.0) (0.0, 6.0) |> GraphVG.toSvg
+        let withStroke = Graph.create [ Series.band bandTriples |> Series.withStrokeWidth 2.0 ] (0.0, 4.0) (0.0, 6.0) |> GraphVG.toSvg
         Assert.True(noStroke <> withStroke)
 
     [<Fact>]

@@ -51,8 +51,8 @@ type Series =
         Points : (float * float) list
         Kind : SeriesKind
         Label : string option
-        StrokeWidth : Length option
-        PointRadius : Length option
+        StrokeWidth : float option
+        PointRadius : float option
         PointShape : PointShape
         StrokeDash : StrokeDash
         Visible : bool
