@@ -138,6 +138,18 @@ let examples =
             Description = "Fictional athletic combine results comparing two teams across six performance categories — filled polygons with 20% opacity overlaid on a 5-ring web."
             Render = fun () -> RadarChart.toSvg PolarCharts.radarChartGraph
         }
+        {
+            FileName = "pie-chart-standalone.html"
+            Title = "Pie Chart"
+            Description = "Fictional Q1 regional sales breakdown — five regions sized proportionally with inside percentage labels and a color-keyed legend."
+            Render = fun () -> PieChart.toSvg PolarCharts.pieChartGraph
+        }
+        {
+            FileName = "donut-chart.html"
+            Title = "Donut Chart"
+            Description = "Same fictional Q1 regional sales data as a donut, with the total displayed in the center hole."
+            Render = fun () -> PieChart.toSvg PolarCharts.donutChartGraph
+        }
     ]
 
 let galleryHtml pages =
@@ -182,7 +194,7 @@ let galleryHtml pages =
     + "<body>\n"
     + "<main class=\"wrap\">\n"
     + "<h1>GraphVG Example Gallery</h1>\n"
-    + "<p class=\"intro\">A collection of focused examples covering line, step line, area, stacked and normalized area, streamgraphs, bar, waterfall, bubble, heatmap, histogram, box plot, violin plot, confidence band, and radar charts.</p>\n"
+    + "<p class=\"intro\">A collection of focused examples covering line, step line, area, stacked and normalized area, streamgraphs, bar, waterfall, bubble, heatmap, histogram, box plot, violin plot, confidence band, radar, pie, and donut charts.</p>\n"
     + "<section class=\"grid\">\n"
     + cards + "\n"
     + "</section>\n"

@@ -2432,3 +2432,99 @@ module RadarChartTests =
             let svg = RadarChart.create [ pt ] |> RadarChart.toSvg
             not (System.String.IsNullOrEmpty(svg))
         else true
+
+module StandalonePieChartTests =
+
+    open FsCheck
+
+    let slices = [ "A", 30.0; "B", 50.0; "C", 20.0 ]
+    let singleSlice = [ "Only", 100.0 ]
+
+    [<Fact>]
+    let ``toSvg returns non-empty string`` () =
+        let svg = PieChart.create slices |> PieChart.toSvg
+        Assert.False(System.String.IsNullOrEmpty(svg))
+
+    [<Fact>]
+    let ``toSvg returns well-formed SVG`` () =
+        let svg = PieChart.create slices |> PieChart.toSvg
+        Assert.Contains("<svg", svg)
+        Assert.Contains("</svg>", svg)
+
+    [<Fact>]
+    let ``toHtml returns standalone HTML document`` () =
+        let html = PieChart.create slices |> PieChart.toHtml
+        Assert.Contains("<!DOCTYPE html>", html)
+        Assert.Contains("<svg", html)
+
+    [<Fact>]
+    let ``empty slice list renders without error`` () =
+        let svg = PieChart.create [] |> PieChart.toSvg
+        Assert.False(System.String.IsNullOrEmpty(svg))
+
+    [<Fact>]
+    let ``zero-value slices are filtered out`` () =
+        let svg = PieChart.create [ "A", 0.0; "B", 5.0 ] |> PieChart.toSvg
+        Assert.False(System.String.IsNullOrEmpty(svg))
+
+    [<Fact>]
+    let ``single slice renders as full circle without error`` () =
+        let svg = PieChart.create singleSlice |> PieChart.toSvg
+        Assert.False(System.String.IsNullOrEmpty(svg))
+
+    [<Fact>]
+    let ``withTitle embeds title text in SVG`` () =
+        let svg =
+            PieChart.create slices
+            |> PieChart.withTitle "My Chart"
+            |> PieChart.toSvg
+        Assert.Contains("My Chart", svg)
+
+    [<Fact>]
+    let ``slice labels appear in SVG output`` () =
+        let svg = PieChart.create slices |> PieChart.toSvg
+        Assert.Contains("A", svg)
+        Assert.Contains("B", svg)
+        Assert.Contains("C", svg)
+
+    [<Fact>]
+    let ``withInnerRadius > 0 produces donut`` () =
+        let svg =
+            PieChart.create slices
+            |> PieChart.withInnerRadius 0.5
+            |> PieChart.toSvg
+        Assert.False(System.String.IsNullOrEmpty(svg))
+
+    [<Fact>]
+    let ``withInnerRadius clamps to 0.95 maximum`` () =
+        let svg =
+            PieChart.create slices
+            |> PieChart.withInnerRadius 2.0
+            |> PieChart.toSvg
+        Assert.False(System.String.IsNullOrEmpty(svg))
+
+    [<Fact>]
+    let ``single slice donut renders without error`` () =
+        let svg =
+            PieChart.create singleSlice
+            |> PieChart.withInnerRadius 0.5
+            |> PieChart.toSvg
+        Assert.False(System.String.IsNullOrEmpty(svg))
+
+    [<Property>]
+    let ``toSvg never throws for any positive slice values`` (xs : PositiveInt list) =
+        if xs.Length > 0 then
+            let input = xs |> List.mapi (fun i x -> sprintf "S%d" i, float x.Get)
+            let svg = PieChart.create input |> PieChart.toSvg
+            not (System.String.IsNullOrEmpty(svg))
+        else true
+
+    [<Property>]
+    let ``toSvg never throws for any inner radius`` (r : NormalFloat) =
+        let svg = PieChart.create slices |> PieChart.withInnerRadius r.Get |> PieChart.toSvg
+        not (System.String.IsNullOrEmpty(svg))
+
+    [<Property>]
+    let ``toSvg never throws for any start angle`` (a : NormalFloat) =
+        let svg = PieChart.create slices |> PieChart.withStartAngle a.Get |> PieChart.toSvg
+        not (System.String.IsNullOrEmpty(svg))

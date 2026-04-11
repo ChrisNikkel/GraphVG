@@ -24,3 +24,28 @@ let radarChartGraph =
     |> RadarChart.withTitle "Athletic Combine — Team Alpha vs Team Beta"
     |> RadarChart.withLabels [ "Team Alpha"; "Team Beta" ]
     |> RadarChart.withRingCount 5
+
+// Fictional regional sales breakdown for Q1.
+// Values are invented revenue figures (in millions) for illustration.
+let pieChartGraph =
+    PieChart.create [
+        "North",  4.2
+        "South",  2.8
+        "East",   3.5
+        "West",   5.1
+        "Central",1.9
+    ]
+    |> PieChart.withTheme Theme.light
+    |> PieChart.withTitle "Q1 Regional Sales (Fictional)"
+
+let donutChartGraph =
+    PieChart.create [
+        "North",  4.2
+        "South",  2.8
+        "East",   3.5
+        "West",   5.1
+        "Central",1.9
+    ]
+    |> PieChart.withInnerRadius 0.55
+    |> PieChart.withTheme Theme.light
+    |> PieChart.withTitle "Q1 Regional Sales — Donut (Fictional)"
