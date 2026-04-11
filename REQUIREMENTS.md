@@ -49,27 +49,3 @@ module PieChart =
 
 ---
 
-## REQ-39: Radar / Spider Chart
-
-A polar chart with one axis per variable, used to compare multivariate observations. Each series is a polygon connecting values on each radial axis.
-
-```fsharp
-// axes: axis names; values per series must match axis count
-type RadarPoint = { Axes : string list; Values : float list }
-
-val radar : RadarPoint list -> RadarChart
-
-module RadarChart =
-    val toSvg : RadarChart -> Element
-    val toHtml : RadarChart -> string
-```
-
-**Acceptance criteria:**
-
-- Axes are evenly spaced around the circle with labels at the perimeter.
-- Concentric grid rings represent equal value increments.
-- Each series renders as a filled polygon (low opacity) with an outlined border.
-- Multiple series can be overlaid.
-- `toSvg` and `toHtml` follow existing conventions.
-
----

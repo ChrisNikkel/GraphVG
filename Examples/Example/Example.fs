@@ -7,7 +7,7 @@ type ExamplePage =
         FileName : string
         Title : string
         Description : string
-        Graph : Graph
+        Render : unit -> string
     }
 
 let examples =
@@ -16,121 +16,127 @@ let examples =
             FileName = "centered-axes.html"
             Title = "Centered Axes"
             Description = "HorizontalAt and VerticalAt axes with two styled line series."
-            Graph = LineCharts.centeredAxesGraph
+            Render = fun () -> GraphVG.toSvg LineCharts.centeredAxesGraph
         }
         {
             FileName = "axis-styles.html"
             Title = "Axis Styling"
             Description = "Custom tick intervals, formatted labels, plot background, and non-default spine styles."
-            Graph = LineCharts.axisStylesGraph
+            Render = fun () -> GraphVG.toSvg LineCharts.axisStylesGraph
         }
         {
             FileName = "series-styles.html"
             Title = "Series Styling"
             Description = "Area, line, and scatter rendering with dash styles, opacity, point radius, and custom pens."
-            Graph = LineCharts.styledSeriesGraph
+            Render = fun () -> GraphVG.toSvg LineCharts.styledSeriesGraph
         }
         {
             FileName = "step-line.html"
             Title = "Step Line"
             Description = "Electricity rate tiers that change at fixed hours — three step modes (After, Before, Mid) overlaid so you can compare the geometry."
-            Graph = LineCharts.stepLineGraph
+            Render = fun () -> GraphVG.toSvg LineCharts.stepLineGraph
         }
         {
             FileName = "confidence-band.html"
             Title = "Confidence Band"
             Description = "Monthly mean temperature with a ±1σ uncertainty band layered under the mean line — a common pattern for showing forecast ranges or confidence intervals."
-            Graph = LineCharts.bandGraph
+            Render = fun () -> GraphVG.toSvg LineCharts.bandGraph
         }
         {
             FileName = "log-scale.html"
             Title = "Log Scale"
             Description = "Logarithmic x-axis with explicit axis configuration and tick formatting."
-            Graph = LineCharts.logScaleGraph
+            Render = fun () -> GraphVG.toSvg LineCharts.logScaleGraph
         }
         {
             FileName = "stacked-area.html"
             Title = "Stacked Area"
             Description = "US electricity generation 1990–2024 by source (EIA data): coal's mountain arc, the fracking gas surge, petroleum's near-disappearance, and renewables emerging from zero."
-            Graph = AreaCharts.stackedAreaGraph
+            Render = fun () -> GraphVG.toSvg AreaCharts.stackedAreaGraph
         }
         {
             FileName = "stacked-area-percent.html"
             Title = "Normalized Stacked Area"
             Description = "Same EIA electricity data 1990–2024 normalized to 100%, showing coal's share halving, gas doubling, and renewables rising from nothing."
-            Graph = AreaCharts.normalizedStackedAreaGraph
+            Render = fun () -> GraphVG.toSvg AreaCharts.normalizedStackedAreaGraph
         }
         {
             FileName = "streamgraph.html"
             Title = "Streamgraph"
             Description = "Annual console hardware sales 1995–2012: PS2 dominance, the Wii explosion, the DS tsunami, and Sega's dramatic exit."
-            Graph = AreaCharts.streamgraphGraph
+            Render = fun () -> GraphVG.toSvg AreaCharts.streamgraphGraph
         }
         {
             FileName = "bar-chart.html"
             Title = "Grouped Bar Chart"
             Description = "Three product lines compared across four quarters — vertical grouped bars with a shared x-axis category."
-            Graph = BarCharts.barChartGraph
+            Render = fun () -> GraphVG.toSvg BarCharts.barChartGraph
         }
         {
             FileName = "waterfall.html"
             Title = "Waterfall Chart"
             Description = "Annual cash flow bridge showing starting balance, revenue inflows, and cost outflows — total bars drawn from zero, connector lines link consecutive bars."
-            Graph = BarCharts.waterfallGraph
+            Render = fun () -> GraphVG.toSvg BarCharts.waterfallGraph
         }
         {
             FileName = "pie-chart.html"
             Title = "Pie Chart"
             Description = "Global electricity generation mix in 2023 — six sources sized by share, with inside labels."
-            Graph = BarCharts.pieChartGraph
+            Render = fun () -> GraphVG.toSvg BarCharts.pieChartGraph
         }
         {
             FileName = "parallel-sets.html"
             Title = "Parallel Sets"
             Description = "Fictional retail traffic across three categorical dimensions — acquisition source, device type, and purchase outcome — with curved ribbons sized by visitor count."
-            Graph = BarCharts.parallelSetsGraph
+            Render = fun () -> GraphVG.toSvg BarCharts.parallelSetsGraph
         }
         {
             FileName = "horizontal-bar.html"
             Title = "Horizontal Bar Chart"
             Description = "Average daily screen time by app category, sorted by usage — horizontal bars for easy label reading."
-            Graph = BarCharts.horizontalBarGraph
+            Render = fun () -> GraphVG.toSvg BarCharts.horizontalBarGraph
         }
         {
             FileName = "tooltips.html"
             Title = "Tooltips"
             Description = "Scatter chart with per-point SVG title tooltips — hover any point to see temperature and pressure values. No JavaScript required."
-            Graph = ScatterCharts.tooltipScatterGraph
+            Render = fun () -> GraphVG.toSvg ScatterCharts.tooltipScatterGraph
         }
         {
             FileName = "bubble-chart.html"
             Title = "Bubble Chart"
             Description = "GDP per capita vs life expectancy for 16 countries across four continents — bubble area encodes population size."
-            Graph = ScatterCharts.bubbleChartGraph
+            Render = fun () -> GraphVG.toSvg ScatterCharts.bubbleChartGraph
         }
         {
             FileName = "heatmap.html"
             Title = "Heatmap"
             Description = "Weekly step counts by hour of day — white-to-steelblue color scale shows morning and evening activity peaks with a muted weekend pattern."
-            Graph = ScatterCharts.heatmapGraph
+            Render = fun () -> GraphVG.toSvg ScatterCharts.heatmapGraph
         }
         {
             FileName = "histogram.html"
             Title = "Histogram"
             Description = "300 normally distributed samples binned automatically using Sturges' rule."
-            Graph = DistributionCharts.histogramGraph
+            Render = fun () -> GraphVG.toSvg DistributionCharts.histogramGraph
         }
         {
             FileName = "violin-plot.html"
             Title = "Violin Plot"
             Description = "Three groups of 120 samples showing KDE shape, median, IQR box, and whiskers — wider regions are where data is more concentrated."
-            Graph = DistributionCharts.violinPlotGraph
+            Render = fun () -> GraphVG.toSvg DistributionCharts.violinPlotGraph
         }
         {
             FileName = "box-plot.html"
             Title = "Box Plot"
             Description = "Three groups of 80 samples showing median, quartiles, and whiskers."
-            Graph = DistributionCharts.boxPlotGraph
+            Render = fun () -> GraphVG.toSvg DistributionCharts.boxPlotGraph
+        }
+        {
+            FileName = "radar-chart.html"
+            Title = "Radar Chart"
+            Description = "Fictional athletic combine results comparing two teams across six performance categories — filled polygons with 20% opacity overlaid on a 5-ring web."
+            Render = fun () -> RadarChart.toSvg PolarCharts.radarChartGraph
         }
     ]
 
@@ -138,7 +144,7 @@ let galleryHtml pages =
     let cards =
         pages
         |> List.map (fun page ->
-            let svg = GraphVG.toSvg page.Graph
+            let svg = page.Render ()
             "<article class=\"card\">"
             + "<a class=\"frame\" href=\"" + page.FileName + "\">" + svg + "</a>"
             + "<div class=\"copy\">"
@@ -176,7 +182,7 @@ let galleryHtml pages =
     + "<body>\n"
     + "<main class=\"wrap\">\n"
     + "<h1>GraphVG Example Gallery</h1>\n"
-    + "<p class=\"intro\">A collection of focused examples covering line, step line, area, stacked and normalized area, streamgraphs, bar, waterfall, bubble, heatmap, histogram, box plot, violin plot, and confidence band charts.</p>\n"
+    + "<p class=\"intro\">A collection of focused examples covering line, step line, area, stacked and normalized area, streamgraphs, bar, waterfall, bubble, heatmap, histogram, box plot, violin plot, confidence band, and radar charts.</p>\n"
     + "<section class=\"grid\">\n"
     + cards + "\n"
     + "</section>\n"
@@ -185,7 +191,7 @@ let galleryHtml pages =
     + "</html>\n"
 
 let examplePageHtml homeFileName page =
-    let svg = GraphVG.toSvg page.Graph
+    let svg = page.Render ()
     let css =
         "html,body{margin:0;padding:0;background:#f3efe7;color:#1f2a31;font-family:Georgia,\"Iowan Old Style\",serif;}"
         + "body{padding:28px 18px 36px;}"
@@ -245,7 +251,7 @@ let readmeGallery () =
         |> List.map (fun page ->
             let svgFileName = Path.GetFileNameWithoutExtension(page.FileName) + ".svg"
             let svgPath = Path.Combine(docsExamplesDir, svgFileName)
-            File.WriteAllText(svgPath, GraphVG.toSvg page.Graph)
+            File.WriteAllText(svgPath, page.Render ())
             svgFileName, page.Title)
     let cols = 3
     let rows =

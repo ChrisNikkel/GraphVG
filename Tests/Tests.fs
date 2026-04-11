@@ -2352,3 +2352,83 @@ module ParallelSetsTests =
         let s = Series.parallelSets dims flows |> Series.withVisible false
         let graph = s |> Graph.createWithSeries
         Assert.Empty(Graph.drawSeries graph)
+
+module RadarChartTests =
+
+    open FsCheck
+
+    let private threeAxes = [ "A"; "B"; "C" ]
+
+    let private twoSeries =
+        [ { Axes = threeAxes; Values = [ 80.0; 60.0; 90.0 ] }
+          { Axes = threeAxes; Values = [ 50.0; 70.0; 40.0 ] } ]
+
+    [<Fact>]
+    let ``create with valid series produces non-empty SVG`` () =
+        let svg = RadarChart.create twoSeries |> RadarChart.toSvg
+        Assert.False(System.String.IsNullOrEmpty(svg))
+
+    [<Fact>]
+    let ``toSvg output is well-formed SVG`` () =
+        let svg = RadarChart.create twoSeries |> RadarChart.withTheme Theme.light |> RadarChart.toSvg
+        Assert.StartsWith("<svg", svg)
+
+    [<Fact>]
+    let ``toHtml output contains DOCTYPE`` () =
+        let html = RadarChart.create twoSeries |> RadarChart.toHtml
+        Assert.Contains("<!DOCTYPE html>", html)
+
+    [<Fact>]
+    let ``empty series produces SVG`` () =
+        let svg = RadarChart.create [] |> RadarChart.toSvg
+        Assert.False(System.String.IsNullOrEmpty(svg))
+
+    [<Fact>]
+    let ``fewer than three axes produces SVG without crashing`` () =
+        let pt = { Axes = [ "X"; "Y" ]; Values = [ 1.0; 2.0 ] }
+        let svg = RadarChart.create [ pt ] |> RadarChart.toSvg
+        Assert.False(System.String.IsNullOrEmpty(svg))
+
+    [<Fact>]
+    let ``withTitle embeds title text in SVG`` () =
+        let svg =
+            RadarChart.create twoSeries
+            |> RadarChart.withTitle "My Radar"
+            |> RadarChart.toSvg
+        Assert.Contains("My Radar", svg)
+
+    [<Fact>]
+    let ``withLabels embeds label text in SVG`` () =
+        let svg =
+            RadarChart.create twoSeries
+            |> RadarChart.withLabels [ "Alpha"; "Beta" ]
+            |> RadarChart.withTheme Theme.light
+            |> RadarChart.toSvg
+        Assert.Contains("Alpha", svg)
+        Assert.Contains("Beta", svg)
+
+    [<Fact>]
+    let ``axis names appear in SVG`` () =
+        let svg = RadarChart.create twoSeries |> RadarChart.withTheme Theme.light |> RadarChart.toSvg
+        for ax in threeAxes do
+            Assert.Contains(ax, svg)
+
+    [<Fact>]
+    let ``withRingCount clamps to at least 1`` () =
+        let chart = RadarChart.create twoSeries |> RadarChart.withRingCount 0
+        Assert.Equal(1, chart.RingCount)
+
+    [<Property>]
+    let ``toSvg never throws for any ring count`` (n : PositiveInt) =
+        let chart = RadarChart.create twoSeries |> RadarChart.withRingCount n.Get
+        let svg = RadarChart.toSvg chart
+        not (System.String.IsNullOrEmpty(svg))
+
+    [<Property>]
+    let ``toSvg never throws for any non-negative value list`` (xs : NonNegativeInt list) =
+        if xs.Length >= 3 then
+            let values = xs |> List.map (fun x -> float x.Get)
+            let pt = { Axes = List.replicate xs.Length "ax"; Values = values }
+            let svg = RadarChart.create [ pt ] |> RadarChart.toSvg
+            not (System.String.IsNullOrEmpty(svg))
+        else true

@@ -39,6 +39,7 @@
     <Compile Include="Graph.fs" />
     <Compile Include="Layout.fs" />
     <Compile Include="GraphVG.fs" />
+    <Compile Include="Radar.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="SharpVG" Version="0.1.0" />
