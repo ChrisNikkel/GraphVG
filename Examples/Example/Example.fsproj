@@ -10,6 +10,7 @@
     <Compile Include="DistributionCharts.fs" />
     <Compile Include="ScatterCharts.fs" />
     <Compile Include="PolarCharts.fs" />
+    <Compile Include="RetroCharts.fs" />
     <Compile Include="Example.fs" />
   </ItemGroup>
   <ItemGroup>

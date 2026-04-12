@@ -150,6 +150,36 @@ let examples =
             Description = "Same fictional Q1 regional sales data as a donut, with the total displayed in the center hole."
             Render = fun () -> PieChart.toSvg PolarCharts.donutChartGraph
         }
+        {
+            FileName = "theme-gameboy-green.html"
+            Title = "Theme: Game Boy Green"
+            Description = "The original DMG-001 four-shade green palette — darkest background with the two brightest greens cycling through series."
+            Render = fun () -> GraphVG.toSvg RetroCharts.gameboyGreenGraph
+        }
+        {
+            FileName = "theme-crispy-commodore.html"
+            Title = "Theme: Crispy Commodore"
+            Description = "Commodore 64 default screen colors — deep blue-purple background with the C64's yellow, cyan, and light-green palette."
+            Render = fun () -> GraphVG.toSvg RetroCharts.crispyCommodoreGraph
+        }
+        {
+            FileName = "theme-ti-hue.html"
+            Title = "Theme: TI Hue"
+            Description = "TI-84 Plus CE calculator aesthetic — dark navy with the bright function colors the calc assigns to Y1 through Y6."
+            Render = fun () -> GraphVG.toSvg RetroCharts.tiHueGraph
+        }
+        {
+            FileName = "theme-nes.html"
+            Title = "Theme: NES"
+            Description = "NES PPU hardware palette — black background with authentic NES blue, red, green, yellow, sky-blue, and purple."
+            Render = fun () -> GraphVG.toSvg RetroCharts.nesGraph
+        }
+        {
+            FileName = "theme-turtle.html"
+            Title = "Theme: Turtle"
+            Description = "Logo turtle graphics aesthetic — single bright green on black, no grid."
+            Render = fun () -> GraphVG.toSvg RetroCharts.turtleGraph
+        }
     ]
 
 let galleryHtml pages =

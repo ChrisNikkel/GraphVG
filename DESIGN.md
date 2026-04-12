@@ -8,55 +8,134 @@ Architecture reference for the GraphVG library. Focuses on the *why* behind stru
 
 ```mermaid
 flowchart TD
-    subgraph "Foundation"
-        LY[Layout]
-        CM[CommonMath]
-    end
+    CM[CommonMath]
 
     subgraph "Data"
         SC[Scale]
         SR[Series]
+        PL[Plot]
     end
 
     subgraph "Style"
         TH[Theme]
-        AX[Axis]
     end
 
-    subgraph "Composition"
+    subgraph "Assembly"
+        AX[Axis]
         LG[Legend]
         AN[Annotation]
+        LY[Layout]
+    end
+
+    subgraph "Charts"
         GR[Graph]
+        RC[RadarChart]
+        PC[PieChart]
     end
 
     subgraph "Output"
         GVG[GraphVG]
     end
 
-    LY --> AX
-    LY --> LG
-    LY --> AN
-    LY --> GR
-    LY --> GVG
     CM --> SC
     CM --> AX
     CM --> GR
+    CM --> PL
+    CM --> LY
     SC --> AX
     SC --> GR
     SR --> LG
     SR --> GR
+    SR --> PL
     TH --> AX
     TH --> GR
+    TH --> RC
+    TH --> PC
     AX --> GR
-    LG --> GR
-    AN --> GR
     AX --> GVG
+    LG --> GR
     LG --> GVG
+    AN --> GR
     AN --> GVG
     GR --> GVG
+    GR --> LY
+    LY --> GVG
 ```
 
-Each layer only depends on layers below it. `Layout` is the shared foundation: it owns `canvasSize`, the `GraphPadding` type, swatch geometry constants, and the SVG element primitives (`backgroundElement`, `plotBackground`, `titleElement`) that depend only on layout math. `CommonMath` provides pure float math with no SharpVG dependency. `Legend` and `Annotation` define their types and element-rendering functions before `Graph`, taking explicit parameters instead of a `Graph` record to avoid circular dependencies. `GraphVG` owns padding computation (which needs `Axis`, `Graph`, `Legend`) and final SVG assembly.
+A user provides two kinds of input: **Data** (series points, axis scales, mathematical expressions) and **Style** (theme colors and pen choices). The **Assembly** layer combines them — `Axis` maps a scale onto visual ticks, `Legend` collects series labels, `Annotation` adds titles, and `Layout` computes the SVG viewBox and background elements. The **Charts** layer is where a user configures what to render: `Graph` is the XY chart type, `RadarChart` renders polar webs, and `PieChart` renders circular sectors. `Graph` delegates rendering to **Output** (`GraphVG`); `RadarChart` and `PieChart` are self-rendering and produce SVG directly without a separate output step.
+
+`CommonMath` is an ungrouped utility node — pure float math (canvas sizing, KDE, text-width estimation, unit shapes) with no SharpVG or MathNet dependency. It feeds into everything that needs geometry math but belongs to no single conceptual group.
+
+`Legend` and `Annotation` define their types and rendering functions before `Graph` and take explicit parameters rather than a `Graph` record, avoiding a circular dependency. `Layout` compiles after `Graph` because `heatmapRampElements` calls `Graph.canvasSizeOf`; its other functions (`viewBoxForPadding`, `backgroundElement`, `plotBackground`, `titleElement`) take an explicit `cs : float` and are consumed only by `GraphVG`.
+
+---
+
+## Standalone chart types
+
+`RadarChart` and `PieChart` are standalone chart types: they own their own layout math, rendering, and `toSvg`/`toHtml` output. They do not use `Graph` or `GraphVG`.
+
+**When to use standalone vs SeriesKind:** A new chart type is standalone when its geometry is fundamentally incompatible with the XY `Graph` coordinate system. Radar charts use a polar web of evenly-spaced radial axes; pie/donut charts have no axes at all. Forcing either into a `SeriesKind` would require the `Graph` pipeline to special-case non-XY rendering, which would break the clean data-to-pixel transform model. The standalone pattern keeps `Graph` purely XY and lets each polar type own its geometry completely.
+
+**Shared infrastructure:** Standalone types still consume `Theme` for color palettes and `canvasSize` from `CommonMath` for proportional layout. They follow the same `create`/`with*`/`toSvg`/`toHtml` API pattern as the `Graph`/`GraphVG` pipeline so the library feels consistent.
+
+---
+
+## Plot module
+
+`Plot` converts infix math expressions (strings) into `Series` values for use in the standard `Graph` pipeline. It depends on **MathNet.Symbolics** (MIT, NuGet) — the only dependency beyond SharpVG.
+
+### PlotExpr — opaque type
+
+```fsharp
+type PlotExpr = private PlotExpr of MathNet.Symbolics.Expression
+```
+
+A single-case private DU wrapping the MathNet expression tree. The `private` case means consumers can only obtain a `PlotExpr` through `Plot.parse` — the underlying MathNet type never leaks into consumer code. If the expression-parsing backend changes, existing call sites remain unchanged.
+
+### Integration with Graph
+
+`Plot.toSeries` returns a `Series` of kind `SegmentedLine` (see below). This slots directly into `Graph.create [series] domain range` — same pipeline, same themes, same axes, same legend. Multiple `PlotExpr` series can coexist alongside data series in a single graph.
+
+### SegmentedLine SeriesKind
+
+`Line` series render as a single `Polyline` — one unbroken path. This is correct for data series but wrong for mathematical functions with discontinuities (`tan x`, `1/x`, `log x`): the polyline draws a near-vertical line straight through the asymptote.
+
+A new `SegmentedLine` SeriesKind handles this:
+- `Plot.toSeries` inserts `(nan, nan)` sentinel tuples at detected discontinuities.
+- `Graph.drawSeries` renders `SegmentedLine` as a SharpVG `Path` using `Path.addMoveTo` / `Path.addLineTo`: each finite segment starts with `M` (pen-up) and continues with `L` (pen-down), producing natural breaks at asymptotes.
+- `Series.bounds` filters out `(nan, nan)` pairs before computing min/max so auto-range is not corrupted.
+
+Existing `Line` series are unaffected. `SegmentedLine` is the only Series kind that may carry `(nan, nan)` sentinels.
+
+### Discontinuity detection
+
+Detection runs in two passes over the sampled points:
+
+1. **First pass** — evaluate at all sample positions, collect finite y values, compute `ySpan = yMax − yMin` (default `1.0` if no finite values).
+2. **Second pass** — walk adjacent pairs; insert `(nan, nan)` when `|y[i+1] − y[i]| > 1000 × ySpan` or either value is non-finite.
+
+The threshold `1000 × ySpan` is intentionally large: it passes through legitimate steep slopes while catching true asymptotes where the function jumps by orders of magnitude within one sample interval.
+
+### autoRange algorithm
+
+```
+1. Dense sample (1000 points) — filter out non-finite values.
+2. Compute symbolic derivative via MathNet.Symbolics.Calculus.differentiate.
+3. Find critical points: evaluate derivative at all sample positions, collect sign-change intervals, bisect each to tolerance 1e-6.
+4. Evaluate expression at each critical point; add to finite value list.
+5. Return CommonMath.padRange 0.10 (min finiteValues, max finiteValues).
+```
+
+Step 3 reuses the private `bisect` helper defined in `Plot.fs` (not promoted to `CommonMath` — only one consumer).
+
+### roots algorithm
+
+```
+1. Dense sample over domain.
+2. Collect adjacent pairs where sign(y[i]) ≠ sign(y[i+1]) and both are finite.
+3. Bisect each pair to tolerance 1e-6 × domain span.
+4. Return list of roots.
+```
 
 ---
 
