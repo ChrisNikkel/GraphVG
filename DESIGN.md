@@ -8,65 +8,50 @@ Architecture reference for the GraphVG library. Focuses on the *why* behind stru
 
 ```mermaid
 flowchart TD
-    CM[CommonMath]
+    CM([CommonMath])
 
-    subgraph "Data"
+    subgraph data["Data"]
         SC[Scale]
         SR[Series]
         PL[Plot]
     end
 
-    subgraph "Style"
+    subgraph style["Style"]
         TH[Theme]
     end
 
-    subgraph "Assembly"
+    subgraph assembly["Assembly"]
         AX[Axis]
         LG[Legend]
         AN[Annotation]
         LY[Layout]
     end
 
-    subgraph "Charts"
+    subgraph charts["Charts"]
         GR[Graph]
         RC[RadarChart]
         PC[PieChart]
     end
 
-    subgraph "Output"
+    subgraph output["Output"]
         GVG[GraphVG]
     end
 
-    CM --> SC
-    CM --> AX
-    CM --> GR
-    CM --> PL
-    CM --> LY
-    SC --> AX
-    SC --> GR
-    SR --> LG
-    SR --> GR
-    SR --> PL
-    TH --> AX
-    TH --> GR
-    TH --> RC
-    TH --> PC
-    AX --> GR
-    AX --> GVG
-    LG --> GR
-    LG --> GVG
-    AN --> GR
-    AN --> GVG
-    GR --> GVG
-    GR --> LY
-    LY --> GVG
+    CM --> data
+    CM --> assembly
+    data --> assembly
+    data --> charts
+    style --> assembly
+    style --> charts
+    assembly --> charts
+    GR --> output
 ```
 
-A user provides two kinds of input: **Data** (series points, axis scales, mathematical expressions) and **Style** (theme colors and pen choices). The **Assembly** layer combines them — `Axis` maps a scale onto visual ticks, `Legend` collects series labels, `Annotation` adds titles, and `Layout` computes the SVG viewBox and background elements. The **Charts** layer is where a user configures what to render: `Graph` is the XY chart type, `RadarChart` renders polar webs, and `PieChart` renders circular sectors. `Graph` delegates rendering to **Output** (`GraphVG`); `RadarChart` and `PieChart` are self-rendering and produce SVG directly without a separate output step.
+A user provides two kinds of input — **Data** (series points, axis scales, expressions) and **Style** (theme colors and pens) — both of which flow into **Assembly** and **Charts**. Assembly builds the structural pieces: `Axis` maps a scale onto ticks, `Legend` collects series labels, `Annotation` adds titles, and `Layout` computes the SVG viewBox and background. Charts is where a user configures what to render: `Graph` for XY charts, `RadarChart` for polar webs, `PieChart` for circular sectors. Only `Graph` has an arrow to **Output** — it delegates rendering to `GraphVG`. `RadarChart` and `PieChart` are self-rendering and produce SVG directly.
 
-`CommonMath` is an ungrouped utility node — pure float math (canvas sizing, KDE, text-width estimation, unit shapes) with no SharpVG or MathNet dependency. It feeds into everything that needs geometry math but belongs to no single conceptual group.
+`CommonMath` is an ungrouped utility — pure float math (canvas sizing, KDE, text-width estimation, unit shapes) that feeds Data and Assembly but belongs to no conceptual group of its own.
 
-`Legend` and `Annotation` define their types and rendering functions before `Graph` and take explicit parameters rather than a `Graph` record, avoiding a circular dependency. `Layout` compiles after `Graph` because `heatmapRampElements` calls `Graph.canvasSizeOf`; its other functions (`viewBoxForPadding`, `backgroundElement`, `plotBackground`, `titleElement`) take an explicit `cs : float` and are consumed only by `GraphVG`.
+`Legend` and `Annotation` take explicit parameters rather than a `Graph` record to avoid a circular dependency. `Layout` compiles after `Graph` because `heatmapRampElements` calls `Graph.canvasSizeOf`; all other Layout functions take an explicit `cs : float` and are consumed only by `GraphVG`.
 
 ---
 
