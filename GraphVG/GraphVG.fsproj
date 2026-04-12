@@ -32,6 +32,7 @@
     <Compile Include="CommonMath.fs" />
     <Compile Include="Scale.fs" />
     <Compile Include="Series.fs" />
+    <Compile Include="Plot.fs" />
     <Compile Include="Theme.fs" />
     <Compile Include="Axis.fs" />
     <Compile Include="Legend.fs" />
@@ -44,5 +45,6 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="SharpVG" Version="0.1.0" />
+    <PackageReference Include="MathNet.Symbolics" Version="0.25.0" />
   </ItemGroup>
 </Project>

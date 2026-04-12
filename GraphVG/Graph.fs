@@ -359,6 +359,21 @@ module Graph =
                         |> Style.withFillOpacity 0.0
                         |> applyDash series.StrokeDash
                     [ Polyline.ofList (series.Points |> List.map toSvgPoint) |> Element.createWithStyle style ]
+                | SeriesKind.SegmentedLine ->
+                    let strokePen = series.StrokeWidth |> Option.map (fun width -> seriesPen |> Pen.withWidth (Length.ofFloat (width * sf))) |> Option.defaultValue seriesPen
+                    let style =
+                        Style.createWithPen strokePen
+                        |> Style.withFillOpacity 0.0
+                        |> applyDash series.StrokeDash
+                    let isBreak (x, y) = Double.IsNaN x || Double.IsNaN y
+                    let path =
+                        series.Points
+                        |> List.fold (fun (path, started) pt ->
+                            if isBreak pt then path, false
+                            elif not started then Path.addMoveTo Absolute (toSvgPoint pt) path, true
+                            else Path.addLineTo Absolute (toSvgPoint pt) path, true) (Path.empty, false)
+                        |> fst
+                    [ path |> Element.createWithStyle style ]
                 | StepLine mode ->
                     let strokePen = series.StrokeWidth |> Option.map (fun width -> seriesPen |> Pen.withWidth (Length.ofFloat (width * sf))) |> Option.defaultValue seriesPen
                     let style =

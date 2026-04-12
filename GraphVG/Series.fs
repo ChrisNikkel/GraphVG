@@ -53,6 +53,7 @@ type SeriesKind =
     | Waterfall of totals: float list
     | ParallelSets of dimensions: string list * flows: ParallelFlow list
     | Pie of labels: string option list
+    | SegmentedLine
 
 type Series =
     {
@@ -311,6 +312,10 @@ module Series =
             (List.min xs, List.max xs), (yMin, yMax)
         | ParallelSets _ | Pie _ ->
             (0.0, 1.0), (0.0, 1.0)
+        | SegmentedLine ->
+            let finite = series.Points |> List.filter (fun (x, y) -> not (Double.IsNaN x || Double.IsNaN y))
+            let xs, ys = finite |> List.unzip
+            (List.min xs, List.max xs), (List.min ys, List.max ys)
         | _ ->
             let xs, ys = series.Points |> List.unzip
             let yMin, yMax =

@@ -8,8 +8,6 @@ Architecture reference for the GraphVG library. Focuses on the *why* behind stru
 
 ```mermaid
 flowchart TD
-    CM([CommonMath])
-
     subgraph data["Data"]
         SC[Scale]
         SR[Series]
@@ -27,31 +25,27 @@ flowchart TD
         LY[Layout]
     end
 
-    subgraph charts["Charts"]
-        GR[Graph]
+    GR[Graph]
+    GVG[GraphVG]
+
+    subgraph polar["Polar Charts"]
         RC[RadarChart]
         PC[PieChart]
     end
 
-    subgraph output["Output"]
-        GVG[GraphVG]
-    end
-
-    CM --> data
-    CM --> assembly
     data --> assembly
-    data --> charts
     style --> assembly
-    style --> charts
-    assembly --> charts
-    GR --> output
+    assembly --> GR
+    GR --> GVG
+    data --> polar
+    style --> polar
 ```
 
-A user provides two kinds of input — **Data** (series points, axis scales, expressions) and **Style** (theme colors and pens) — both of which flow into **Assembly** and **Charts**. Assembly builds the structural pieces: `Axis` maps a scale onto ticks, `Legend` collects series labels, `Annotation` adds titles, and `Layout` computes the SVG viewBox and background. Charts is where a user configures what to render: `Graph` for XY charts, `RadarChart` for polar webs, `PieChart` for circular sectors. Only `Graph` has an arrow to **Output** — it delegates rendering to `GraphVG`. `RadarChart` and `PieChart` are self-rendering and produce SVG directly.
+Two inputs flow into the library — **Data** (series points, scales, expressions) and **Style** (theme colors and pens). Both feed **Assembly**, which builds the structural pieces: `Axis`, `Legend`, `Annotation`, and `Layout`. Assembly's output feeds `Graph`, which delegates final SVG rendering to `GraphVG`.
 
-`CommonMath` is an ungrouped utility — pure float math (canvas sizing, KDE, text-width estimation, unit shapes) that feeds Data and Assembly but belongs to no conceptual group of its own.
+**Polar Charts** (`RadarChart`, `PieChart`) are self-contained: they take Data and Style directly, do their own layout and rendering, and produce SVG without going through the Assembly → Graph → GraphVG pipeline.
 
-`Legend` and `Annotation` take explicit parameters rather than a `Graph` record to avoid a circular dependency. `Layout` compiles after `Graph` because `heatmapRampElements` calls `Graph.canvasSizeOf`; all other Layout functions take an explicit `cs : float` and are consumed only by `GraphVG`.
+`CommonMath` is an internal utility (pure float math) that underpins Data and Assembly but is not a user-facing concept. `Legend` and `Annotation` take explicit parameters rather than a `Graph` record to avoid a circular dependency. `Layout` compiles after `Graph` because `heatmapRampElements` calls `Graph.canvasSizeOf`; all other Layout functions take an explicit `cs : float` and are consumed only by `GraphVG`.
 
 ---
 
