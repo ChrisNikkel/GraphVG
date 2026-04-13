@@ -154,7 +154,7 @@ GraphVG builds on SharpVG — match its style throughout so the two feel like on
 
 ### No new dependencies
 
-Do not add NuGet packages without explicit approval. The only allowed dependency is SharpVG. Prefer stdlib (`List`, `String`, `Math`) over pulling in utility libraries.
+Do not add NuGet packages without explicit approval. The only allowed dependencies are **SharpVG** and **MathNet.Symbolics** (used by the `Plot` module). Prefer stdlib (`List`, `String`, `Math`) over pulling in utility libraries.
 
 ### No JavaScript
 
