@@ -1,5 +1,6 @@
 namespace GraphVG
 
+open System
 open SharpVG
 open CommonMath
 

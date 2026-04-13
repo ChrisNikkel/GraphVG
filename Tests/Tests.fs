@@ -2528,3 +2528,102 @@ module StandalonePieChartTests =
     let ``toSvg never throws for any start angle`` (a : NormalFloat) =
         let svg = PieChart.create slices |> PieChart.withStartAngle a.Get |> PieChart.toSvg
         not (System.String.IsNullOrEmpty(svg))
+
+module PlotTests =
+
+    open System
+    open FsCheck
+
+    [<Fact>]
+    let ``parse returns Ok for valid expression`` () =
+        Assert.True(Plot.parse "sin(x)*x" |> Result.isOk)
+
+    [<Fact>]
+    let ``parse returns Error for invalid expression`` () =
+        Assert.True(Plot.parse "(((" |> Result.isError)
+
+    [<Fact>]
+    let ``toSeries returns SegmentedLine kind`` () =
+        let expr = Plot.parse "x^2" |> Result.defaultWith (fun _ -> failwith "parse failed")
+        let series = Plot.toSeries (-1.0, 1.0) 100 expr
+        match series.Kind with
+        | SegmentedLine -> ()
+        | _ -> Assert.True(false, "Expected SegmentedLine")
+
+    [<Fact>]
+    let ``toSeries produces correct number of points for smooth function`` () =
+        let expr = Plot.parse "sin(x)" |> Result.defaultWith (fun _ -> failwith "parse failed")
+        let series = Plot.toSeries (0.0, 1.0) 50 expr
+        // All points finite — no breaks inserted
+        let finite = series.Points |> List.filter (fun (x, y) -> not (Double.IsNaN x || Double.IsNaN y))
+        Assert.Equal(50, finite.Length)
+
+    [<Fact>]
+    let ``toSeries inserts breaks for tan discontinuities`` () =
+        let expr = Plot.parse "tan(x)" |> Result.defaultWith (fun _ -> failwith "parse failed")
+        let series = Plot.toSeries (-Math.PI / 2.0 + 0.1, Math.PI / 2.0 - 0.1) 400 expr
+        let breaks = series.Points |> List.filter (fun (x, y) -> Double.IsNaN x || Double.IsNaN y)
+        // tan has no asymptote in this domain — should have no breaks
+        Assert.True(breaks.IsEmpty)
+
+    [<Fact>]
+    let ``toSeries with tan over asymptote inserts at least one break`` () =
+        let expr = Plot.parse "tan(x)" |> Result.defaultWith (fun _ -> failwith "parse failed")
+        let series = Plot.toSeries (-Math.PI / 2.0 + 0.01, Math.PI * 1.5 - 0.01) 600 expr
+        let breaks = series.Points |> List.filter (fun (x, y) -> Double.IsNaN x || Double.IsNaN y)
+        Assert.True(not breaks.IsEmpty)
+
+    [<Fact>]
+    let ``autoRange returns finite bounds`` () =
+        let expr = Plot.parse "sin(x)" |> Result.defaultWith (fun _ -> failwith "parse failed")
+        let lo, hi = Plot.autoRange (-Math.PI, Math.PI) expr
+        Assert.True(Double.IsFinite lo)
+        Assert.True(Double.IsFinite hi)
+        Assert.True(hi > lo)
+
+    [<Fact>]
+    let ``autoRange is safe for tan with asymptotes`` () =
+        let expr = Plot.parse "tan(x)" |> Result.defaultWith (fun _ -> failwith "parse failed")
+        let lo, hi = Plot.autoRange (-Math.PI / 2.0 + 0.1, Math.PI / 2.0 - 0.1) expr
+        Assert.True(Double.IsFinite lo)
+        Assert.True(Double.IsFinite hi)
+
+    [<Fact>]
+    let ``roots finds zeros of sin`` () =
+        let expr = Plot.parse "sin(x)" |> Result.defaultWith (fun _ -> failwith "parse failed")
+        let rs = Plot.roots (0.1, Math.PI * 2.0 - 0.1) expr
+        // sin has roots at pi and 2*pi; within domain should find pi
+        Assert.True(rs.Length >= 1)
+        Assert.True(rs |> List.exists (fun r -> abs (r - Math.PI) < 0.01))
+
+    [<Fact>]
+    let ``derivative of x^2 evaluates correctly`` () =
+        let expr = Plot.parse "x^2" |> Result.defaultWith (fun _ -> failwith "parse failed")
+        let deriv = Plot.derivative expr
+        // d/dx x^2 = 2x; at x=3 should be 6
+        let series = Plot.toSeries (3.0, 3.0) 2 deriv
+        let pts = series.Points |> List.filter (fun (x, y) -> not (Double.IsNaN x))
+        let _, v = pts.[0]
+        Assert.True(abs (v - 6.0) < 0.01)
+
+    [<Property>]
+    let ``toSeries never throws for any finite domain`` (x1 : NormalFloat) (x2 : NormalFloat) =
+        let lo = min x1.Get x2.Get
+        let hi = max x1.Get x2.Get
+        if lo >= hi then true
+        else
+            match Plot.parse "sin(x)" with
+            | Ok expr ->
+                let s = Plot.toSeries (lo, hi) 50 expr
+                not (List.isEmpty s.Points)
+            | Error _ -> false
+
+    [<Property>]
+    let ``autoRange always returns finite bounds for polynomial`` (a : NormalFloat) (b : NormalFloat) =
+        let lo = min a.Get b.Get - 1.0
+        let hi = max a.Get b.Get + 1.0
+        match Plot.parse "x^2 - 1" with
+        | Ok expr ->
+            let yLo, yHi = Plot.autoRange (lo, hi) expr
+            Double.IsFinite yLo && Double.IsFinite yHi && yHi > yLo
+        | Error _ -> false

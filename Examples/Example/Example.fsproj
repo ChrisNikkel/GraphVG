@@ -11,6 +11,7 @@
     <Compile Include="ScatterCharts.fs" />
     <Compile Include="PolarCharts.fs" />
     <Compile Include="RetroCharts.fs" />
+    <Compile Include="PlotCharts.fs" />
     <Compile Include="Example.fs" />
   </ItemGroup>
   <ItemGroup>

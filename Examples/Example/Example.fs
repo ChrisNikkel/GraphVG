@@ -151,6 +151,24 @@ let examples =
             Render = fun () -> PieChart.toSvg PolarCharts.donutChartGraph
         }
         {
+            FileName = "plot-trig.html"
+            Title = "Trig Functions"
+            Description = "sin(x) and cos(x) plotted from expressions — two full periods with auto-sampled points."
+            Render = fun () -> GraphVG.toSvg PlotCharts.trigGraph
+        }
+        {
+            FileName = "plot-tan.html"
+            Title = "tan(x) — Discontinuities"
+            Description = "tan(x) with path breaks at the vertical asymptotes — no lines drawn through discontinuities."
+            Render = fun () -> GraphVG.toSvg PlotCharts.tanGraph
+        }
+        {
+            FileName = "plot-gaussian.html"
+            Title = "Gaussian + Derivative"
+            Description = "exp(-x²) alongside its symbolic derivative — computed automatically via Plot.derivative."
+            Render = fun () -> GraphVG.toSvg PlotCharts.gaussianGraph
+        }
+        {
             FileName = "theme-gameboy-green.html"
             Title = "Theme: Game Boy Green"
             Description = "The original DMG-001 four-shade green palette — darkest background with the two brightest greens cycling through series."
