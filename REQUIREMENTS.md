@@ -20,36 +20,6 @@ val withPanel : row : int * col : int -> Series -> Series
 - `Single` remains the default layout.
 
 
-## REQ-23: Funnel Chart
-
-Track quantities through sequential stages to visualize conversion drop-off and bottlenecks.
-
-```fsharp
-// Stage label + value, ordered largest to smallest (or explicitly ordered)
-Series.funnel : (string * float) list -> Series
-// SeriesKind: Funnel of labels: string list
-
-// Typical use
-let pipeline =
-    Series.funnel [
-        "Leads",     1200.0
-        "Qualified",  740.0
-        "Demo",       390.0
-        "Proposal",   210.0
-        "Closed",      88.0
-    ]
-    |> Graph.createWithSeries
-    |> Graph.withTheme Theme.light
-```
-
-**Acceptance criteria:**
-
-- Stages render as horizontally-centered trapezoids, top to bottom.
-- Width of each trapezoid is proportional to its value relative to the maximum.
-- Labels drawn inside each segment.
-- Colors cycle through theme pens per stage.
-- Axes are suppressed automatically (like Pie/ParallelSets).
-
 
 ## REQ-24: Gantt Chart
 
