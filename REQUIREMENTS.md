@@ -269,29 +269,6 @@ let comparison =
 - `withPointRadius` controls dot radius.
 
 
-## REQ-32: Lollipop Chart
-
-Bar-chart alternative that replaces filled rectangles with a thin stem and a dot — reduces visual weight and lets multiple series overlap more cleanly.
-
-```fsharp
-// Same data as bar: (x, value) pairs
-Series.lollipop : (float * float) list -> Series
-// SeriesKind: Lollipop
-
-let scores =
-    Series.lollipop [ 1.0, 72.0; 2.0, 88.0; 3.0, 61.0; 4.0, 95.0 ]
-    |> Series.withLabel "Score"
-```
-
-**Acceptance criteria:**
-
-- Each data point renders as a vertical line from y=0 to y=value, capped with a filled circle.
-- `withStrokeWidth` controls stem width (default ~1.5 px canvas units).
-- `withPointRadius` controls dot radius.
-- `withPointShape` applies to the cap (circle, square, diamond, etc.).
-- Horizontal variant supported: `Series.horizontalLollipop` mirrors `Series.horizontalBar`.
-- Multiple lollipop series do NOT group side-by-side (unlike Bar) — they overlay.
-
 
 ## REQ-33: Bump Chart
 
