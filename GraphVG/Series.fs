@@ -55,6 +55,7 @@ type SeriesKind =
     | ParallelSets of dimensions: string list * flows: ParallelFlow list
     | Pie of labels: string option list
     | SegmentedLine
+    | Funnel of labels: string list
 
 type YAxisSide = YLeft | YRight
 
@@ -272,6 +273,11 @@ module Series =
         let points = values |> List.mapi (fun i v -> float i, v)
         create (Pie (List.replicate values.Length None)) points
 
+    let funnel (stages : (string * float) list) =
+        let labels = stages |> List.map fst
+        let points = stages |> List.mapi (fun i (_, v) -> float i, v)
+        create (Funnel labels) points
+
     let withSliceLabels (labels : string list) (series : Series) =
         match series.Kind with
         | Pie _ -> { series with Kind = Pie (labels |> List.map Some) }
@@ -317,7 +323,7 @@ module Series =
             let yMin = bars |> List.map (fun b -> b.Low) |> List.min
             let yMax = bars |> List.map (fun b -> b.High) |> List.max
             (List.min xs, List.max xs), (yMin, yMax)
-        | ParallelSets _ | Pie _ ->
+        | ParallelSets _ | Pie _ | Funnel _ ->
             (0.0, 1.0), (0.0, 1.0)
         | SegmentedLine ->
             let finite = series.Points |> List.filter (fun (x, y) -> not (Double.IsNaN x || Double.IsNaN y))

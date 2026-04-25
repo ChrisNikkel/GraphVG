@@ -13,6 +13,7 @@
     <Compile Include="RetroCharts.fs" />
     <Compile Include="PlotCharts.fs" />
     <Compile Include="DualAxisCharts.fs" />
+    <Compile Include="FunnelCharts.fs" />
     <Compile Include="Example.fs" />
   </ItemGroup>
   <ItemGroup>

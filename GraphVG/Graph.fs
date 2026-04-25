@@ -112,13 +112,13 @@ module Graph =
         let policy =
             match series.Kind with
             | Histogram _ | Bar | HorizontalBar | Waterfall _ -> IncludeZero
-            | Heatmap _ | ParallelSets _ | Pie _ -> Tight
+            | Heatmap _ | ParallelSets _ | Pie _ | Funnel _ -> Tight
             | _ -> Padded 0.1
         let domain, range = pointBounds [ series ]
         let xScale, yScale = buildScales (applyPolicy policy domain) (applyPolicy policy range)
         let xAxis, yAxis =
             match series.Kind with
-            | ParallelSets _ | Pie _ -> None, None
+            | ParallelSets _ | Pie _ | Funnel _ -> None, None
             | _ -> defaultAxes xScale yScale
         {
             Series = [ series ]
@@ -853,6 +853,57 @@ module Graph =
                                         yield path |> Element.createWithStyle fillStyle ]
 
                         titleElements @ ribbonElements @ nodeElements
+                | Funnel labels ->
+                    if series.Points.IsEmpty then []
+                    else
+                        let values = series.Points |> List.map snd
+                        let maxValue = values |> List.max |> max epsilon
+                        let n = values.Length
+                        let maxWidthFraction = 0.82
+                        let gap = cs * 0.008
+                        let topPad = cs * 0.04
+                        let totalHeight = cs - 2.0 * topPad
+                        let stageHeight = (totalHeight - float (n - 1) * gap) / float n
+                        let cx = cs / 2.0
+                        let labelFontSize = canvasSize * 0.028 * sf
+                        let valueFontSize = canvasSize * 0.018 * sf
+                        let textStyle = Style.empty |> Style.withFill (Color.ofName White)
+                        values
+                        |> List.mapi (fun i value ->
+                            let topWidth = (value / maxValue) * cs * maxWidthFraction
+                            let bottomValue = values |> List.tryItem (i + 1) |> Option.defaultValue value
+                            let bottomWidth = (bottomValue / maxValue) * cs * maxWidthFraction
+                            let yTop = topPad + float i * (stageHeight + gap)
+                            let yBottom = yTop + stageHeight
+                            let yMid = (yTop + yBottom) / 2.0
+                            let color = (Theme.penForSeries i graph.Theme).Color
+                            let fillStyle =
+                                Style.empty
+                                |> Style.withFill color
+                                |> Style.withFillOpacity series.Opacity
+                            let trapezoid =
+                                Polygon.ofList [
+                                    Point.ofFloats (cx - topWidth / 2.0, yTop)
+                                    Point.ofFloats (cx + topWidth / 2.0, yTop)
+                                    Point.ofFloats (cx + bottomWidth / 2.0, yBottom)
+                                    Point.ofFloats (cx - bottomWidth / 2.0, yBottom)
+                                ]
+                                |> Element.createWithStyle fillStyle
+                            let stageName = labels |> List.tryItem i |> Option.defaultValue ""
+                            let nameEl =
+                                Text.create (Point.ofFloats (cx, yMid - valueFontSize * 0.5)) stageName
+                                |> Text.withFontSize labelFontSize
+                                |> Text.withAnchor Middle
+                                |> Text.withBaseline CentralBaseline
+                                |> Element.createWithStyle textStyle
+                            let valueEl =
+                                Text.create (Point.ofFloats (cx, yMid + labelFontSize * 0.75)) (sprintf "%g" value)
+                                |> Text.withFontSize valueFontSize
+                                |> Text.withAnchor Middle
+                                |> Text.withBaseline CentralBaseline
+                                |> Element.createWithStyle textStyle
+                            [ trapezoid; nameEl; valueEl ])
+                        |> List.concat
                 | Pie sliceLabels ->
                     if series.Points.IsEmpty then []
                     else

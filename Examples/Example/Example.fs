@@ -204,6 +204,18 @@ let examples =
             Description = "Fictional 162-game baseball season: cumulative wins on the left axis, team batting average on the right — two independent scales on one chart."
             Render = fun () -> GraphVG.toSvg DualAxisCharts.dualAxisGraph
         }
+        {
+            FileName = "funnel-conversion.html"
+            Title = "Funnel Chart"
+            Description = "Fictional e-commerce conversion funnel: each trapezoid stage shows how many visitors remain after each step, from site visit to purchase."
+            Render = fun () -> GraphVG.toSvg FunnelCharts.conversionFunnelGraph
+        }
+        {
+            FileName = "funnel-pipeline.html"
+            Title = "Sales Pipeline Funnel"
+            Description = "Fictional SaaS sales pipeline showing six qualification stages from initial leads to closed-won deals."
+            Render = fun () -> GraphVG.toSvg FunnelCharts.salesPipelineGraph
+        }
     ]
 
 let galleryHtml pages =
