@@ -56,6 +56,8 @@ type SeriesKind =
     | Pie of labels: string option list
     | SegmentedLine
     | Funnel of labels: string list
+    | Lollipop
+    | HorizontalLollipop
 
 type YAxisSide = YLeft | YRight
 
@@ -126,6 +128,12 @@ module Series =
 
     let horizontalBar points =
         create HorizontalBar points
+
+    let lollipop points =
+        create Lollipop points
+
+    let horizontalLollipop points =
+        create HorizontalLollipop points
 
     let bubble (triples : (float * float * float) list) =
         let points = triples |> List.map (fun (x, y, _) -> x, y)
@@ -296,10 +304,10 @@ module Series =
             let xs, ys = series.Points |> List.unzip
             let position = List.min xs
             (position - 0.5, position + 0.5), (List.min ys, List.max ys)
-        | Bar ->
+        | Bar | Lollipop ->
             let xs, ys = series.Points |> List.unzip
             (List.min xs - 0.5, List.max xs + 0.5), (min 0.0 (List.min ys), List.max ys)
-        | HorizontalBar ->
+        | HorizontalBar | HorizontalLollipop ->
             let xs, ys = series.Points |> List.unzip
             (min 0.0 (List.min xs), List.max xs), (List.min ys - 0.5, List.max ys + 0.5)
         | Heatmap _ ->

@@ -216,6 +216,24 @@ let examples =
             Description = "Fictional SaaS sales pipeline showing six qualification stages from initial leads to closed-won deals."
             Render = fun () -> GraphVG.toSvg FunnelCharts.salesPipelineGraph
         }
+        {
+            FileName = "lollipop.html"
+            Title = "Lollipop Chart"
+            Description = "Fictional customer satisfaction scores by department — thin stems with dot caps replace bars, reducing visual weight while keeping the same categorical structure."
+            Render = fun () -> GraphVG.toSvg LollipopCharts.satisfactionGraph
+        }
+        {
+            FileName = "lollipop-horizontal.html"
+            Title = "Horizontal Lollipop"
+            Description = "Fictional average monthly rainfall — horizontal variant with stems extending from zero to each value."
+            Render = fun () -> GraphVG.toSvg LollipopCharts.rainfallGraph
+        }
+        {
+            FileName = "lollipop-comparison.html"
+            Title = "Overlaid Lollipop"
+            Description = "Two overlaid lollipop series comparing fictional scores across two years — unlike grouped bars, lollipop series overlay so the comparison is direct."
+            Render = fun () -> GraphVG.toSvg LollipopCharts.comparisonGraph
+        }
     ]
 
 let galleryHtml pages =

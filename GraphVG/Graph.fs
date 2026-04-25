@@ -111,7 +111,7 @@ module Graph =
     let createWithSeries (series : Series) =
         let policy =
             match series.Kind with
-            | Histogram _ | Bar | HorizontalBar | Waterfall _ -> IncludeZero
+            | Histogram _ | Bar | HorizontalBar | Waterfall _ | Lollipop | HorizontalLollipop -> IncludeZero
             | Heatmap _ | ParallelSets _ | Pie _ | Funnel _ -> Tight
             | _ -> Padded 0.1
         let domain, range = pointBounds [ series ]
@@ -555,6 +555,44 @@ module Graph =
                                 (Point.ofFloats (min svgX1 svgX2, min svgY1 svgY2))
                                 (Area.ofFloats (abs (svgX2 - svgX1), abs (svgY2 - svgY1)))
                             |> Element.createWithStyle fillStyle)
+                | SeriesKind.Lollipop ->
+                    let stemWidth = (series.StrokeWidth |> Option.defaultValue (canvasSize * 0.0015)) * sf
+                    let dotRadius = (series.PointRadius |> Option.defaultValue (canvasSize * 0.006)) * sf
+                    let stemStyle = Style.createWithPen (seriesPen |> Pen.withWidth (Length.ofFloat stemWidth)) |> Style.withFillOpacity 0.0
+                    let dotStyle = Style.empty |> Style.withFillPen seriesPen
+                    let crossStyle = Style.createWithPen seriesPen |> Style.withFillOpacity 0.0
+                    series.Points
+                    |> List.collect (fun (x, y) ->
+                        let svgX, svgY = toCoord (x, y)
+                        let _, svgY0 = toCoord (x, 0.0)
+                        let stem = Line.create (Point.ofFloats (svgX, svgY0)) (Point.ofFloats (svgX, svgY)) |> Element.createWithStyle stemStyle
+                        let cap =
+                            match series.PointShape with
+                            | PointShape.Circle -> [ Circle.create (Point.ofFloats (svgX, svgY)) (Length.ofFloat dotRadius) |> Element.createWithStyle dotStyle ]
+                            | Square -> [ Polygon.ofList (centerPolygon (svgX, svgY) dotRadius squareUnit |> List.map Point.ofFloats) |> Element.createWithStyle dotStyle ]
+                            | Diamond -> [ Polygon.ofList (centerPolygon (svgX, svgY) dotRadius diamondUnit |> List.map Point.ofFloats) |> Element.createWithStyle dotStyle ]
+                            | Triangle -> [ Polygon.ofList (centerPolygon (svgX, svgY) dotRadius triangleUnit |> List.map Point.ofFloats) |> Element.createWithStyle dotStyle ]
+                            | Cross -> centerLines (svgX, svgY) dotRadius crossUnit |> List.map (fun (from', to') -> Line.create (Point.ofFloats from') (Point.ofFloats to') |> Element.createWithStyle crossStyle)
+                        stem :: cap)
+                | SeriesKind.HorizontalLollipop ->
+                    let stemWidth = (series.StrokeWidth |> Option.defaultValue (canvasSize * 0.0015)) * sf
+                    let dotRadius = (series.PointRadius |> Option.defaultValue (canvasSize * 0.006)) * sf
+                    let stemStyle = Style.createWithPen (seriesPen |> Pen.withWidth (Length.ofFloat stemWidth)) |> Style.withFillOpacity 0.0
+                    let dotStyle = Style.empty |> Style.withFillPen seriesPen
+                    let crossStyle = Style.createWithPen seriesPen |> Style.withFillOpacity 0.0
+                    series.Points
+                    |> List.collect (fun (x, y) ->
+                        let svgX, svgY = toCoord (x, y)
+                        let svgX0, _ = toCoord (0.0, y)
+                        let stem = Line.create (Point.ofFloats (svgX0, svgY)) (Point.ofFloats (svgX, svgY)) |> Element.createWithStyle stemStyle
+                        let cap =
+                            match series.PointShape with
+                            | PointShape.Circle -> [ Circle.create (Point.ofFloats (svgX, svgY)) (Length.ofFloat dotRadius) |> Element.createWithStyle dotStyle ]
+                            | Square -> [ Polygon.ofList (centerPolygon (svgX, svgY) dotRadius squareUnit |> List.map Point.ofFloats) |> Element.createWithStyle dotStyle ]
+                            | Diamond -> [ Polygon.ofList (centerPolygon (svgX, svgY) dotRadius diamondUnit |> List.map Point.ofFloats) |> Element.createWithStyle dotStyle ]
+                            | Triangle -> [ Polygon.ofList (centerPolygon (svgX, svgY) dotRadius triangleUnit |> List.map Point.ofFloats) |> Element.createWithStyle dotStyle ]
+                            | Cross -> centerLines (svgX, svgY) dotRadius crossUnit |> List.map (fun (from', to') -> Line.create (Point.ofFloats from') (Point.ofFloats to') |> Element.createWithStyle crossStyle)
+                        stem :: cap)
                 | Heatmap values ->
                     if List.isEmpty values then []
                     else
