@@ -188,7 +188,7 @@ module Layout =
         let sf = Graph.canvasSizeOf graph / canvasSize
         let outerMargin = graph.LayoutSpacing.OuterMargin * sf
         let fromAxes =
-            [ graph.XAxis; graph.YAxis ]
+            [ graph.XAxis; graph.YAxis; graph.RightAxis ]
             |> List.choose id
             |> List.map (axisPadding graph.LayoutSpacing)
             |> List.fold sumPadding emptyPadding

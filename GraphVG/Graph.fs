@@ -14,8 +14,10 @@ type Graph =
         Series : Series list
         XScale : Scale
         YScale : Scale
+        YScaleRight : Scale option
         XAxis : Axis option
         YAxis : Axis option
+        RightAxis : Axis option
         Theme : Theme
         Title : string option
         TitleStyle : TitleStyle
@@ -92,8 +94,10 @@ module Graph =
             Series = series
             XScale = xScale
             YScale = yScale
+            YScaleRight = None
             XAxis = xAxis
             YAxis = yAxis
+            RightAxis = None
             Theme = Theme.empty
             Title = None
             TitleStyle = TitleStyle.defaults
@@ -120,8 +124,10 @@ module Graph =
             Series = [ series ]
             XScale = xScale
             YScale = yScale
+            YScaleRight = None
             XAxis = xAxis
             YAxis = yAxis
+            RightAxis = None
             Theme = Theme.empty
             Title = None
             TitleStyle = TitleStyle.defaults
@@ -144,9 +150,13 @@ module Graph =
             YScale = withScaleDomain (rangeMin - rangePadding, rangeMax + rangePadding) graph.YScale }
 
     let private recalcBounds graph =
-        let domain, range = pointBounds graph.Series
+        let domain, _ = pointBounds graph.Series
+        let leftSeries = graph.Series |> List.filter (fun s -> s.YAxis = YLeft)
+        let _, leftRange =
+            if leftSeries.IsEmpty then pointBounds graph.Series
+            else pointBounds leftSeries
         let newXScale = Scale.linear (applyPolicy graph.DomainPolicy domain) (pixelRangeOf graph.XScale)
-        let newYScale = Scale.linear (applyPolicy graph.DomainPolicy range) (pixelRangeOf graph.YScale)
+        let newYScale = Scale.linear (applyPolicy graph.DomainPolicy leftRange) (pixelRangeOf graph.YScale)
         let xAxis, yAxis = defaultAxes newXScale newYScale
         {
             graph with
@@ -184,6 +194,14 @@ module Graph =
     let addAnnotation annotation (graph : Graph) = { graph with Annotations = graph.Annotations @ [ annotation ] }
     let withLegend legend (graph : Graph) = { graph with Legend = Some legend }
     let withLayoutSpacing spacing (graph : Graph) = { graph with LayoutSpacing = spacing }
+
+    let withRightYRange range (graph : Graph) =
+        let cs = canvasSizeOf graph
+        let yScaleRight = Scale.linear range (cs, 0.0)
+        let rightAxis = Axis.create AxisPosition.Right yScaleRight
+        { graph with YScaleRight = Some yScaleRight; RightAxis = Some rightAxis }
+
+    let withRightAxis rightAxis (graph : Graph) = { graph with RightAxis = rightAxis }
 
     // ── Rendering ───────────────────────────────────────────────────────────────
 
@@ -291,8 +309,7 @@ module Graph =
         | Dotted -> style |> Style.withStrokeDashArray [ 3.0; 6.0 ]
         | DashDot -> style |> Style.withStrokeDashArray [ 12.0; 6.0; 3.0; 6.0 ]
 
-    let private errorBarElements (pen : Pen) (points : (float * float) list) (errorBar : ErrorBar) (graph : Graph) =
-        let cs = snd (pixelRangeOf graph.XScale)
+    let private errorBarElements (pen : Pen) (points : (float * float) list) (errorBar : ErrorBar) (toCoord : float * float -> float * float) (cs : float) =
         let capHalfWidth = cs * 0.005
         let style = Style.createWithPen pen
         let errorsFor i =
@@ -306,9 +323,9 @@ module Graph =
         points
         |> List.mapi (fun i (x, y) ->
             let errLow, errHigh = errorsFor i
-            let svgX, _ = toScaledSvgCoordinates graph (x, y)
-            let _, svgYBottom = toScaledSvgCoordinates graph (x, y - errLow)
-            let _, svgYTop = toScaledSvgCoordinates graph (x, y + errHigh)
+            let svgX, _ = toCoord (x, y)
+            let _, svgYBottom = toCoord (x, y - errLow)
+            let _, svgYTop = toCoord (x, y + errHigh)
             [
                 Line.create (Point.ofFloats (svgX, svgYBottom)) (Point.ofFloats (svgX, svgYTop))
                 |> Element.createWithStyle style
@@ -320,13 +337,18 @@ module Graph =
         |> List.concat
 
     let drawSeries graph =
-        let toSvgPoint point = point |> toScaledSvgCoordinates graph |> Point.ofFloats
         let stackingMap = computeStacking graph.Series
         let barLayouts = computeBarLayouts graph.Series
         let seriesToElements i (series : Series) =
             if series.Visible then
                 let cs = snd (pixelRangeOf graph.XScale)
                 let sf = cs / canvasSize
+                let yScale =
+                    match series.YAxis with
+                    | YLeft -> graph.YScale
+                    | YRight -> graph.YScaleRight |> Option.defaultValue graph.YScale
+                let toCoord (x, y) = Scale.apply graph.XScale x, Scale.apply yScale y
+                let toSvgPoint pt = toCoord pt |> Point.ofFloats
                 let seriesPen = Theme.penForSeries i graph.Theme |> Pen.withOpacity series.Opacity
                 match series.Kind with
                 | Scatter ->
@@ -409,8 +431,8 @@ module Graph =
                     let fillStyle = Style.createWithPen seriesPen |> Style.withFillPen seriesPen
                     series.Points
                     |> List.map (fun (binLeft, count) ->
-                        let svgX1, svgY1 = toScaledSvgCoordinates graph (binLeft, count)
-                        let svgX2, svgY2 = toScaledSvgCoordinates graph (binLeft + binWidth, 0.0)
+                        let svgX1, svgY1 = toCoord (binLeft, count)
+                        let svgX2, svgY2 = toCoord (binLeft + binWidth, 0.0)
                         Rect.create
                             (Point.ofFloats (svgX1, svgY1))
                             (Area.ofFloats (svgX2 - svgX1, svgY2 - svgY1))
@@ -419,8 +441,8 @@ module Graph =
                     match series.Points with
                     | [ (xPos, yMin); (_, q1); (_, median); (_, q3); (_, yMax) ] ->
                         let halfWidth = (series.PointRadius |> Option.defaultValue (canvasSize * 0.04)) * sf
-                        let svgX = fst (toScaledSvgCoordinates graph (xPos, 0.0))
-                        let svgY value = snd (toScaledSvgCoordinates graph (0.0, value))
+                        let svgX = fst (toCoord (xPos, 0.0))
+                        let svgY value = snd (toCoord (0.0, value))
                         let svgMin = svgY yMin
                         let svgQ1 = svgY q1
                         let svgMedian = svgY median
@@ -460,8 +482,8 @@ module Graph =
                         let ySamples = [ for k in 0 .. nSamples - 1 -> yStart + float k * yStep ]
                         let densities = ySamples |> List.map (gaussianKde bandwidth rawValues)
                         let maxDensity = densities |> List.max |> max epsilon
-                        let svgX = fst (toScaledSvgCoordinates graph (xPos, 0.0))
-                        let svgY y = snd (toScaledSvgCoordinates graph (0.0, y))
+                        let svgX = fst (toCoord (xPos, 0.0))
+                        let svgY y = snd (toCoord (0.0, y))
                         let rightPts =
                             List.map2 (fun y d ->
                                 Point.ofFloats (svgX + (d / maxDensity) * halfWidth, svgY y))
@@ -511,8 +533,8 @@ module Graph =
                         let xOffset = (float groupIdx - float (groupCount - 1) / 2.0) * barWidth
                         series.Points
                         |> List.map (fun (catX, value) ->
-                            let svgX1, svgY1 = toScaledSvgCoordinates graph (catX + xOffset - barWidth / 2.0, value)
-                            let svgX2, svgY2 = toScaledSvgCoordinates graph (catX + xOffset + barWidth / 2.0, 0.0)
+                            let svgX1, svgY1 = toCoord (catX + xOffset - barWidth / 2.0, value)
+                            let svgX2, svgY2 = toCoord (catX + xOffset + barWidth / 2.0, 0.0)
                             Rect.create
                                 (Point.ofFloats (min svgX1 svgX2, min svgY1 svgY2))
                                 (Area.ofFloats (abs (svgX2 - svgX1), abs (svgY2 - svgY1)))
@@ -527,8 +549,8 @@ module Graph =
                         let yOffset = (float groupIdx - float (groupCount - 1) / 2.0) * barHeight
                         series.Points
                         |> List.map (fun (value, catY) ->
-                            let svgX1, svgY1 = toScaledSvgCoordinates graph (0.0, catY + yOffset + barHeight / 2.0)
-                            let svgX2, svgY2 = toScaledSvgCoordinates graph (value, catY + yOffset - barHeight / 2.0)
+                            let svgX1, svgY1 = toCoord (0.0, catY + yOffset + barHeight / 2.0)
+                            let svgX2, svgY2 = toCoord (value, catY + yOffset - barHeight / 2.0)
                             Rect.create
                                 (Point.ofFloats (min svgX1 svgX2, min svgY1 svgY2))
                                 (Area.ofFloats (abs (svgX2 - svgX1), abs (svgY2 - svgY1)))
@@ -550,8 +572,8 @@ module Graph =
                         let cellHeight = minSpacing ys
                         List.zip series.Points values
                         |> List.map (fun ((col, row), value) ->
-                            let svgX1, svgY1 = toScaledSvgCoordinates graph (col - cellWidth / 2.0, row + cellHeight / 2.0)
-                            let svgX2, svgY2 = toScaledSvgCoordinates graph (col + cellWidth / 2.0, row - cellHeight / 2.0)
+                            let svgX1, svgY1 = toCoord (col - cellWidth / 2.0, row + cellHeight / 2.0)
+                            let svgX2, svgY2 = toCoord (col + cellWidth / 2.0, row - cellHeight / 2.0)
                             let color = colorScale value
                             Rect.create
                                 (Point.ofFloats (min svgX1 svgX2, min svgY1 svgY2))
@@ -582,13 +604,13 @@ module Graph =
                         let wickWidth = (series.StrokeWidth |> Option.defaultValue (canvasSize * 0.0015)) * sf
                         priceBars
                         |> List.collect (fun bar ->
-                            let svgCX, _ = toScaledSvgCoordinates graph (bar.X, 0.0)
-                            let svgLeft, _ = toScaledSvgCoordinates graph (bar.X - halfBar, 0.0)
-                            let svgRight, _ = toScaledSvgCoordinates graph (bar.X + halfBar, 0.0)
-                            let svgOpen = snd (toScaledSvgCoordinates graph (0.0, bar.Open))
-                            let svgClose = snd (toScaledSvgCoordinates graph (0.0, bar.Close))
-                            let svgHigh = snd (toScaledSvgCoordinates graph (0.0, bar.High))
-                            let svgLow = snd (toScaledSvgCoordinates graph (0.0, bar.Low))
+                            let svgCX, _ = toCoord (bar.X, 0.0)
+                            let svgLeft, _ = toCoord (bar.X - halfBar, 0.0)
+                            let svgRight, _ = toCoord (bar.X + halfBar, 0.0)
+                            let svgOpen = snd (toCoord (0.0, bar.Open))
+                            let svgClose = snd (toCoord (0.0, bar.Close))
+                            let svgHigh = snd (toCoord (0.0, bar.High))
+                            let svgLow = snd (toCoord (0.0, bar.Low))
                             let fillColor = if bar.Close >= bar.Open then graph.Theme.UpColor else graph.Theme.DownColor
                             let colorPen = Pen.create fillColor |> Pen.withOpacity series.Opacity
                             let wickStyle = Style.createWithPen (colorPen |> Pen.withWidth (Length.ofFloat wickWidth)) |> Style.withFillOpacity 0.0
@@ -636,10 +658,10 @@ module Graph =
                         let barElements =
                             barData
                             |> List.collect (fun (x, baseline, top, isTotal) ->
-                                let svgX1, _ = toScaledSvgCoordinates graph (x - barHalfWidth, 0.0)
-                                let svgX2, _ = toScaledSvgCoordinates graph (x + barHalfWidth, 0.0)
-                                let _, svgTop = toScaledSvgCoordinates graph (0.0, max baseline top)
-                                let _, svgBottom = toScaledSvgCoordinates graph (0.0, min baseline top)
+                                let svgX1, _ = toCoord (x - barHalfWidth, 0.0)
+                                let svgX2, _ = toCoord (x + barHalfWidth, 0.0)
+                                let _, svgTop = toCoord (0.0, max baseline top)
+                                let _, svgBottom = toCoord (0.0, min baseline top)
                                 let barHeight = max sf (svgBottom - svgTop)
                                 let color =
                                     if isTotal then neutralPen.Color
@@ -661,9 +683,9 @@ module Graph =
                             barData
                             |> List.pairwise
                             |> List.collect (fun ((x1, _, top1, _), (x2, _, _, _)) ->
-                                let _, svgY = toScaledSvgCoordinates graph (0.0, top1)
-                                let svgRight, _ = toScaledSvgCoordinates graph (x1 + barHalfWidth, 0.0)
-                                let svgLeft, _ = toScaledSvgCoordinates graph (x2 - barHalfWidth, 0.0)
+                                let _, svgY = toCoord (0.0, top1)
+                                let svgRight, _ = toCoord (x1 + barHalfWidth, 0.0)
+                                let svgLeft, _ = toCoord (x2 - barHalfWidth, 0.0)
                                 [ Line.create (Point.ofFloats (svgRight, svgY)) (Point.ofFloats (svgLeft, svgY))
                                   |> Element.createWithStyle connectorStyle ])
                         barElements @ connectors
@@ -676,7 +698,7 @@ module Graph =
                             Style.createWithPen strokePen
                             |> Style.withFillPen strokePen
                             |> applyDash series.StrokeDash
-                        let toSvgXY x y = toScaledSvgCoordinates graph (x, y) |> Point.ofFloats
+                        let toSvgXY x y = toCoord (x, y) |> Point.ofFloats
                         let topPts = List.map2 toSvgXY xValues tops
                         let basePts = List.map2 toSvgXY xValues baselines
                         [ Polygon.ofList (topPts @ List.rev basePts) |> Element.createWithStyle style ]
@@ -889,6 +911,7 @@ module Graph =
                                 sliceEl :: labelEls)
                             |> List.concat
             else []
+        let cs = snd (pixelRangeOf graph.XScale)
         let errorElements =
             graph.Series
             |> List.mapi (fun i series ->
@@ -897,7 +920,12 @@ module Graph =
                     | None -> []
                     | Some errorBar ->
                         let seriesPen = Theme.penForSeries i graph.Theme |> Pen.withOpacity series.Opacity
-                        errorBarElements seriesPen series.Points errorBar graph
+                        let yScale =
+                            match series.YAxis with
+                            | YLeft -> graph.YScale
+                            | YRight -> graph.YScaleRight |> Option.defaultValue graph.YScale
+                        let toCoord (x, y) = Scale.apply graph.XScale x, Scale.apply yScale y
+                        errorBarElements seriesPen series.Points errorBar toCoord cs
                 else [])
             |> List.concat
         (graph.Series |> List.mapi seriesToElements |> List.concat) @ errorElements

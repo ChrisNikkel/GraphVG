@@ -12,6 +12,7 @@
     <Compile Include="PolarCharts.fs" />
     <Compile Include="RetroCharts.fs" />
     <Compile Include="PlotCharts.fs" />
+    <Compile Include="DualAxisCharts.fs" />
     <Compile Include="Example.fs" />
   </ItemGroup>
   <ItemGroup>

@@ -198,6 +198,12 @@ let examples =
             Description = "Logo turtle graphics aesthetic — single bright green on black, no grid."
             Render = fun () -> GraphVG.toSvg RetroCharts.turtleGraph
         }
+        {
+            FileName = "dual-axis.html"
+            Title = "Dual Y-Axis"
+            Description = "Fictional 162-game baseball season: cumulative wins on the left axis, team batting average on the right — two independent scales on one chart."
+            Render = fun () -> GraphVG.toSvg DualAxisCharts.dualAxisGraph
+        }
     ]
 
 let galleryHtml pages =

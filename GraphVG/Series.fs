@@ -56,6 +56,8 @@ type SeriesKind =
     | Pie of labels: string option list
     | SegmentedLine
 
+type YAxisSide = YLeft | YRight
+
 type Series =
     {
         Points : (float * float) list
@@ -70,6 +72,7 @@ type Series =
         ColorScale : (float -> Color) option
         ErrorBars : ErrorBar option
         Tooltip : (float * float -> string) option
+        YAxis : YAxisSide
     }
 
 module Series =
@@ -88,6 +91,7 @@ module Series =
             ColorScale = None
             ErrorBars = None
             Tooltip = None
+            YAxis = YLeft
         }
 
     let scatter points =
@@ -194,6 +198,8 @@ module Series =
 
     let withTooltip (f : float * float -> string) (series : Series) =
         { series with Tooltip = Some f }
+
+    let onRightAxis (series : Series) = { series with YAxis = YRight }
 
     let ofFunction kind (f: float -> float * float) tMin tMax samples =
         let points =
