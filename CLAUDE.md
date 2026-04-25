@@ -2,6 +2,14 @@
 
 F# library for generating SVG-based graphs using SharpVG.
 
+## Token Efficiency
+
+Use the [caveman plugin](https://github.com/juliusbrussee/caveman) to reduce output tokens by ~75%. Activate with `/caveman` or "less tokens". Stops with "stop caveman" or "normal mode". Install:
+
+```bash
+claude plugin marketplace add JuliusBrussee/caveman && claude plugin install caveman@caveman
+```
+
 ## Project Structure
 
 ```fsharp
