@@ -82,31 +82,6 @@ let org =
 - Axes suppressed automatically.
 
 
-## REQ-28: Hexbin Chart
-
-Aggregate scatter data into hexagonal bins to reveal density patterns in large datasets without overplotting.
-
-```fsharp
-// Input: same (x, y) scatter data — binning is automatic
-Series.hexbin : float -> (float * float) list -> Series
-// First arg: hex radius in data units
-// SeriesKind: Hexbin of radius: float
-
-let density =
-    Series.hexbin 0.5 scatterPoints
-    |> Graph.createWithSeries
-    |> Graph.withTitle "Event Density"
-```
-
-**Acceptance criteria:**
-
-- Scatter points are binned into a regular hexagonal grid.
-- Each occupied bin renders as a hexagon; empty bins are invisible.
-- Color encodes count per bin using the theme's heatmap color scale (or a custom `withColorScale`).
-- A color ramp is rendered in the right margin (reusing the heatmap ramp).
-- Hexagon orientation: flat-top.
-
-
 ## REQ-29: Ridgeline / Joy Plot
 
 Compare distributions across many groups by stacking overlapping density curves vertically — useful when violin plots become too crowded.

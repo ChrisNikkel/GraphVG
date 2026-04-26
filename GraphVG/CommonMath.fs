@@ -105,6 +105,48 @@ module CommonMath =
         |> List.sumBy (fun xi -> let d = x - xi in exp (-d * d / twoHSq))
         |> fun total -> total / (n * h * sqrt (2.0 * System.Math.PI))
 
+    // ── Flat-top hexbin ──────────────────────────────────────────────────────────
+
+    let private sqrt3 = sqrt 3.0
+
+    /// Convert a data-space point to flat-top axial hex coordinates (q, r).
+    let private flatTopAxial (radius : float) (x : float, y : float) =
+        let qf = (2.0 / 3.0 * x) / radius
+        let rf = (-1.0 / 3.0 * x + sqrt3 / 3.0 * y) / radius
+        let sf = -qf - rf
+        let rq = round qf
+        let rr = round rf
+        let rs = round sf
+        let dq = abs (rq - qf)
+        let dr = abs (rr - rf)
+        let ds = abs (rs - sf)
+        if dq > dr && dq > ds then
+            int (-rr - rs), int rr
+        elif dr > ds then
+            int rq, int (-rq - rs)
+        else
+            int rq, int rr
+
+    /// Data-space center of a flat-top axial hex coordinate (q, r).
+    let hexFlatTopCenter (radius : float) (q : int, r : int) : float * float =
+        let x = radius * 1.5 * float q
+        let y = radius * (sqrt3 / 2.0 * float q + sqrt3 * float r)
+        x, y
+
+    /// Flat-top hexagon vertices for a given center and canvas-space radius.
+    let hexFlatTopVertices (cx : float, cy : float) (r : float) : (float * float) list =
+        [ for i in 0 .. 5 ->
+            let angle = System.Math.PI / 3.0 * float i
+            cx + r * cos angle, cy + r * sin angle ]
+
+    /// Bin a list of (x, y) points into flat-top hexagonal bins.
+    /// Returns (q, r, count) triples for occupied bins only.
+    let hexbinBins (radius : float) (points : (float * float) list) : (int * int * int) list =
+        points
+        |> List.map (flatTopAxial radius)
+        |> List.groupBy id
+        |> List.map (fun ((q, r), vs) -> q, r, vs.Length)
+
     // ── Squarified treemap ───────────────────────────────────────────────────────
 
     type TreemapRect =

@@ -123,21 +123,34 @@ module Layout =
     let private rampSegments = 20
 
     let private heatSeries (graph : Graph) =
-        graph.Series |> List.filter (fun s -> match s.Kind with | Heatmap _ -> true | _ -> false)
+        graph.Series
+        |> List.filter (fun s ->
+            match s.Kind with
+            | Heatmap _ | Hexbin _ -> true
+            | _ -> false)
 
     let private formatRampValue (v : float) =
         if v = 0.0 then "0"
         elif abs v >= 1000.0 || (abs v < 0.01 && v <> 0.0) then sprintf "%.2g" v
         else sprintf "%.3g" v
 
+    let private rampMinMax (series : Series) =
+        match series.Kind with
+        | Heatmap values ->
+            if List.isEmpty values then 0.0, 1.0
+            else List.min values, List.max values
+        | Hexbin radius ->
+            let bins = CommonMath.hexbinBins radius series.Points
+            let maxCount = if bins.IsEmpty then 1 else bins |> List.map (fun (_, _, c) -> c) |> List.max
+            0.0, float maxCount
+        | _ -> 0.0, 1.0
+
     let private heatmapRampPadding (graph : Graph) =
         let sf = Graph.canvasSizeOf graph / canvasSize
         match heatSeries graph with
         | [] -> emptyPadding
         | first :: _ ->
-            let heatValues = match first.Kind with | Heatmap values -> values | _ -> []
-            let minVal = if List.isEmpty heatValues then 0.0 else List.min heatValues
-            let maxVal = if List.isEmpty heatValues then 1.0 else List.max heatValues
+            let minVal, maxVal = rampMinMax first
             let maxLabelWidth =
                 [ formatRampValue minVal; formatRampValue maxVal ]
                 |> List.map (estimatedTextWidth rampFontSize)
@@ -151,9 +164,7 @@ module Layout =
         match heatSeries graph with
         | [] -> []
         | first :: _ ->
-            let heatValues = match first.Kind with | Heatmap values -> values | _ -> []
-            let minVal = if List.isEmpty heatValues then 0.0 else List.min heatValues
-            let maxVal = if List.isEmpty heatValues then 1.0 else List.max heatValues
+            let minVal, maxVal = rampMinMax first
             let colorScale = first.ColorScale |> Option.defaultValue (Theme.defaultHeatmapColorScale minVal maxVal)
             let rampX = cs + rampMargin * sf
             let labelX = rampX + rampBarWidth * sf + rampLabelGap * sf

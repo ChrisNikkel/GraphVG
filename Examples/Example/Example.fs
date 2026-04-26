@@ -258,6 +258,18 @@ let examples =
             Description = "Fictional manufacturing quality metrics — four bullet rows on a dark theme showing actual vs target for yield, defects, uptime, and OEE."
             Render = fun () -> GraphVG.toSvg BulletCharts.manufacturingGraph
         }
+        {
+            FileName = "hexbin-seismic.html"
+            Title = "Hexbin Chart"
+            Description = "Fictional seismic event density — 600 events binned into flat-top hexagons; color encodes count per bin using the default heatmap scale."
+            Render = fun () -> GraphVG.toSvg HexbinCharts.densityGraph
+        }
+        {
+            FileName = "hexbin-collision.html"
+            Title = "Hexbin Chart (Dark)"
+            Description = "Fictional particle collision density — 800 events from two overlapping Gaussian sources binned on a dark theme."
+            Render = fun () -> GraphVG.toSvg HexbinCharts.collisionGraph
+        }
     ]
 
 let galleryHtml pages =

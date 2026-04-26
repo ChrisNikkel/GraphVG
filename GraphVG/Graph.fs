@@ -1062,6 +1062,34 @@ module Graph =
                                       |> Element.createWithStyle labelStyle ]
                             labelElements @ rangeElements @ [ actualEl; tickEl ])
                         |> List.concat
+                | Hexbin radius ->
+                    if series.Points.IsEmpty then []
+                    else
+                        let bins = CommonMath.hexbinBins radius series.Points
+                        if bins.IsEmpty then []
+                        else
+                            let maxCount = bins |> List.map (fun (_, _, c) -> c) |> List.max
+                            let colorScale =
+                                series.ColorScale
+                                |> Option.defaultValue (Theme.defaultHeatmapColorScale 0.0 (float maxCount))
+                            let (xDomMin, xDomMax) = Scale.domain graph.XScale
+                            let xDomSpan = xDomMax - xDomMin
+                            let hexRadiusPx = if xDomSpan > epsilon then radius / xDomSpan * cs else 0.0
+                            bins
+                            |> List.collect (fun (q, r, count) ->
+                                let dataCx, dataCy = CommonMath.hexFlatTopCenter radius (q, r)
+                                let svgCx = Scale.apply graph.XScale dataCx
+                                let svgCy = Scale.apply yScale dataCy
+                                let verts = CommonMath.hexFlatTopVertices (svgCx, svgCy) hexRadiusPx
+                                let color = colorScale (float count)
+                                let fillStyle =
+                                    Style.empty
+                                    |> Style.withFill color
+                                    |> Style.withFillOpacity series.Opacity
+                                let hexEl =
+                                    Polygon.ofList (verts |> List.map Point.ofFloats)
+                                    |> Element.createWithStyle fillStyle
+                                [ hexEl ])
                 | Pie sliceLabels ->
                     if series.Points.IsEmpty then []
                     else

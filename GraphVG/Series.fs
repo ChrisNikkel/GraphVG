@@ -74,6 +74,7 @@ type SeriesKind =
     | HorizontalLollipop
     | Treemap of labels: string list
     | Bullet of bullets: BulletData list
+    | Hexbin of radius: float
 
 type YAxisSide = YLeft | YRight
 
@@ -309,6 +310,9 @@ module Series =
 
     let bullet (bullets : BulletData list) =
         create (Bullet bullets) []
+
+    let hexbin (radius : float) (points : (float * float) list) =
+        create (Hexbin radius) points
 
     let withSliceLabels (labels : string list) (series : Series) =
         match series.Kind with
