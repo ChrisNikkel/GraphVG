@@ -112,13 +112,13 @@ module Graph =
         let policy =
             match series.Kind with
             | Histogram _ | Bar | HorizontalBar | Waterfall _ | Lollipop | HorizontalLollipop -> IncludeZero
-            | Heatmap _ | ParallelSets _ | Pie _ | Funnel _ -> Tight
+            | Heatmap _ | ParallelSets _ | Pie _ | Funnel _ | Treemap _ -> Tight
             | _ -> Padded 0.1
         let domain, range = pointBounds [ series ]
         let xScale, yScale = buildScales (applyPolicy policy domain) (applyPolicy policy range)
         let xAxis, yAxis =
             match series.Kind with
-            | ParallelSets _ | Pie _ | Funnel _ -> None, None
+            | ParallelSets _ | Pie _ | Funnel _ | Treemap _ -> None, None
             | _ -> defaultAxes xScale yScale
         {
             Series = [ series ]
@@ -942,6 +942,52 @@ module Graph =
                                 |> Element.createWithStyle textStyle
                             [ trapezoid; nameEl; valueEl ])
                         |> List.concat
+                | Treemap labels ->
+                    if series.Points.IsEmpty then []
+                    else
+                        let values = series.Points |> List.map snd
+                        let padding = cs * 0.002
+                        let rects = CommonMath.squarifiedTreemap 0.0 0.0 cs cs values
+                        rects
+                        |> List.collect (fun rect ->
+                            let label = labels |> List.tryItem rect.Index |> Option.defaultValue ""
+                            let value = values |> List.tryItem rect.Index |> Option.defaultValue 0.0
+                            let color = (Theme.penForSeries rect.Index graph.Theme).Color
+                            let rectStyle =
+                                Style.empty
+                                |> Style.withFill color
+                                |> Style.withFillOpacity series.Opacity
+                                |> Style.withStroke (graph.Theme.Background)
+                                |> Style.withStrokeWidth (Length.ofFloat (cs * 0.003))
+                            let rx = rect.X + padding
+                            let ry = rect.Y + padding
+                            let rw = max 0.0 (rect.W - 2.0 * padding)
+                            let rh = max 0.0 (rect.H - 2.0 * padding)
+                            let rectEl =
+                                Rect.create (Point.ofFloats (rx, ry)) (Area.ofFloats (rw, rh))
+                                |> Element.createWithStyle rectStyle
+                            let minDim = min rw rh
+                            if minDim < cs * 0.04 then [ rectEl ]
+                            else
+                                let fontSize = clamp (cs * 0.012) (cs * 0.028) (minDim * 0.18) * sf
+                                let cx = rx + rw / 2.0
+                                let cy = ry + rh / 2.0
+                                let textColor = Color.ofName White
+                                let textStyle = Style.empty |> Style.withFill textColor
+                                let pct = if List.sum values > 0.0 then value / List.sum values * 100.0 else 0.0
+                                let labelEl =
+                                    Text.create (Point.ofFloats (cx, cy - fontSize * 0.4)) label
+                                    |> Text.withFontSize fontSize
+                                    |> Text.withAnchor Middle
+                                    |> Text.withBaseline CentralBaseline
+                                    |> Element.createWithStyle textStyle
+                                let valueEl =
+                                    Text.create (Point.ofFloats (cx, cy + fontSize * 0.9)) (sprintf "%.1f%%" pct)
+                                    |> Text.withFontSize (fontSize * 0.75)
+                                    |> Text.withAnchor Middle
+                                    |> Text.withBaseline CentralBaseline
+                                    |> Element.createWithStyle textStyle
+                                [ rectEl; labelEl; valueEl ])
                 | Pie sliceLabels ->
                     if series.Points.IsEmpty then []
                     else

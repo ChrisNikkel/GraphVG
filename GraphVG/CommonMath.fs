@@ -104,3 +104,68 @@ module CommonMath =
         values
         |> List.sumBy (fun xi -> let d = x - xi in exp (-d * d / twoHSq))
         |> fun total -> total / (n * h * sqrt (2.0 * System.Math.PI))
+
+    // ── Squarified treemap ───────────────────────────────────────────────────────
+
+    type TreemapRect =
+        {
+            X : float
+            Y : float
+            W : float
+            H : float
+            Index : int
+        }
+
+    let squarifiedTreemap (x : float) (y : float) (w : float) (h : float) (values : float list) : TreemapRect list =
+        let total = List.sum values
+        if total <= 0.0 || values.IsEmpty then []
+        else
+            let normalised = values |> List.mapi (fun i v -> i, v * w * h / total)
+
+            let worst (shortSide : float) (rows : float list) =
+                let s = List.sum rows
+                let maxV = List.max rows
+                let minV = List.min rows
+                max (shortSide * shortSide * maxV / (s * s)) (s * s / (shortSide * shortSide * minV))
+
+            let layoutRow (rx : float) (ry : float) (rw : float) (rh : float) (row : (int * float) list) : TreemapRect list =
+                let rowArea = row |> List.sumBy snd
+                if rw >= rh then
+                    let colW = if rw > epsilon then rowArea / rh else 0.0
+                    row
+                    |> List.fold (fun (curY, acc) (idx, area) ->
+                        let cellH = if rowArea > epsilon then area / rowArea * rh else 0.0
+                        let rect = { X = rx; Y = curY; W = colW; H = cellH; Index = idx }
+                        curY + cellH, rect :: acc) (ry, [])
+                    |> snd
+                    |> List.rev
+                else
+                    let rowH = if rh > epsilon then rowArea / rw else 0.0
+                    row
+                    |> List.fold (fun (curX, acc) (idx, area) ->
+                        let cellW = if rowArea > epsilon then area / rowArea * rw else 0.0
+                        let rect = { X = curX; Y = ry; W = cellW; H = rowH; Index = idx }
+                        curX + cellW, rect :: acc) (rx, [])
+                    |> snd
+                    |> List.rev
+
+            let rec squarify (items : (int * float) list) (row : (int * float) list) (rx : float) (ry : float) (rw : float) (rh : float) (acc : TreemapRect list) =
+                match items with
+                | [] ->
+                    if row.IsEmpty then acc
+                    else acc @ layoutRow rx ry rw rh row
+                | item :: rest ->
+                    let shortSide = min rw rh
+                    let newRow = row @ [ item ]
+                    let rowVals = newRow |> List.map snd
+                    if row.IsEmpty || worst shortSide (row |> List.map snd) >= worst shortSide rowVals then
+                        squarify rest newRow rx ry rw rh acc
+                    else
+                        let placed = layoutRow rx ry rw rh row
+                        let rowArea = row |> List.sumBy snd
+                        let rx2, ry2, rw2, rh2 =
+                            if rw >= rh then rx + rowArea / rh, ry, rw - rowArea / rh, rh
+                            else rx, ry + rowArea / rw, rw, rh - rowArea / rw
+                        squarify items [] rx2 ry2 rw2 rh2 (acc @ placed)
+
+            squarify normalised [] x y w h []

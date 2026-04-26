@@ -234,6 +234,18 @@ let examples =
             Description = "Two overlaid lollipop series comparing fictional scores across two years — unlike grouped bars, lollipop series overlay so the comparison is direct."
             Render = fun () -> GraphVG.toSvg LollipopCharts.comparisonGraph
         }
+        {
+            FileName = "treemap-portfolio.html"
+            Title = "Treemap"
+            Description = "Fictional portfolio allocation by asset class — space-filling rectangles sized by value using the squarified algorithm to minimise aspect ratio."
+            Render = fun () -> GraphVG.toSvg TreemapCharts.portfolioGraph
+        }
+        {
+            FileName = "treemap-budget.html"
+            Title = "Treemap (Dark)"
+            Description = "Fictional federal budget breakdown by department — same squarified treemap on a dark theme."
+            Render = fun () -> GraphVG.toSvg TreemapCharts.budgetGraph
+        }
     ]
 
 let galleryHtml pages =

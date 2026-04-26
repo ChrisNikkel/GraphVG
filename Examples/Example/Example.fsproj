@@ -15,6 +15,7 @@
     <Compile Include="DualAxisCharts.fs" />
     <Compile Include="FunnelCharts.fs" />
     <Compile Include="LollipopCharts.fs" />
+    <Compile Include="TreemapCharts.fs" />
     <Compile Include="Example.fs" />
   </ItemGroup>
   <ItemGroup>

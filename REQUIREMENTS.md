@@ -48,36 +48,6 @@ let tasks =
 - Works with standard axis labels and tick formatting to show dates or day numbers.
 
 
-## REQ-25: Treemap
-
-Display hierarchical or flat categorical data as space-filling rectangles sized by value — good for portfolios, file systems, and budget breakdowns.
-
-```fsharp
-// Flat treemap: (label, value) pairs
-Series.treemap : (string * float) list -> Series
-// SeriesKind: Treemap of labels: string list
-
-let holdings =
-    Series.treemap [
-        "Equities",   52.0
-        "Bonds",      23.0
-        "Real Estate", 12.0
-        "Commodities", 8.0
-        "Cash",        5.0
-    ]
-    |> Graph.createWithSeries
-    |> Graph.withTitle "Portfolio Allocation"
-```
-
-**Acceptance criteria:**
-
-- Uses the squarified treemap algorithm to minimize aspect ratio of rectangles.
-- Each rectangle labeled with name and optionally value/percentage.
-- Colors cycle through theme pens.
-- Axes suppressed automatically.
-- Rectangles fill the full canvas area.
-
-
 ## REQ-26: Sunburst Diagram
 
 Hierarchical radial chart where each ring represents a level of the hierarchy — an alternative to treemap for showing part-to-whole relationships in a circular layout.
