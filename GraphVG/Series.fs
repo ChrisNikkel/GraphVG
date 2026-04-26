@@ -75,6 +75,7 @@ type SeriesKind =
     | Treemap of labels: string list
     | Bullet of bullets: BulletData list
     | Hexbin of radius: float
+    | RidgeLine of rawValues: float list
 
 type YAxisSide = YLeft | YRight
 
@@ -314,6 +315,10 @@ module Series =
     let hexbin (radius : float) (points : (float * float) list) =
         create (Hexbin radius) points
 
+    let ridgeLine (yBaseline : float) (values : float list) =
+        let points = values |> List.map (fun v -> v, yBaseline)
+        create (RidgeLine values) points
+
     let withSliceLabels (labels : string list) (series : Series) =
         match series.Kind with
         | Pie _ -> { series with Kind = Pie (labels |> List.map Some) }
@@ -359,6 +364,13 @@ module Series =
             let yMin = bars |> List.map (fun b -> b.Low) |> List.min
             let yMax = bars |> List.map (fun b -> b.High) |> List.max
             (List.min xs, List.max xs), (yMin, yMax)
+        | RidgeLine rawValues ->
+            let xs, ys = series.Points |> List.unzip
+            let yBaseline = if ys.IsEmpty then 0.0 else List.min ys
+            let height = series.PointRadius |> Option.defaultValue 1.0
+            let xMin = if rawValues.IsEmpty then 0.0 else List.min rawValues
+            let xMax = if rawValues.IsEmpty then 1.0 else List.max rawValues
+            (xMin, xMax), (yBaseline, yBaseline + height)
         | ParallelSets _ | Pie _ | Funnel _ | Treemap _ | Bullet _ ->
             (0.0, 1.0), (0.0, 1.0)
         | SegmentedLine ->

@@ -82,38 +82,6 @@ let org =
 - Axes suppressed automatically.
 
 
-## REQ-29: Ridgeline / Joy Plot
-
-Compare distributions across many groups by stacking overlapping density curves vertically — useful when violin plots become too crowded.
-
-```fsharp
-// Each series is one group; yPosition controls vertical offset
-Series.ridgeLine : float -> float list -> Series
-// First arg: y position (group baseline in data space)
-// Second arg: raw values for KDE
-// SeriesKind: RidgeLine of rawValues: float list
-
-let groups =
-    [ "Q1", 1.0, q1Values
-      "Q2", 2.0, q2Values
-      "Q3", 3.0, q3Values ]
-    |> List.map (fun (label, y, values) ->
-        Series.ridgeLine y values |> Series.withLabel label)
-
-let graph =
-    Graph.create groups (xMin, xMax) (0.0, 4.0)
-    |> Graph.withTheme Theme.light
-```
-
-**Acceptance criteria:**
-
-- KDE is computed with Silverman's rule (reuse `CommonMath.gaussianKde`).
-- Each group renders as a filled area curve at its y offset; the fill extends down to the baseline.
-- Groups can overlap (ridgeline effect) — layering follows series order.
-- Bandwidth adjustable via `Series.withPointRadius` (interpreted as a bandwidth multiplier).
-- Y axis labels show group names via tick formatting.
-
-
 ## REQ-30: Calendar Heatmap
 
 Day-of-week × week-of-year grid colored by value — the GitHub contribution graph pattern, useful for any daily time-series data.

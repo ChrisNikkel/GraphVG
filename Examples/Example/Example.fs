@@ -270,6 +270,18 @@ let examples =
             Description = "Fictional particle collision density — 800 events from two overlapping Gaussian sources binned on a dark theme."
             Render = fun () -> GraphVG.toSvg HexbinCharts.collisionGraph
         }
+        {
+            FileName = "ridgeline-response.html"
+            Title = "Ridgeline / Joy Plot"
+            Description = "Fictional server response-time distributions across five regions — overlapping KDE curves reveal the spread and shift from US-East to AP-East latency profiles."
+            Render = fun () -> GraphVG.toSvg RidgelineCharts.responseTimeGraph
+        }
+        {
+            FileName = "ridgeline-exams.html"
+            Title = "Ridgeline / Joy Plot (Dark)"
+            Description = "Fictional exam score distributions across five annual cohorts — ridgeline stacking shows the gradual improvement in scores from 2020 to 2024."
+            Render = fun () -> GraphVG.toSvg RidgelineCharts.examScoreGraph
+        }
     ]
 
 let galleryHtml pages =

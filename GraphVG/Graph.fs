@@ -1090,6 +1090,42 @@ module Graph =
                                     Polygon.ofList (verts |> List.map Point.ofFloats)
                                     |> Element.createWithStyle fillStyle
                                 [ hexEl ])
+                | RidgeLine rawValues ->
+                    if rawValues.IsEmpty then []
+                    else
+                        let ys = series.Points |> List.map snd
+                        let yBaseline = if ys.IsEmpty then 0.0 else List.min ys
+                        let bandwidthMultiplier = series.PointRadius |> Option.defaultValue 1.0
+                        let bandwidth = CommonMath.silvermanBandwidth rawValues * bandwidthMultiplier
+                        let (xDomMin, xDomMax) = Scale.domain graph.XScale
+                        let kdeSteps = 80
+                        let kdeXs =
+                            [ for i in 0 .. kdeSteps ->
+                                xDomMin + float i / float kdeSteps * (xDomMax - xDomMin) ]
+                        let densities = kdeXs |> List.map (CommonMath.gaussianKde bandwidth rawValues)
+                        let maxDensity = densities |> List.max |> max epsilon
+                        let normHeight = 0.82
+                        let svgBaseline = snd (toCoord (0.0, yBaseline))
+                        let kdePts =
+                            List.map2 (fun x density ->
+                                let yData = yBaseline + density / maxDensity * normHeight
+                                toCoord (x, yData) |> Point.ofFloats) kdeXs densities
+                        let leftBase = toCoord (xDomMin, yBaseline) |> Point.ofFloats
+                        let rightBase = toCoord (xDomMax, yBaseline) |> Point.ofFloats
+                        let fillStyle =
+                            Style.empty
+                            |> Style.withFillPen (seriesPen |> Pen.withOpacity (series.Opacity * 0.55))
+                        let strokeStyle =
+                            Style.createWithPen seriesPen
+                            |> Style.withFillOpacity 0.0
+                            |> applyDash series.StrokeDash
+                        let fillEl =
+                            Polygon.ofList (leftBase :: kdePts @ [ rightBase ])
+                            |> Element.createWithStyle fillStyle
+                        let strokeEl =
+                            Polyline.ofList kdePts
+                            |> Element.createWithStyle strokeStyle
+                        [ fillEl; strokeEl ]
                 | Pie sliceLabels ->
                     if series.Points.IsEmpty then []
                     else
