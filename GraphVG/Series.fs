@@ -33,6 +33,20 @@ type ParallelFlow =
         Weight : float
     }
 
+type BulletRange =
+    {
+        Threshold : float
+        Label : string option
+    }
+
+type BulletData =
+    {
+        Label : string option
+        Actual : float
+        Target : float
+        Ranges : BulletRange list
+    }
+
 type SeriesKind =
     | Scatter
     | Line
@@ -59,6 +73,7 @@ type SeriesKind =
     | Lollipop
     | HorizontalLollipop
     | Treemap of labels: string list
+    | Bullet of bullets: BulletData list
 
 type YAxisSide = YLeft | YRight
 
@@ -292,6 +307,9 @@ module Series =
         let points = items |> List.mapi (fun i (_, v) -> float i, v)
         create (Treemap labels) points
 
+    let bullet (bullets : BulletData list) =
+        create (Bullet bullets) []
+
     let withSliceLabels (labels : string list) (series : Series) =
         match series.Kind with
         | Pie _ -> { series with Kind = Pie (labels |> List.map Some) }
@@ -337,7 +355,7 @@ module Series =
             let yMin = bars |> List.map (fun b -> b.Low) |> List.min
             let yMax = bars |> List.map (fun b -> b.High) |> List.max
             (List.min xs, List.max xs), (yMin, yMax)
-        | ParallelSets _ | Pie _ | Funnel _ | Treemap _ ->
+        | ParallelSets _ | Pie _ | Funnel _ | Treemap _ | Bullet _ ->
             (0.0, 1.0), (0.0, 1.0)
         | SegmentedLine ->
             let finite = series.Points |> List.filter (fun (x, y) -> not (Double.IsNaN x || Double.IsNaN y))

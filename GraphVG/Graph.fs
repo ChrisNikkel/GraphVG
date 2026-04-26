@@ -112,13 +112,13 @@ module Graph =
         let policy =
             match series.Kind with
             | Histogram _ | Bar | HorizontalBar | Waterfall _ | Lollipop | HorizontalLollipop -> IncludeZero
-            | Heatmap _ | ParallelSets _ | Pie _ | Funnel _ | Treemap _ -> Tight
+            | Heatmap _ | ParallelSets _ | Pie _ | Funnel _ | Treemap _ | Bullet _ -> Tight
             | _ -> Padded 0.1
         let domain, range = pointBounds [ series ]
         let xScale, yScale = buildScales (applyPolicy policy domain) (applyPolicy policy range)
         let xAxis, yAxis =
             match series.Kind with
-            | ParallelSets _ | Pie _ | Funnel _ | Treemap _ -> None, None
+            | ParallelSets _ | Pie _ | Funnel _ | Treemap _ | Bullet _ -> None, None
             | _ -> defaultAxes xScale yScale
         {
             Series = [ series ]
@@ -988,6 +988,80 @@ module Graph =
                                     |> Text.withBaseline CentralBaseline
                                     |> Element.createWithStyle textStyle
                                 [ rectEl; labelEl; valueEl ])
+                | Bullet bullets ->
+                    if bullets.IsEmpty then []
+                    else
+                        let n = bullets.Length
+                        let labelAreaW = cs * 0.22
+                        let barAreaX = labelAreaW + cs * 0.02
+                        let barAreaW = cs - barAreaX - cs * 0.02
+                        let rowH = cs / float n
+                        let barH = rowH * 0.28
+                        let actualH = rowH * 0.16
+                        let tickH = rowH * 0.44
+                        let maxThreshold =
+                            bullets
+                            |> List.collect (fun b -> b.Ranges |> List.map (fun r -> r.Threshold))
+                            |> List.append (bullets |> List.map (fun b -> b.Actual))
+                            |> List.append (bullets |> List.map (fun b -> b.Target))
+                            |> List.max
+                            |> max epsilon
+                        let toX v = barAreaX + v / maxThreshold * barAreaW
+                        let seriesPen = Theme.penForSeries i graph.Theme
+                        let labelFontSize = rowH * 0.22 * sf
+                        bullets
+                        |> List.mapi (fun i b ->
+                            let cy = (float i + 0.5) * rowH
+                            let rangeCount = b.Ranges.Length
+                            let rangeElements =
+                                b.Ranges
+                                |> List.mapi (fun ri range ->
+                                    let opacity = 0.2 + 0.55 * float (ri + 1) / float (max 1 rangeCount)
+                                    let prevThreshold = if ri = 0 then 0.0 else b.Ranges.[ri - 1].Threshold
+                                    let x0 = toX prevThreshold
+                                    let x1 = toX range.Threshold
+                                    let bandStyle =
+                                        Style.empty
+                                        |> Style.withFill seriesPen.Color
+                                        |> Style.withFillOpacity opacity
+                                    Rect.create
+                                        (Point.ofFloats (x0, cy - barH / 2.0))
+                                        (Area.ofFloats (x1 - x0, barH))
+                                    |> Element.createWithStyle bandStyle)
+                            let actualStyle =
+                                Style.empty
+                                |> Style.withFill seriesPen.Color
+                                |> Style.withFillOpacity series.Opacity
+                            let actualEl =
+                                Rect.create
+                                    (Point.ofFloats (barAreaX, cy - actualH / 2.0))
+                                    (Area.ofFloats (max 0.0 (toX b.Actual - barAreaX), actualH))
+                                |> Element.createWithStyle actualStyle
+                            let targetX = toX b.Target
+                            let tickStyle =
+                                Style.empty
+                                |> Style.withFill seriesPen.Color
+                                |> Style.withFillOpacity series.Opacity
+                            let tickW = cs * 0.008
+                            let tickEl =
+                                Rect.create
+                                    (Point.ofFloats (targetX - tickW / 2.0, cy - tickH / 2.0))
+                                    (Area.ofFloats (tickW, tickH))
+                                |> Element.createWithStyle tickStyle
+                            let labelElements =
+                                match b.Label with
+                                | None -> []
+                                | Some lbl ->
+                                    let labelStyle =
+                                        Style.empty
+                                        |> Style.withFill graph.Theme.AxisPen.Color
+                                    [ Text.create (Point.ofFloats (labelAreaW, cy)) lbl
+                                      |> Text.withFontSize (labelFontSize)
+                                      |> Text.withAnchor End
+                                      |> Text.withBaseline CentralBaseline
+                                      |> Element.createWithStyle labelStyle ]
+                            labelElements @ rangeElements @ [ actualEl; tickEl ])
+                        |> List.concat
                 | Pie sliceLabels ->
                     if series.Points.IsEmpty then []
                     else

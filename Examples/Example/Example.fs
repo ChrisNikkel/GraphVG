@@ -246,6 +246,18 @@ let examples =
             Description = "Fictional federal budget breakdown by department — same squarified treemap on a dark theme."
             Render = fun () -> GraphVG.toSvg TreemapCharts.budgetGraph
         }
+        {
+            FileName = "bullet-kpi.html"
+            Title = "Bullet Chart"
+            Description = "Fictional Q3 KPI dashboard — three metrics each with qualitative range bands (poor/ok/good), an actual value bar, and a target tick mark."
+            Render = fun () -> GraphVG.toSvg BulletCharts.kpiGraph
+        }
+        {
+            FileName = "bullet-manufacturing.html"
+            Title = "Bullet Chart (Dark)"
+            Description = "Fictional manufacturing quality metrics — four bullet rows on a dark theme showing actual vs target for yield, defects, uptime, and OEE."
+            Render = fun () -> GraphVG.toSvg BulletCharts.manufacturingGraph
+        }
     ]
 
 let galleryHtml pages =

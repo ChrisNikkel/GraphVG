@@ -82,50 +82,6 @@ let org =
 - Axes suppressed automatically.
 
 
-## REQ-27: Bullet Chart
-
-Compact performance visualization comparing an actual value against a target and qualitative range bands — a dashboard-friendly replacement for gauges.
-
-```fsharp
-type BulletRange =
-    {
-        Threshold : float
-        Label : string option
-    }
-
-type BulletData =
-    {
-        Label : string option
-        Actual : float
-        Target : float
-        Ranges : BulletRange list   // ordered low to high, colored light → dark
-    }
-
-Series.bullet : BulletData list -> Series
-// SeriesKind: Bullet of bullets: BulletData list
-
-let kpi =
-    Series.bullet [
-        { Label = Some "Revenue"
-          Actual = 275.0
-          Target = 260.0
-          Ranges = [
-            { Threshold = 200.0; Label = Some "Poor" }
-            { Threshold = 250.0; Label = Some "OK" }
-            { Threshold = 300.0; Label = Some "Good" }
-          ] }
-    ]
-```
-
-**Acceptance criteria:**
-
-- Range bands render as horizontal bars of decreasing opacity (light = poor, dark = good).
-- Actual value renders as a narrow foreground bar inside the ranges.
-- Target renders as a short vertical tick mark.
-- Multiple bullets stack vertically with consistent alignment.
-- Axes suppressed automatically; label drawn to the left of each bullet row.
-
-
 ## REQ-28: Hexbin Chart
 
 Aggregate scatter data into hexagonal bins to reveal density patterns in large datasets without overplotting.
